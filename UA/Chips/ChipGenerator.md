@@ -46,5 +46,5 @@
 3. **Complete**: Коли час вичерпано, відновлюються заряди, відтворюється анімація `Recharge`.
 
 ## Ефекти та Візуалізація
-- **ChipGeneratorEffect**: Відображає прогрес перезарядки (зазвичай через `maskRectTransform`, що "заповнює" іконку).
+- **[ChipGeneratorEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки (через `maskRectTransform`).
 - **Animator**: Використовує тригери `Generate` (при спавні) та `Recharge` (при завершенні зарядки).

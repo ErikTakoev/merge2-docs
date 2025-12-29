@@ -15,9 +15,9 @@
   - **MergeData**: Інформація про наступну фішку при злитті.
   - **Size**: Розмір фішки в клітинках (Vector2Int).
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int).
-- **Ефекти**: Керує візуальними ефектами, такими як:
-  - `MergeAvailableEffect`: Підсвітка при можливості злиття.
-  - `CellHighlightEffect`: Підсвітка клітинки під фішкою.
+- **Ефекти**: Керує візуальними ефектами, детальніше див. [Visual Effects](../Visuals/Effects.md):
+  - `MergeAvailableEffect`: Підсвітка при можливості злиття ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available-доступність-злиття)).
+  - `CellHighlightEffect`: Підсвітка клітинки під фішкою ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight-підсвітка-клітин)).
 - **Анімація**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`).
 
 ### 2. `MergeableChipLogic.cs` (Логіка Злиття)
