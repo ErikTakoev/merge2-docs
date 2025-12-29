@@ -41,17 +41,19 @@
   - **Відповідальність**: Валідація переміщень, обробка колізій та розрахунок ланцюгових переміщень (relocation) інших чіпів, щоб звільнити місце.
 
 ## Interaction Strategies
-Щоб уникнути "God Object" у класі `Chip`, логіка взаємодій винесена в стратегії:
+Використовуємо патерн "Стратегія". Логіка того, як фішки взаємодіють між собою під час перетягування, винесена в окремі компоненти:
 - **Інтерфейс**: `IChipInteractionLogic`.
-- **Реалізації**:
-  - `MergeInteractionLogic`
-  - `FillContainerLogic`
-  - `GeneratorInteractionLogic`
-- Це дозволяє комбінувати поведінку фішок, просто додаючи відповідні компоненти логіки.
+- **Реалізації (компоненти `DraggableChipLogic`)**:
+  - `MergeableChipLogic` — логіка злиття однакових фішок.
+  - `FillContainerLogic` — логіка додавання фішок у контейнери.
+- **Особливості**:
+  - Компоненти стратегій повинні бути розміщені на тому ж **GameObject**, що і `DraggableChipLogic`.
+  - **Пріоритет**: Порядок компонентів в інспекторі Unity визначає черговість перевірки взаємодій. Перша стратегія, яка поверне `true` у методі `CanInteract`, буде обрана для виконання.
+- Це дозволяє динамічно налаштовувати можливі взаємодії на полі, просто додаючи або видаляючи відповідні компоненти.
 
 ## Input System
 Система вводу базується на **Unity Input System (New Package)**.
-- **Asset**: `Modules/Merge2/Input/Merge2Input.inputactions` — містить визначення Action Maps (Game, UI).
+- **Asset**: `Merge2Input.inputactions` — містить визначення Action Maps (Game, UI).
 - **Architecture**:
   - **Інтерфейс**: `IInputManager` — визначає контракт для системи вводу, дозволяє Dependency Injection через VContainer.
   - **Реалізація**: `InputManager` — клас-адаптер, що ініціалізує Generated Class `Merge2Input` та трансформує події вводу (Press, Drag) у C# події (`OnTap`, `OnDragStart`, `OnDrag`, `OnDragEnd`). Надає методи симуляції (`SimulateTap`, `SimulateDrag*`) для тестування в Unity Editor.
