@@ -37,6 +37,8 @@
 - [Merge2Initializer](#merge2initializer)
 - [Merge2LifetimeScope](#merge2lifetimescope)
 - [MergeableChipLogic](#mergeablechiplogic)
+- [MergeData](#mergedata)
+- [MergeNextChipData](#mergenextchipdata)
 
 ---
 
@@ -407,7 +409,10 @@
 
 ## ChipMergeData
 #### Fields
-- `+ NextChip: ChipData`
+- `++ MergeData: MergeData[]`
+#### Methods
+- `+ CanMerge(ChipData otherChip): bool`
+- `+ GetNextChip(ChipData otherChip): ChipData`
 ---
 
 ## ChipMovingLogic
@@ -937,5 +942,23 @@
     - **Params**: sourceCell - cell with chip being dragged
     - targetCell - destination cell
     - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed.
+---
+
+## MergeData
+#### Fields
+- `++ MergeableChipData: ChipData`
+- `++ NextChipData: MergeNextChipData[]`
+#### Methods
+- `+ GetRandomNextChip(): ChipData`
+    - **Purpose**: Selects a random next chip based on defined weights
+    - **Usage**: Called internally to determine the output chip when multiple outcomes are possible
+    - **Params**: none
+    - **Returns**: The selected ChipData
+---
+
+## MergeNextChipData
+#### Fields
+- `++ NextChipData: ChipData`
+- `++ Weight: int`
 ---
 
