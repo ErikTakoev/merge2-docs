@@ -37,8 +37,8 @@
 - [Merge2Initializer](#merge2initializer)
 - [Merge2LifetimeScope](#merge2lifetimescope)
 - [MergeableChipLogic](#mergeablechiplogic)
-- [MergeData](#mergedata)
-- [MergeNextChipData](#mergenextchipdata)
+- [MergeCombination](#mergecombination)
+- [MergeResult](#mergeresult)
 - [IInputManager](#iinputmanager)
 - [InputManager](#inputmanager)
 - [Merge2Input](#merge2input)
@@ -412,10 +412,19 @@
 
 ## ChipMergeData
 #### Fields
-- `++ MergeData: MergeData[]`
+- `++ Combinations: MergeCombination[]`
 #### Methods
 - `+ CanMerge(ChipData otherChip): bool`
+    - **Purpose**: Checks if this chip can be merged with another specific chip
+    - **Usage**: Used by interaction systems to validate possible merge actions
+    - **Params**: otherChip - the potential merge partner
+    - **Returns**: True if merge is possible
 - `+ GetNextChip(ChipData otherChip): ChipData`
+    - **Purpose**: Retrieves the result of merging this chip with another specific chip
+    - **Usage**: Called during merge process to determine outcome
+    - returns null if chips are incompatible
+    - **Params**: otherChip - the chip to merge with
+    - **Returns**: New ChipData or null
 ---
 
 ## ChipMovingLogic
@@ -947,21 +956,29 @@
     - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed.
 ---
 
-## MergeData
+## MergeCombination
+
+> - **Purpose**: Holds information about a specific merge partnership
+> - **Usage**: Member of ChipMergeData
+> - defines which chip can be merged and what the results are
 #### Fields
-- `++ MergeableChipData: ChipData`
-- `++ NextChipData: MergeNextChipData[]`
+- `++ Results: MergeResult[]`
+- `++ TargetChip: ChipData`
 #### Methods
-- `+ GetRandomNextChip(): ChipData`
-    - **Purpose**: Selects a random next chip based on defined weights
+- `+ GetRandomResult(): ChipData`
+    - **Purpose**: Selects a random result chip based on defined weights
     - **Usage**: Called internally to determine the output chip when multiple outcomes are possible
     - **Params**: none
     - **Returns**: The selected ChipData
 ---
 
-## MergeNextChipData
+## MergeResult
+
+> - **Purpose**: Describes a single potential outcome of a merge
+> - **Usage**: Member of MergeCombination
+> - used with weighted random selection
 #### Fields
-- `++ NextChipData: ChipData`
+- `++ Result: ChipData`
 - `++ Weight: int`
 ---
 
