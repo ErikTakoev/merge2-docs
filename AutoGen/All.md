@@ -210,6 +210,14 @@
 - `+ Init(ChipData data): void`
 - `+ IsChipCompatible(Chip chip): bool`
 - `+ TryAddChip(Chip chip): bool`
+    - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic.
+    - **Usage**: Called by interaction logic when a chip is dropped onto the container.
+    - **Params**: chip - The chip being added.
+    - **Returns**: True if the chip was successfully added
+    - otherwise False.
+    - **Notes**: Side effects: Updates internal container state
+    - Triggers OnFillContainer event
+    - If full, destroys parent Cell content and spawns NextChipData result.
 ---
 
 ## ChipContainerData
@@ -220,15 +228,31 @@
 
 ## ChipContainerEffect
 **Inherits**: `Effect`
+
+> - **Purpose**: Visual effect controller for ChipContainer, managing spawned elements inside the container
+> - **Usage**: Attached to ChipContainer prefab
+> - calls UpdateElements when container state changes
+> - **Params**: chip - owner chip
+> - containers - current state of containers
+> - isFull - completion flag
+> - **Notes**: Instantiates and positions element prefabs based on ContainerInfo
+> - Handles activation/deactivation animations
 #### Fields
 - `- animator: Animator`
-- `- cloudTransform: Transform`
 - `- elements: ElementInfo[]`
-- `- rootForElements: GameObject`
+- `- layoutForElements: RectTransform`
+- `- panelSpriteRenderer: SpriteRenderer`
 #### Methods
 - `+ Activate(Chip chip): void`
 - `+ Deactivate(Chip chip): void`
 - `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
+    - **Purpose**: Updates the visual representation of container requirements based on current state.
+    - **Usage**: Called by ChipContainer when an item is added or the container initializes.
+    - **Params**: chip - owner chip
+    - containers - current remaining requirements
+    - isFull - true if all requirements are met.
+    - **Notes**: Dynamically instantiates UI elements (bubbles) and resizes the background panel. Deactivates effect if isFull is true.
+- `- ClearElements(): void`
 ---
 
 ## ChipData
@@ -411,6 +435,10 @@
 ---
 
 ## ChipMergeData
+
+> - **Purpose**: Defines merge logic and potential outcomes for a chip
+> - **Usage**: Component of ChipData
+> - used to determine merge compatibility and resulting chips
 #### Fields
 - `++ Combinations: MergeCombination[]`
 #### Methods
