@@ -20,8 +20,9 @@
 Дані містять налаштування та алгоритми вибору.
 - **Властивості**:
   - `SpawnParameters`: Ваги ймовірностей для різних типів фішок.
-  - `ChargeCount/ChargingTime`: Параметри балансу.
-  - `TotalRecharges`: Ліміт життя генератора.
+   - `ChargeCount/ChargingTime`: Параметри балансу.
+   - `GenerationInterval`: Час затримки між генераціями в рамках одного циклу заряду.
+   - `TotalRecharges`: Ліміт життя генератора.
 - **Логіка (`GenerateChipData`)**: Метод, що виконує зважений випадковий вибір (`Weighted Random`) для визначення наступної фішки.
 
 ### 3. `ChipGeneratorRuntimeData.cs` (Стан)
@@ -30,6 +31,7 @@
   - `IsCharged`: Чи готовий до спавну.
   - `RechargesLeft`: Скільки циклів залишилось.
   - `IsWaitingForSpace`: Стан очікування (для Auto режиму).
+  - `CurrentTargetChargingTime`: Поточний час, необхідний для зарядки (може дорівнювати `ChargingTime` або `GenerationInterval`).
 
 ## Процес (Flow)
 
@@ -38,13 +40,16 @@
 2. **Check**: Перевірка наявності заряду (`IsCharged`) та вільного місця (`IFreeCellFinder`).
 3. **Select**: Виклик `generatorData.GenerateChipData()` для вибору типу фішки.
 4. **Spawn**: `ChipFactory.CreateChip` у знайденій клітинці.
-5. **Consume**: Зменшення `ChargeCount`. Якщо 0 — перехід до перезарядки (`Start Recharging`) або знищення, якщо ліміт вичерпано.
+5. **Consume**: Зменшення `ChargeCount`.
+   - Якщо `ChargeCount > 0`: Встановлюється коротка перезарядка (`GenerationInterval`).
+   - Якщо `ChargeCount == 0`: Зменшується `RechargesLeft` та встановлюється повна перезарядка (`ChargingTime`).
 
 ### Перезарядка (Recharge)
-1. **Update**: У кожному кадрі збільшується `ChargingTimeLeft`.
+1. **Update**: У кожному кадрі збільшується `ChargingTimeLeft` до досягнення `CurrentTargetChargingTime`.
 2. **Visuals**: Викликається подія `OnCharging` -> `ChipGeneratorEffect` оновлює маску прогресу.
-3. **Complete**: Коли час вичерпано, відновлюються заряди, відтворюється анімація `Recharge`.
+3. **Complete**: Коли час вичерпано, відновлюється готовність (`IsCharged`). Якщо це був повний цикл, відновлюється кількість зарядів.
 
 ## Ефекти та Візуалізація
-- **[ChipGeneratorEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки (через `maskRectTransform`).
+- **[ChipGeneratorEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки (через `maskRectTransform`). Активний під час процесу зарядки.
+- **[GeneratorChargedEffect](../Visuals/Effects.md#5-generator-charged-готовність-генератора)**: Додатковий ефект, що активується, коли генератор повністю заряджений (готовий до генерації). Використовується для візуального підкреслення стану готовності (Idle).
 - **Animator**: Використовує тригери `Generate` (при спавні) та `Recharge` (при завершенні зарядки).

@@ -238,7 +238,6 @@
 > - **Notes**: Instantiates and positions element prefabs based on ContainerInfo
 > - Handles activation/deactivation animations
 #### Fields
-- `- animator: Animator`
 - `- elements: ElementInfo[]`
 - `- layoutForElements: RectTransform`
 - `- panelSpriteRenderer: SpriteRenderer`
@@ -336,6 +335,7 @@
 - `- chipFactory: ChipFactory`
 - `- field: IFieldEventHandler`
 - `- findFreePlaceForChip: IFreeCellFinder`
+- `- generatorChargedEffect: Effect`
 - `- generatorData: ChipGeneratorData`
     - **Purpose**: Stores static configuration for the chip generator.
     - **Usage**: Initialized in Init from ChipData. Used for generation logic.
@@ -391,6 +391,7 @@
 - `+ ChargeCount: int`
 - `+ ChargingTime: float`
 - `+ Data: GeneratorData[]`
+- `+ GenerationInterval: float`
 - `+ IsAutoGeneration: bool`
 - `+ IsStartCharged: bool`
 - `+ NextChipData: ChipData`
@@ -404,6 +405,8 @@
 #### Fields
 - `- maskRectTransform: RectTransform`
 #### Methods
+- `+ Activate(Chip chip): void`
+- `+ Deactivate(Chip chip): void`
 - `+ OnCharging(float progress): void`
 ---
 
@@ -415,6 +418,7 @@
 #### Fields
 - `+ ChargeCount: int`
 - `+ ChargingTimeLeft: float`
+- `+ CurrentTargetChargingTime: float`
 - `+ IsCharged: bool`
 - `+ IsWaitingForSpace: bool`
 - `+ RechargesLeft: int`
@@ -423,7 +427,6 @@
 ## ChipMergeAvailableEffect
 **Inherits**: `Effect`
 #### Fields
-- `- animator: Animator`
 - `- autoPosition: bool`
 - `- autoSize: bool`
 - `- isActive: bool`
@@ -590,11 +593,13 @@
 > - override virtual methods to implement custom effect behavior
 > - supports both chip-based and cell-based effects
 #### Fields
+- `~ animator: Animator`
 - `~ effectForCell: bool`
     - **Purpose**: Determines whether the effect should be attached to the cell's transform instead of the chip's
     - **Usage**: Set to true if the effect must follow the cell when the chip moves between cells
     - used in OnChangedCell to update the effect's parent transform
     - **Notes**: If false, the effect remains attached to the chip's transform regardless of cell changes
+- `~ sendAnimatorTrigger: bool`
 #### Methods
 - `+ Activate(Chip chip): void`
 - `+ Deactivate(Chip chip): void`
