@@ -193,6 +193,7 @@
     - deactivates merge available effect by default
     - **Params**: position - the world position where the drag ended
     - **Notes**: Deactivates merge available effect after drag ends
+- `+ OnDraggingChipWithMoveLocked(): void`
 - `+ OnDragStart(Vector2 position): void`
     - **Purpose**: Called when drag starts on this chip
     - **Usage**: Override in derived classes to implement custom drag start behavior
@@ -729,6 +730,7 @@
     - **Usage**: Override to handle logic when the chip moves over a different cell without changing parent
     - **Params**: underCell - the new cell under the chip
     - overCell - the previous cell under the chip
+- `+ SendTrigger(string triggerName): void`
 ---
 
 ## FieldData
