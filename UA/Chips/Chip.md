@@ -18,7 +18,23 @@
 - **Ефекти**: Керує візуальними ефектами, детальніше див. [Visual Effects](../Visuals/Effects.md):
   - `MergeAvailableEffect`: Підсвітка при можливості злиття ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available-доступність-злиття)).
   - `CellHighlightEffect`: Підсвітка клітинки під фішкою ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight-підсвітка-клітин)).
+  - `MoveLockedEffect`: Візуальна індикація блокування переміщення ([Move Locked](../Visuals/Effects.md#6-move-locked-блокування-переміщення)).
 - **Анімація**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`).
+
+## Runtime Data (Дані Під Час Гри)
+
+### `ChipRuntimeData`
+Базовий клас для зберігання runtime стану чіпів. Містить динамічні властивості, які змінюються під час гри:
+- **`IsMoveLocked`**: Визначає, чи заблоковано переміщення чіпа. Коли встановлено в `true`, гравець не може перетягувати цей чіп.
+
+### Методи Роботи з Runtime Data
+- **`SetRealtimeData(ChipRuntimeData)`**: Встановлює або оновлює runtime дані чіпа. Автоматично активує/деактивує `MoveLockedEffect` на основі `IsMoveLocked`.
+- **`CanMoving()`**: Перевіряє, чи можна переміщувати чіп. Повертає `false`, якщо `IsMoveLocked` встановлено в `true`.
+
+### Розширення для Спеціалізованих Чіпів
+- **`ChipGeneratorRuntimeData`**: Додає стан зарядки, таймери, лічильники перезарядок.
+- **`ChipContainerRuntimeData`**: Додає словник прогресу заповнення контейнера (`containers`).
+
 
 ### 2. `MergeableChipLogic.cs` (Логіка Злиття)
 Вся логіка об'єднання фішок реалізована в цьому класі.

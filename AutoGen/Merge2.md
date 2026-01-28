@@ -7,6 +7,7 @@
 - [ChipContainer](#chipcontainer)
 - [ChipContainerData](#chipcontainerdata)
 - [ChipContainerEffect](#chipcontainereffect)
+- [ChipContainerRuntimeData](#chipcontainerruntimedata)
 - [ChipData](#chipdata)
 - [ChipDataCollection](#chipdatacollection)
 - [ChipFactory](#chipfactory)
@@ -18,6 +19,7 @@
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
 - [ChipMovingLogic](#chipmovinglogic)
+- [ChipRuntimeData](#chipruntimedata)
 - [ContainerInfo](#containerinfo)
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
@@ -89,6 +91,12 @@
 
 ## CellHighlightEffect
 **Inherits**: `Effect`
+
+> - **Purpose**: Visual effect that highlights the cell under a chip
+> - **Usage**: Attached to chip using ChipData.CellHighlightPrefab
+> - Managed by Chip to show/hide highlights
+> - **Notes**: Handles multiple cells if chip size > 1x1
+> - updates position during drag interaction
 #### Fields
 - `- color: Color`
 - `- highlightPrefab: GameObject`
@@ -96,7 +104,7 @@
 - `- order: float`
 #### Methods
 - `+ Activate(Chip chip): void`
-- `+ Deactivate(Chip chip): void`
+- `+ Deactivate(Chip chip, bool force): void`
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
 - `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell interactableCell): void`
 - `+ UpdateCell(Cell sourceCell, Cell targetCell): void`
@@ -123,12 +131,33 @@
 - `++ CellPosition: Vector2Int`
 - `+- Data: ChipData`
 - `+- LogEnable: bool`
-- `- animator: Animator`
-- `- effects: Effect[]`
+- `~ animator: Animator`
+- `~ effects: Effect[]`
 - `~ fieldGrid: IFieldGrid`
-- `- mergeAvailableEffect: Effect`
-- `- sorting: SortingGroup`
+- `~ mergeAvailableEffect: Effect`
+- `~ moveLockedEffect: Effect`
+    - **Purpose**: Visual effect displayed when the chip is locked and cannot be moved
+    - **Usage**: Automatically activated/deactivated by SetRealtimeData based on IsMoveLocked state
+    - instantiated in Init if MoveLockedEffectPrefab is provided
+    - **Notes**: Uses base Effect class with Animator triggers
+    - provides visual feedback to player when chip movement is restricted
+- `~ runtimeData: ChipRuntimeData`
+    - **Purpose**: Stores the runtime state of the chip including dynamic properties like IsMoveLocked
+    - **Usage**: Initialized in Init
+    - updated via SetRealtimeData
+    - accessed by CanMoving and other runtime logic
+    - **Notes**: Type varies by chip subclass (ChipGeneratorRuntimeData, ChipContainerRuntimeData)
+    - contains only runtime state, not configuration
+- `~ sorting: SortingGroup`
 #### Methods
+- `+ CanMoving(): bool`
+    - **Purpose**: Checks whether the chip can currently be moved by the player
+    - **Usage**: Called by DraggableChipLogic before allowing drag operations
+    - returns false if chip is locked
+    - **Returns**: True if chip can be moved
+    - false if movement is locked
+    - **Notes**: Based on runtimeData.IsMoveLocked
+    - prevents drag-and-drop when locked
 - `+ Destroy(Cell mainCell): void`
     - **Purpose**: Destroys the chip and all its attached effects
     - **Usage**: Call to remove the chip from the scene and clean up its effects
@@ -182,6 +211,14 @@
 - `+ SendTrigger(AnimatorTrigger trigger): void`
 - `+ SendTrigger(string trigger): void`
 - `+ SetDragging(bool value): void`
+- `+ SetRealtimeData(ChipRuntimeData realtimeData): void`
+    - **Purpose**: Sets or updates the runtime data for the chip and synchronizes visual effects with the new state
+    - **Usage**: Call when loading saved game state or when runtime properties change
+    - automatically activates/deactivates move-locked effect based on IsMoveLocked
+    - **Params**: realtimeData - the runtime data to apply to this chip
+    - **Notes**: Triggers visual effect changes
+    - safe to call multiple times
+    - handles null moveLockedEffect gracefully
 ---
 
 ## ChipContainer
@@ -201,7 +238,7 @@
 #### Fields
 - `- chipFactory: ChipFactory`
 - `- containerEffect: ChipContainerEffect`
-- `~ containers: Dictionary<ContainerInfo, int>`
+- `~ containerRuntimeData: ChipContainerRuntimeData`
 - `- OnFillContainer: FillContainerDelegate`
 #### Methods
 - `+ Init(ChipData data): void`
@@ -240,7 +277,7 @@
 - `- panelSpriteRenderer: SpriteRenderer`
 #### Methods
 - `+ Activate(Chip chip): void`
-- `+ Deactivate(Chip chip): void`
+- `+ Deactivate(Chip chip, bool force): void`
 - `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
     - **Purpose**: Updates the visual representation of container requirements based on current state.
     - **Usage**: Called by ChipContainer when an item is added or the container initializes.
@@ -249,6 +286,25 @@
     - isFull - true if all requirements are met.
     - **Notes**: Dynamically instantiates UI elements (bubbles) and resizes the background panel. Deactivates effect if isFull is true.
 - `- ClearElements(): void`
+---
+
+## ChipContainerRuntimeData
+**Inherits**: `ChipRuntimeData`
+
+> - **Purpose**: Extends ChipRuntimeData to store runtime state specific to container chips, tracking fill progress for each container requirement
+> - **Usage**: Used by ChipContainer to track which items have been added and how many remain
+> - initialized in ChipContainer.Init
+> - updated in TryAddChip
+> - **Notes**: Inherits IsMoveLocked from ChipRuntimeData
+> - containers dictionary maps requirements to current count
+#### Fields
+- `+ containers: Dictionary<ContainerInfo, int>`
+    - **Purpose**: Tracks the current fill progress for each container requirement
+    - **Usage**: Key is ContainerInfo (requirement definition)
+    - Value is current count of items added
+    - updated when chips are added via TryAddChip
+    - **Notes**: When a container requirement is fully met, it is removed from this dictionary
+    - empty dictionary means container is full
 ---
 
 ## ChipData
@@ -260,6 +316,7 @@
 - `+ ChipGeneratorData: Optional<ChipGeneratorData>`
 - `+ MergeAvailableEffectPrefab: GameObject`
 - `+ MergeData: Optional<ChipMergeData>`
+- `+ MoveLockedEffectPrefab: GameObject`
 - `+ OtherData: ScriptableObject`
 - `+ PrefabLink: GameObject`
 - `+ Type: string`
@@ -333,6 +390,11 @@
 - `- field: IFieldEventHandler`
 - `- findFreePlaceForChip: IFreeCellFinder`
 - `- generatorChargedEffect: Effect`
+    - **Purpose**: Visual effect active when the generator is fully charged
+    - **Usage**: Activated when ChargeCount > 0 and charging is complete
+    - Deactivated after generation or during recharge
+    - **Notes**: Optional
+    - used to indicate readiness state
 - `- generatorData: ChipGeneratorData`
     - **Purpose**: Stores static configuration for the chip generator.
     - **Usage**: Initialized in Init from ChipData. Used for generation logic.
@@ -372,7 +434,7 @@
 - `- TryGenerateChip(): void`
     - **Purpose**: Attempts to generate a new chip, managing charge state, recharges, and generator lifecycle.
     - **Usage**: Call when generator is charged. Triggered by tap (manual) or field change (auto).
-    - **Notes**: Decrements ChargeCount. If reaching 0, handles recharge cycle decrement or evolution/destruction if out of recharges.
+    - **Notes**: Decrements ChargeCount. Checks GenerationInterval if ChargeCount > 0. If ChargeCount reaches 0, handles recharge cycle.
 - `- Update(): void`
     - **Purpose**: Manages charging, state transitions, and triggers chip generation in auto mode.
     - **Usage**: Called every frame by Unity. Handles charging timer and triggers effects.
@@ -389,6 +451,9 @@
 - `+ ChargingTime: float`
 - `+ Data: GeneratorData[]`
 - `+ GenerationInterval: float`
+    - **Purpose**: Defines the cooldown time between consecutive generations in a single charge cycle
+    - **Usage**: Used by ChipGenerator to set delay between spawns when multiple charges are available
+    - **Notes**: Only applies if ChargeCount > 1
 - `+ IsAutoGeneration: bool`
 - `+ IsStartCharged: bool`
 - `+ NextChipData: ChipData`
@@ -399,15 +464,24 @@
 
 ## ChipGeneratorEffect
 **Inherits**: `Effect`
+
+> - **Purpose**: Visual effect handler for ChipGenerator, managing charging progress and activation states
+> - **Usage**: Attached to ChipGenerator prefab
+> - referenced by ChipGenerator to visualize charging
+> - **Notes**: Updates maskRectTransform based on charging progress
 #### Fields
 - `- maskRectTransform: RectTransform`
 #### Methods
 - `+ Activate(Chip chip): void`
-- `+ Deactivate(Chip chip): void`
+- `+ Deactivate(Chip chip, bool force): void`
 - `+ OnCharging(float progress): void`
+    - **Purpose**: Updates the visual state of charging based on progress
+    - **Usage**: Called via event from ChipGenerator during update loop
+    - **Params**: progress - value between 0 and 1 indicating charge percentage
 ---
 
 ## ChipGeneratorRuntimeData
+**Inherits**: `ChipRuntimeData`
 
 > - **Purpose**: Stores runtime state for a chip generator, tracking its charge status and remaining recharges.
 > - **Usage**: Created and managed by ChipGenerator. Used to persist state during gameplay.
@@ -416,6 +490,9 @@
 - `+ ChargeCount: int`
 - `+ ChargingTimeLeft: float`
 - `+ CurrentTargetChargingTime: float`
+    - **Purpose**: The current target duration for the charging phase
+    - **Usage**: Set based on either ChargingTime (full recharge) or GenerationInterval (between generations)
+    - **Notes**: Modified by ChipGenerator to control timing dynamically
 - `+ IsCharged: bool`
 - `+ IsWaitingForSpace: bool`
 - `+ RechargesLeft: int`
@@ -423,15 +500,19 @@
 
 ## ChipMergeAvailableEffect
 **Inherits**: `Effect`
+
+> - **Purpose**: Visual effect indicating that a merge is available with the chip below
+> - **Usage**: Attached to chip using ChipData.MergeAvailableEffectPrefab
+> - Activated by Chip when another compatible chip is dragged over it
+> - **Notes**: Handles auto-sizing and positioning based on chip size
 #### Fields
 - `- autoPosition: bool`
 - `- autoSize: bool`
 - `- isActive: bool`
 #### Methods
 - `+ Activate(Chip chip): void`
-- `+ Deactivate(Chip chip): void`
+- `+ Deactivate(Chip chip, bool force): void`
 - `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
-- `- Awake(): void`
 ---
 
 ## ChipMergeData
@@ -490,6 +571,18 @@
     - plannedRelocations - list of pre-calculated chip moves
     - **Notes**: Temporarily sets dragging state during relocation for visual consistency
 - `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<Cell>`
+---
+
+## ChipRuntimeData
+
+> - **Purpose**: Stores runtime state for chips during gameplay, including dynamic properties that change during game execution
+> - **Usage**: Base class for all chip runtime data
+> - extend for specific chip types
+> - initialized in Chip.Init and updated during gameplay
+> - **Notes**: Serializable for save/load support
+> - contains only runtime state, not configuration data
+#### Fields
+- `++ IsMoveLocked: bool`
 ---
 
 ## ContainerInfo
@@ -591,15 +684,26 @@
 > - supports both chip-based and cell-based effects
 #### Fields
 - `~ animator: Animator`
+- `~ durationMovePositionDependingOnSize: Vector2`
 - `~ effectForCell: bool`
     - **Purpose**: Determines whether the effect should be attached to the cell's transform instead of the chip's
     - **Usage**: Set to true if the effect must follow the cell when the chip moves between cells
     - used in OnChangedCell to update the effect's parent transform
     - **Notes**: If false, the effect remains attached to the chip's transform regardless of cell changes
+- `~ movePositionDependingOnSize: Transform`
 - `~ sendAnimatorTrigger: bool`
 #### Methods
 - `+ Activate(Chip chip): void`
-- `+ Deactivate(Chip chip): void`
+    - **Purpose**: Activates the effect on the specified chip
+    - **Usage**: Call when the chip is activated (e.g. created or enabled)
+    - trigger 'Activate' animation if configured
+    - **Params**: chip - the chip this effect belongs to
+- `+ Deactivate(Chip chip, bool force): void`
+    - **Purpose**: Deactivates the effect on the specified chip
+    - **Usage**: Call when the chip is deactivated or disabled
+    - trigger 'Deactivate' animation if configured
+    - **Params**: chip - the chip this effect belongs to
+- `+ Init(Chip chip): void`
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
     - **Purpose**: Handles logic when a chip is moved from one cell to another
     - **Usage**: Called after the chip's parent cell has changed
@@ -618,6 +722,10 @@
     - **Notes**: Should only be called as part of drag operations
     - no default implementation in base class
 - `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+    - **Purpose**: Called when the cell under the chip changes
+    - **Usage**: Override to handle logic when the chip moves over a different cell without changing parent
+    - **Params**: underCell - the new cell under the chip
+    - overCell - the previous cell under the chip
 ---
 
 ## FieldData
