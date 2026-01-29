@@ -129,8 +129,9 @@
 > - manages chip effects and animation triggers
 #### Fields
 - `++ CellPosition: Vector2Int`
+- `++ LogEnable: bool`
 - `+- Data: ChipData`
-- `+- LogEnable: bool`
+- `+- RuntimeData: ChipRuntimeData`
 - `~ animator: Animator`
 - `~ effects: Effect[]`
 - `~ fieldGrid: IFieldGrid`
@@ -141,13 +142,6 @@
     - instantiated in Init if MoveLockedEffectPrefab is provided
     - **Notes**: Uses base Effect class with Animator triggers
     - provides visual feedback to player when chip movement is restricted
-- `~ runtimeData: ChipRuntimeData`
-    - **Purpose**: Stores the runtime state of the chip including dynamic properties like IsMoveLocked
-    - **Usage**: Initialized in Init
-    - updated via SetRealtimeData
-    - accessed by CanMoving and other runtime logic
-    - **Notes**: Type varies by chip subclass (ChipGeneratorRuntimeData, ChipContainerRuntimeData)
-    - contains only runtime state, not configuration
 - `~ sorting: SortingGroup`
 #### Methods
 - `+ CanMoving(): bool`
@@ -191,6 +185,11 @@
     - **Params**: position - the world position where the drag ended
     - **Notes**: Deactivates merge available effect after drag ends
 - `+ OnDraggingChipWithMoveLocked(): void`
+    - **Purpose**: Provides visual feedback when user attempts to drag a chip that is locked and cannot be moved
+    - **Usage**: Called by DraggableChipLogic.OnDragStart when CanMoving() returns false
+    - triggers 'MoveLocked' animation on both chip and effect
+    - **Notes**: Requires moveLockedEffect to be initialized
+    - sends 'MoveLocked' trigger to both chip animator and move-locked effect
 - `+ OnDragStart(Vector2 position): void`
     - **Purpose**: Called when drag starts on this chip
     - **Usage**: Override in derived classes to implement custom drag start behavior
@@ -212,14 +211,7 @@
 - `+ SendTrigger(AnimatorTrigger trigger): void`
 - `+ SendTrigger(string trigger): void`
 - `+ SetDragging(bool value): void`
-- `+ SetRealtimeData(ChipRuntimeData realtimeData): void`
-    - **Purpose**: Sets or updates the runtime data for the chip and synchronizes visual effects with the new state
-    - **Usage**: Call when loading saved game state or when runtime properties change
-    - automatically activates/deactivates move-locked effect based on IsMoveLocked
-    - **Params**: realtimeData - the runtime data to apply to this chip
-    - **Notes**: Triggers visual effect changes
-    - safe to call multiple times
-    - handles null moveLockedEffect gracefully
+- `+ UpdateRuntimeData(): void`
 ---
 
 ## ChipContainer
@@ -728,6 +720,12 @@
     - **Params**: underCell - the new cell under the chip
     - overCell - the previous cell under the chip
 - `+ SendTrigger(string triggerName): void`
+    - **Purpose**: Sends a custom animation trigger to the effect's animator
+    - **Usage**: Call to trigger custom animations on the effect
+    - used for special interactions like move-locked feedback
+    - **Params**: triggerName - name of the animator trigger to activate
+    - **Notes**: Safely handles null animator
+    - allows effects to respond to chip-specific events beyond standard Activate/Deactivate
 ---
 
 ## FieldData
@@ -870,10 +868,10 @@
     - looks up chip definitions from ChipDataCollection
     - triggers spawn animations.
 - `+ SetFieldData(FieldData fieldData): void`
-- `- CreateChip(Vector2Int cellPosition, ChipData chipData): void`
+- `- CreateChip(CellData cellData, ChipData chipData): void`
     - **Purpose**: Creates a chip at the specified position and triggers spawn animation.
     - **Usage**: Internal helper method called by LoadChips for each chip.
-    - **Params**: cellPosition - grid position for the chip
+    - **Params**: cellData - cell data for the chip
     - chipData - chip configuration data.
 - `- SetupCameraAndFieldSize(Vector2Int fieldSize): void`
 ---
