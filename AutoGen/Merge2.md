@@ -133,7 +133,7 @@
 - `+- Data: ChipData`
 - `+- RuntimeData: ChipRuntimeData`
 - `~ animator: Animator`
-- `~ effects: Effect[]`
+- `~ effects: List<Effect>`
 - `~ fieldGrid: IFieldGrid`
 - `~ mergeAvailableEffect: Effect`
 - `~ moveLockedEffect: Effect`
@@ -207,6 +207,11 @@
     - underCell - cell currently under the chip
     - **Notes**: Propagates cell change event to all attached effects like highlights, merge indicators, etc.
 - `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+    - **Purpose**: Notifies all chip effects when the cell under the dragged chip changes
+    - **Usage**: Called by DraggableChipLogic to update effects that react to being held over a specific cell (e.g., potential interaction targets)
+    - **Params**: underCell - The cell currently directly under the chip
+    - overCell - The cell above which the chip is currently positioned
+    - **Notes**: Propagates the event to all tracked effects in the 'effects' list
 - `+ OnTap(Vector2 position): void`
     - **Purpose**: Called when the chip is tapped by the user
     - **Usage**: Override in derived classes to implement custom tap behavior
@@ -226,6 +231,14 @@
     - **Usage**: Call after modifying runtimeData (e.g., IsMoveLocked) to synchronize visual effects
     - **Notes**: Activates or deactivates the moveLockedEffect based on the IsMoveLocked property
     - handles null check for moveLockedEffect
+- `~ InstantiateEffect(GameObject prefab): T`
+    - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
+    - **Usage**: Call during Init or whenever a new visual effect needs to be added to the chip
+    - **Params**: prefab - The GameObject prefab containing the effect component
+    - T - The type of the effect component (must inherit from Effect)
+    - **Returns**: The instantiated effect component of type T, or null if prefab is null
+    - **Notes**: Automatically calls Init(this) on the instantiated effect
+    - return value can be added to the effects list
 ---
 
 ## ChipContainer
@@ -250,6 +263,13 @@
 #### Methods
 - `+ Init(ChipData data): void`
 - `+ IsChipCompatible(Chip chip): bool`
+    - **Purpose**: Checks if a given chip is compatible with any of the container's remaining requirements
+    - **Usage**: Called by interaction logic to determine if a chip can be dropped into this container
+    - **Params**: chip - The chip to check for compatibility
+    - **Returns**: True if the chip matches a required ChipType or ChipId
+    - false otherwise
+    - **Notes**: Does not modify the container's state
+    - only performs a check against current requirements
 - `+ SetDragging(bool value): void`
 - `+ TryAddChip(Chip chip): bool`
     - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic.
