@@ -14,7 +14,7 @@
 - [ChipFlyAnimation](#chipflyanimation)
 - [ChipGenerator](#chipgenerator)
 - [ChipGeneratorData](#chipgeneratordata)
-- [ChipGeneratorEffect](#chipgeneratoreffect)
+- [ChipGeneratorRechargeEffect](#chipgeneratorrechargeeffect)
 - [ChipGeneratorRuntimeData](#chipgeneratorruntimedata)
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
@@ -396,23 +396,19 @@
 > - **Notes**: Manages recharge counts. If TotalRecharges > 0, it recharges N times before evolution/destruction.
 #### Fields
 - `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
+- `- chargedEffect: Effect`
+    - **Purpose**: Visual effect active when the generator is fully charged and ready to generate chips.
+    - **Usage**: Activated when ChargeCount > 0 and charging is complete
+    - Deactivated after generation or during recharge.
+    - **Notes**: Optional
+    - used to indicate readiness state.
 - `- chipFactory: ChipFactory`
 - `- field: IFieldEventHandler`
 - `- findFreePlaceForChip: IFreeCellFinder`
-- `- generatorChargedEffect: Effect`
-    - **Purpose**: Visual effect active when the generator is fully charged
-    - **Usage**: Activated when ChargeCount > 0 and charging is complete
-    - Deactivated after generation or during recharge
-    - **Notes**: Optional
-    - used to indicate readiness state
 - `- generatorData: ChipGeneratorData`
     - **Purpose**: Stores static configuration for the chip generator.
     - **Usage**: Initialized in Init from ChipData. Used for generation logic.
     - **Notes**: Should not be null. Affects generator mode and chip creation.
-- `- generatorEffect: ChipGeneratorEffect`
-    - **Purpose**: Effect component for visual feedback during charging and activation.
-    - **Usage**: Assigned via inspector. Used in Init, Update, and generation logic.
-    - **Notes**: Must not be null. Handles visual state changes.
 - `~ generatorRuntimeData: ChipGeneratorRuntimeData`
     - **Purpose**: Stores runtime state for the chip generator.
     - **Usage**: Initialized in Init. Tracks charge, waiting state, and charge count.
@@ -422,6 +418,10 @@
     - **Usage**: Set in Init from generatorData. Controls event subscriptions and tap behavior.
     - **Notes**: Affects event handling and chip generation triggers.
 - `- OnCharging: Action<float>`
+- `- rechargeEffect: ChipGeneratorRechargeEffect`
+    - **Purpose**: Effect component for visual feedback during charging (recharge cycle).
+    - **Usage**: Assigned via inspector. Used in Init, Update, and generation logic to show progress.
+    - **Notes**: Must not be null. Handles visual state changes during charging.
 #### Methods
 - `+ Destroy(Cell mainCell): void`
     - **Purpose**: Cleans up the chip generator, removing event subscriptions and clearing delegates.
@@ -483,13 +483,13 @@
 - `+ GenerateChipData(): ChipData`
 ---
 
-## ChipGeneratorEffect
+## ChipGeneratorRechargeEffect
 **Inherits**: `Effect`
 
-> - **Purpose**: Visual effect handler for ChipGenerator, managing charging progress and activation states
+> - **Purpose**: Visual effect handler for ChipGenerator, managing charging progress and activation states.
 > - **Usage**: Attached to ChipGenerator prefab
-> - referenced by ChipGenerator to visualize charging
-> - **Notes**: Updates maskRectTransform based on charging progress
+> - referenced by ChipGenerator to visualize charging.
+> - **Notes**: Updates maskRectTransform based on charging progress.
 #### Fields
 - `- maskRectTransform: RectTransform`
 #### Methods

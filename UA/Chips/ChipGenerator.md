@@ -44,8 +44,8 @@
 **Ініціалізація**: Створюється в конструкторі на основі `ChipGeneratorData`, встановлюючи початкові значення з налаштувань.
 
 ## Методи та Логіка
-- **`UpdateVisual()` (Override)**: Перевизначає базовий метод для керування специфічними ефектами генератора. Активує `GeneratorChargedEffect` та деактивує `ChipGeneratorEffect`, коли генератор заряджений (`IsCharged`), і навпаки.
-- **`SetDragging(bool)` (Override)**: Перевизначає базовий метод для деактивації `GeneratorChargedEffect` під час початку перетягування, щоб не захаращувати візуал поля.
+- **`UpdateVisual()` (Override)**: Перевизначає базовий метод для керування специфічними ефектами генератора. Активує `chargedEffect` та деактивує `rechargeEffect`, коли генератор заряджений (`IsCharged`), і навпаки.
+- **`SetDragging(bool)` (Override)**: Перевизначає базовий метод для деактивації `chargedEffect` під час початку перетягування, щоб не захаращувати візуал поля.
 
 ## Процес (Flow)
 
@@ -65,7 +65,7 @@
 3. **Complete**: Коли час вичерпано, відновлюється готовність (`IsCharged`). Якщо це був повний цикл, відновлюється кількість зарядів. Викликається `UpdateVisual()` (якщо чіп не перетягується).
 
 ## Ефекти та Візуалізація
-- **[ChipGeneratorEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки (через `maskRectTransform`). Активний, коли `IsCharged` = `false`.
-- **[GeneratorChargedEffect](../Visuals/Effects.md#5-generator-charged-готовність-генератора)**: Активний, коли `IsCharged` = `true` та чіп не перетягується.
+- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки (через `maskRectTransform`). Активний, коли `IsCharged` = `false`.
+- **ChargedEffect (готовність генератора)**: Активний, коли `IsCharged` = `true` та чіп не перетягується. Використовує базовий клас `Effect`.
 - **Animator**: Використовує тригери `Generate` (при спавні) та `Recharge` (при завершенні зарядки).
 
