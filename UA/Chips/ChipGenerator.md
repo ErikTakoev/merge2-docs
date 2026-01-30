@@ -43,6 +43,10 @@
 
 **Ініціалізація**: Створюється в конструкторі на основі `ChipGeneratorData`, встановлюючи початкові значення з налаштувань.
 
+## Методи та Логіка
+- **`UpdateVisual()` (Override)**: Перевизначає базовий метод для керування специфічними ефектами генератора. Активує `GeneratorChargedEffect` та деактивує `ChipGeneratorEffect`, коли генератор заряджений (`IsCharged`), і навпаки.
+- **`SetDragging(bool)` (Override)**: Перевизначає базовий метод для деактивації `GeneratorChargedEffect` під час початку перетягування, щоб не захаращувати візуал поля.
+
 ## Процес (Flow)
 
 ### Генерація
@@ -51,15 +55,17 @@
 3. **Select**: Виклик `generatorData.GenerateChipData()` для вибору типу фішки.
 4. **Spawn**: `ChipFactory.CreateChip` у знайденій клітинці.
 5. **Consume**: Зменшення `ChargeCount`.
-   - Якщо `ChargeCount > 0`: Встановлюється коротка перезарядка (`GenerationInterval`).
-   - Якщо `ChargeCount == 0`: Зменшується `RechargesLeft` та встановлюється повна перезарядка (`ChargingTime`).
+    - Якщо `ChargeCount > 0`: Встановлюється коротка перезарядка (`GenerationInterval`).
+    - Якщо `ChargeCount == 0`: Зменшується `RechargesLeft` та встановлюється повна перезарядка (`ChargingTime`).
+6. **Update Visual**: Виклик `UpdateVisual()` для синхронізації ефектів після зміни стану заряду.
 
 ### Перезарядка (Recharge)
 1. **Update**: У кожному кадрі збільшується `ChargingTimeLeft` до досягнення `CurrentTargetChargingTime`.
 2. **Visuals**: Викликається подія `OnCharging` -> `ChipGeneratorEffect` оновлює маску прогресу.
-3. **Complete**: Коли час вичерпано, відновлюється готовність (`IsCharged`). Якщо це був повний цикл, відновлюється кількість зарядів.
+3. **Complete**: Коли час вичерпано, відновлюється готовність (`IsCharged`). Якщо це був повний цикл, відновлюється кількість зарядів. Викликається `UpdateVisual()` (якщо чіп не перетягується).
 
 ## Ефекти та Візуалізація
-- **[ChipGeneratorEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки (через `maskRectTransform`). Активний під час процесу зарядки.
-- **[GeneratorChargedEffect](../Visuals/Effects.md#5-generator-charged-готовність-генератора)**: Додатковий ефект, що активується, коли генератор повністю заряджений (готовий до генерації). Використовується для візуального підкреслення стану готовності (Idle).
+- **[ChipGeneratorEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки (через `maskRectTransform`). Активний, коли `IsCharged` = `false`.
+- **[GeneratorChargedEffect](../Visuals/Effects.md#5-generator-charged-готовність-генератора)**: Активний, коли `IsCharged` = `true` та чіп не перетягується.
 - **Animator**: Використовує тригери `Generate` (при спавні) та `Recharge` (при завершенні зарядки).
+

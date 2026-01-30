@@ -164,6 +164,10 @@
     - **Notes**: Creates highlight and merge-available effects if prefabs are provided
     - logs errors if required components are missing
 - `+ IsDragging(): bool`
+    - **Purpose**: Checks if the chip is currently being dragged based on its sorting order
+    - **Usage**: Use to determine if dragging logic should be applied to the chip
+    - **Returns**: True if the chip's sorting order indicates it is being dragged
+    - **Notes**: Depends on sorting order being set to 2 in SetDragging
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
     - **Purpose**: Called when the chip is moved to a new cell
     - updates all attached effects accordingly
@@ -211,7 +215,17 @@
 - `+ SendTrigger(AnimatorTrigger trigger): void`
 - `+ SendTrigger(string trigger): void`
 - `+ SetDragging(bool value): void`
-- `+ UpdateRuntimeData(): void`
+    - **Purpose**: Updates the sorting order of the chip during drag-and-drop operations
+    - **Usage**: Called when dragging starts (true) or ends (false)
+    - ensure visual consistency on drag end
+    - **Params**: value - true if starting drag, false if ending drag
+    - **Notes**: Sets sorting order to 2 for dragging to ensure it's on top
+    - calls UpdateVisual when dragging ends
+- `+ UpdateVisual(): void`
+    - **Purpose**: Updates the visual state of the chip based on its runtime data
+    - **Usage**: Call after modifying runtimeData (e.g., IsMoveLocked) to synchronize visual effects
+    - **Notes**: Activates or deactivates the moveLockedEffect based on the IsMoveLocked property
+    - handles null check for moveLockedEffect
 ---
 
 ## ChipContainer
@@ -236,6 +250,7 @@
 #### Methods
 - `+ Init(ChipData data): void`
 - `+ IsChipCompatible(Chip chip): bool`
+- `+ SetDragging(bool value): void`
 - `+ TryAddChip(Chip chip): bool`
     - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic.
     - **Usage**: Called by interaction logic when a chip is dropped onto the container.
@@ -245,6 +260,7 @@
     - **Notes**: Side effects: Updates internal container state
     - Triggers OnFillContainer event
     - If full, destroys parent Cell content and spawns NextChipData result.
+- `+ UpdateVisual(): void`
 ---
 
 ## ChipContainerData
@@ -269,8 +285,6 @@
 - `- layoutForElements: RectTransform`
 - `- panelSpriteRenderer: SpriteRenderer`
 #### Methods
-- `+ Activate(Chip chip): void`
-- `+ Deactivate(Chip chip, bool force): void`
 - `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
     - **Purpose**: Updates the visual representation of container requirements based on current state.
     - **Usage**: Called by ChipContainer when an item is added or the container initializes.
@@ -420,6 +434,17 @@
     - **Usage**: Call when the player taps the generator in manual mode.
     - **Params**: position - Tap position in world coordinates.
     - **Notes**: No effect in auto mode or if not charged. Uses TryGenerateChip for logic.
+- `+ SetDragging(bool value): void`
+    - **Purpose**: Updates dragging state and deactivates charged effect during drag
+    - **Usage**: Called when drag starts or ends
+    - deactivates generatorChargedEffect to prevent visual clutter
+    - **Params**: value - true if starting drag, false if ending drag
+    - **Notes**: Ensures the 'charged' visual doesn't obscure the field while the user is positioning the generator
+- `+ UpdateVisual(): void`
+    - **Purpose**: Updates the visual state of the generator, including charge and move-locked effects
+    - **Usage**: Overridden to manage generator-specific effects (charging vs. charged)
+    - called by base or when charging state changes
+    - **Notes**: Synchronizes activation state of generatorEffect and generatorChargedEffect based on generatorRuntimeData.IsCharged
 - `- OnFieldChanged(): void`
     - **Purpose**: Handles field change events for auto-generation mode.
     - **Usage**: Automatically called when the field changes if in auto mode.
