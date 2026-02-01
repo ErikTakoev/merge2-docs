@@ -472,7 +472,7 @@
 - `- TryGenerateChip(): void`
     - **Purpose**: Attempts to generate a new chip, managing charge state, recharges, and generator lifecycle.
     - **Usage**: Call when generator is charged. Triggered by tap (manual) or field change (auto).
-    - **Notes**: Decrements ChargeCount. Checks GenerationInterval if ChargeCount > 0. If ChargeCount reaches 0, handles recharge cycle.
+    - **Notes**: Decrements ChargeCount. Checks GenerationInterval if ChargeCount > 0. Uses 'onlyAround' search only if IsAutoGeneration is true.
 - `- Update(): void`
     - **Purpose**: Manages charging, state transitions, and triggers chip generation in auto mode.
     - **Usage**: Called every frame by Unity. Handles charging timer and triggers effects.
@@ -588,7 +588,7 @@
     - **Usage**: Internal check before performing actual relocation
     - also used by merge logic for growing chips
     - **Params**: leftTopCell - target top-left cell
-    - chip - the chip being moved (can be null for new chips)
+    - chipsToExclude - chips to ignore during collision checks
     - chipSize - dimensions of the chip
     - plannedRelocations - output list of moves to perform
     - **Returns**: True if a valid state is possible for all chips involved
@@ -1081,8 +1081,22 @@
 ---
 
 ## IFreeCellFinder
+
+> - **Purpose**: Interface for finding free cells on the field grid.
+> - **Usage**: Injected into components that need to spawn or relocate chips.
+> - **Notes**: Provides logic for nearest free cell search with spiral expansion.
 #### Methods
 - `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): Cell`
+    - **Purpose**: Finds the nearest free cell for placing a chip.
+    - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips.
+    - **Params**: parentPos - search origin
+    - parentSize - size of origin area
+    - childChipSize - size of chip to place
+    - chipToPlace - chip instance (optional)
+    - cellsToExclude - set of cells to skip
+    - chipsToPotentiallyMove - set of chips allowed to move
+    - onlyAround - if true, limits search to the immediate neighborhood.
+    - **Returns**: The nearest free Cell or null if none found.
 ---
 
 ## Merge2Initializer
