@@ -51,7 +51,7 @@
 
 ### Генерація
 1. **Trigger**: Подія `OnTap` або `Update` (якщо Auto).
-2. **Check**: Перевірка наявності заряду (`IsCharged`) та вільного місця (`IFreeCellFinder`).
+2. **Check**: Перевірка наявності заряду (`IsCharged`) та пошуку вільного місця (`IFreeCellFinder`). Параметр `onlyAround` встановлюється в `true` тільки для автоматичного режиму, щоб фішки з'являлися поруч із генератором. В ручному режимі (тап) пошук ведеться по всьому полю.
 3. **Select**: Виклик `generatorData.GenerateChipData()` для вибору типу фішки.
 4. **Spawn**: `ChipFactory.CreateChip` у знайденій клітинці.
 5. **Consume**: Зменшення `ChargeCount`.

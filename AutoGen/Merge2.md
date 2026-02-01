@@ -949,7 +949,7 @@
 #### Fields
 - `- fieldGrid: IFieldGrid`
 #### Methods
-- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove): Cell`
+- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): Cell`
     - **Purpose**: Finds the nearest free space for placing a chip, can exclude cells and potentially move other chips.
     - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips.
     - **Params**: parentPos - area start
@@ -957,8 +957,10 @@
     - childChipSize - chip size
     - chipToPlace - chip to place
     - cellsToExclude - cells to skip
-    - chipsToPotentiallyMove - chips allowed to move.
+    - chipsToPotentiallyMove - chips allowed to move
+    - onlyAround - if true, search only in the immediate neighborhood.
     - **Returns**: The nearest free Cell or null if none found.
+- `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<Cell> excludedCellsSet, HashSet<Chip> movingChipsSet): bool`
 ---
 
 ## IChipFlyAnimation
@@ -1080,7 +1082,7 @@
 
 ## IFreeCellFinder
 #### Methods
-- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove): Cell`
+- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): Cell`
 ---
 
 ## Merge2Initializer
