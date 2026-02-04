@@ -13,9 +13,8 @@
 ```csharp
 public struct CellData
 {
-    public string ChipId;
+    public FieldChipData FieldChipData; // Містить ChipId та ефекти (IsMoveLocked)
     public Vector2Int Position;
-    public bool IsMoveLocked; // Стан блокування
 }
 ```
 

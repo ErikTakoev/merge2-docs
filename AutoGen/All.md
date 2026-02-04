@@ -1,6 +1,7 @@
 # Namespace: Merge2;Merge2.Input
 
 ## Table of Contents
+- [AdditionalChip](#additionalchip)
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
 - [Chip](#chip)
@@ -23,6 +24,7 @@
 - [ContainerInfo](#containerinfo)
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
+- [FieldChipData](#fieldchipdata)
 - [FieldData](#fielddata)
 - [FieldEventHandler](#fieldeventhandler)
 - [FieldGrid](#fieldgrid)
@@ -45,6 +47,12 @@
 - [InputManager](#inputmanager)
 - [Merge2Input](#merge2input)
 
+---
+
+## AdditionalChip
+#### Fields
+- `++ Chance: int`
+- `++ Chip: ChipData`
 ---
 
 ## Cell
@@ -774,6 +782,12 @@
     - **Params**: triggerName - name of the animator trigger to activate
     - **Notes**: Safely handles null animator
     - allows effects to respond to chip-specific events beyond standard Activate/Deactivate
+---
+
+## FieldChipData
+#### Fields
+- `+ ChipId: string`
+- `+ IsMoveLocked: bool`
 ---
 
 ## FieldData
