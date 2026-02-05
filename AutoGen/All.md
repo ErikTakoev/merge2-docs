@@ -1,7 +1,6 @@
 # Namespace: Merge2;Merge2.Input
 
 ## Table of Contents
-- [AdditionalChip](#additionalchip)
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
 - [Chip](#chip)
@@ -24,6 +23,7 @@
 - [ContainerInfo](#containerinfo)
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
+- [ExtraChip](#extrachip)
 - [FieldChipData](#fieldchipdata)
 - [FieldData](#fielddata)
 - [FieldEventHandler](#fieldeventhandler)
@@ -47,12 +47,6 @@
 - [InputManager](#inputmanager)
 - [Merge2Input](#merge2input)
 
----
-
-## AdditionalChip
-#### Fields
-- `++ Chance: int`
-- `++ Chip: ChipData`
 ---
 
 ## Cell
@@ -577,7 +571,7 @@
     - **Usage**: Used by interaction systems to validate possible merge actions
     - **Params**: otherChip - the potential merge partner
     - **Returns**: True if merge is possible
-- `+ GetNextChip(ChipData otherChip): ChipData`
+- `+ GetNextChip(ChipData otherChip): MergeResult`
     - **Purpose**: Retrieves the result of merging this chip with another specific chip
     - **Usage**: Called during merge process to determine outcome
     - returns null if chips are incompatible
@@ -784,10 +778,26 @@
     - allows effects to respond to chip-specific events beyond standard Activate/Deactivate
 ---
 
+## ExtraChip
+
+> - **Purpose**: Represents an extra chip that can be generated or rewarded with a certain chance
+> - **Usage**: Used in merge outcomes or loot tables to provide bonus chips
+#### Fields
+- `++ Chance: int`
+- `++ ChipData: FieldChipData`
+---
+
 ## FieldChipData
+
+> - **Purpose**: Contains data for a chip specifically placed on the field, including its ID and current state/effects
+> - **Usage**: Used within FieldData.CellData to manage chip instances on the game board
 #### Fields
 - `+ ChipId: string`
+    - **Purpose**: Unique identifier for the chip type
+    - **Usage**: Should correspond to a chip name in the ChipDataCollection
 - `+ IsMoveLocked: bool`
+    - **Purpose**: Indicates if the chip is currently restricted from being moved by the player
+    - **Usage**: Checked by the movement system before allowing drag/swap actions
 ---
 
 ## FieldData
@@ -911,6 +921,7 @@
 > - **Notes**: Uses VContainer dependency injection
 > - requires FieldData and ChipDataCollection.
 #### Fields
+- `- chipDataCollection: ChipDataCollection`
 - `- chipFactory: ChipFactory`
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
@@ -929,7 +940,6 @@
     - **Notes**: Validates data sources
     - looks up chip definitions from ChipDataCollection
     - triggers spawn animations.
-- `+ SetFieldData(FieldData fieldData): void`
 - `- CreateChip(CellData cellData, ChipData chipData): void`
     - **Purpose**: Creates a chip at the specified position and triggers spawn animation.
     - **Usage**: Internal helper method called by LoadChips for each chip.
@@ -1139,6 +1149,8 @@
 
 ## Merge2LifetimeScope
 **Inherits**: `LifetimeScope`
+#### Fields
+- `- fieldData: FieldData`
 #### Methods
 - `~ Awake(): void`
 - `~ Configure(IContainerBuilder builder): void`
@@ -1152,9 +1164,11 @@
 > - **Notes**: Validates chip compatibility and creates new merged chips
 > - integrates with unified interaction system.
 #### Fields
+- `- chipDataCollection: ChipDataCollection`
 - `- chipFactory: ChipFactory`
 - `- chipMovingLogic: IChipMovingLogic`
 - `- fieldGrid: IFieldGrid`
+- `- freeCellFinder: IFreeCellFinder`
 #### Methods
 - `+ CanInteract(Cell sourceCell, Cell targetCell): bool`
     - **Purpose**: Validates if two cells can perform a merge interaction.
@@ -1170,6 +1184,7 @@
     - **Params**: sourceCell - cell with chip being dragged
     - targetCell - destination cell
     - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed.
+- `- HandleExtraChip(MergeResult mergeResult, Cell mergedCell, Vector2Int mergedChipSize): void`
 ---
 
 ## MergeCombination
@@ -1181,11 +1196,11 @@
 - `++ Results: MergeResult[]`
 - `++ TargetChip: ChipData`
 #### Methods
-- `+ GetRandomResult(): ChipData`
-    - **Purpose**: Selects a random result chip based on defined weights
-    - **Usage**: Called internally to determine the output chip when multiple outcomes are possible
+- `+ GetRandomResult(): MergeResult`
+    - **Purpose**: Selects a random result result (including extra chip) based on defined weights
+    - **Usage**: Called internally to determine the outcome when multiple outcomes are possible
     - **Params**: none
-    - **Returns**: The selected ChipData
+    - **Returns**: The selected MergeResult object
 ---
 
 ## MergeResult
@@ -1194,6 +1209,7 @@
 > - **Usage**: Member of MergeCombination
 > - used with weighted random selection
 #### Fields
+- `++ ExtraChip: Optional<ExtraChip>`
 - `++ Result: ChipData`
 - `++ Weight: int`
 ---
