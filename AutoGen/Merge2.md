@@ -1147,7 +1147,7 @@
 ## Merge2LifetimeScope
 **Inherits**: `LifetimeScope`
 #### Fields
-- `- fieldData: FieldData`
+- `+- FieldData: FieldData`
 #### Methods
 - `~ Awake(): void`
 - `~ Configure(IContainerBuilder builder): void`
