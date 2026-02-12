@@ -137,6 +137,13 @@
 - `~ animator: Animator`
 - `~ effects: List<Effect>`
 - `~ fieldGrid: IFieldGrid`
+- `~ isDragging: bool`
+    - **Purpose**: Tracks whether the chip is currently being dragged by the user
+    - **Usage**: Set via SetDragging
+    - queried via IsDragging
+    - used to distinguish user drag from automated movement
+    - **Notes**: Separate from IsMoving which tracks sorting order
+    - allows detection of user-initiated drag vs system movement
 - `~ mergeAvailableEffect: Effect`
 - `~ moveLockedEffect: Effect`
     - **Purpose**: Visual effect displayed when the chip is locked and cannot be moved
@@ -166,10 +173,17 @@
     - **Notes**: Creates highlight and merge-available effects if prefabs are provided
     - logs errors if required components are missing
 - `+ IsDragging(): bool`
-    - **Purpose**: Checks if the chip is currently being dragged based on its sorting order
-    - **Usage**: Use to determine if dragging logic should be applied to the chip
-    - **Returns**: True if the chip's sorting order indicates it is being dragged
-    - **Notes**: Depends on sorting order being set to 2 in SetDragging
+    - **Purpose**: Checks if the chip is currently being dragged by the user
+    - **Usage**: Use to determine if the chip is in a user-initiated drag state
+    - **Returns**: True if the chip is being dragged by user input
+    - **Notes**: Separate from IsMoving
+    - tracks user drag state specifically, not just visual movement
+- `+ IsMoving(): bool`
+    - **Purpose**: Checks if the chip is currently in a moving state based on its sorting order
+    - **Usage**: Use to determine if the chip is visually moving (either by user drag or system relocation)
+    - **Returns**: True if the chip's sorting order indicates it is moving
+    - **Notes**: Depends on sorting order being set to 2 in SetMoving
+    - returns true for both user drag and automated movement
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
     - **Purpose**: Called when the chip is moved to a new cell
     - updates all attached effects accordingly
@@ -222,12 +236,18 @@
 - `+ SendTrigger(AnimatorTrigger trigger): void`
 - `+ SendTrigger(string trigger): void`
 - `+ SetDragging(bool value): void`
-    - **Purpose**: Updates the sorting order of the chip during drag-and-drop operations
-    - **Usage**: Called when dragging starts (true) or ends (false)
-    - ensure visual consistency on drag end
-    - **Params**: value - true if starting drag, false if ending drag
-    - **Notes**: Sets sorting order to 2 for dragging to ensure it's on top
-    - calls UpdateVisual when dragging ends
+    - **Purpose**: Sets the drag state of the chip and ensures visual consistency
+    - **Usage**: Called by DraggableChipLogic when user drag starts (true) or ends (false)
+    - **Params**: value - true when user starts dragging, false when drag ends
+    - **Notes**: Automatically calls SetMoving(true) if chip is not already moving
+    - separates user drag state from movement state
+- `+ SetMoving(bool value): void`
+    - **Purpose**: Updates the sorting order of the chip during movement (user drag or system relocation)
+    - **Usage**: Called when movement starts (true) or ends (false)
+    - used for both user dragging and automated chip movement
+    - **Params**: value - true if starting movement, false if ending movement
+    - **Notes**: Sets sorting order to 2 for moving chips to ensure they're on top
+    - calls UpdateVisual when movement ends
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the chip based on its runtime data
     - **Usage**: Call after modifying runtimeData (e.g., IsMoveLocked) to synchronize visual effects
@@ -272,7 +292,7 @@
     - false otherwise
     - **Notes**: Does not modify the container's state
     - only performs a check against current requirements
-- `+ SetDragging(bool value): void`
+- `+ SetMoving(bool value): void`
 - `+ TryAddChip(Chip chip): bool`
     - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic.
     - **Usage**: Called by interaction logic when a chip is dropped onto the container.
@@ -456,7 +476,7 @@
     - **Usage**: Call when the player taps the generator in manual mode.
     - **Params**: position - Tap position in world coordinates.
     - **Notes**: No effect in auto mode or if not charged. Uses TryGenerateChip for logic.
-- `+ SetDragging(bool value): void`
+- `+ SetMoving(bool value): void`
     - **Purpose**: Updates dragging state and deactivates charged effect during drag
     - **Usage**: Called when drag starts or ends
     - deactivates generatorChargedEffect to prevent visual clutter
