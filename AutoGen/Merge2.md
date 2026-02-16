@@ -370,6 +370,10 @@
 - `+ PrefabLink: GameObject`
 - `+ Type: string`
 #### Methods
+- `+ Clone(): ChipData`
+    - **Purpose**: Creates a deep copy of this ChipData asset
+    - **Usage**: Call at runtime to create a unique instance of ChipData that can be modified without affecting the original asset
+    - **Returns**: A new ChipData instance with identical field values
 - `- OnEnable(): void`
 ---
 
