@@ -751,12 +751,14 @@
 > - supports both chip-based and cell-based effects
 #### Fields
 - `~ animator: Animator`
+- `~ dontRepeatTrigger: bool`
 - `~ durationMovePositionDependingOnSize: Vector2`
 - `~ effectForCell: bool`
     - **Purpose**: Determines whether the effect should be attached to the cell's transform instead of the chip's
     - **Usage**: Set to true if the effect must follow the cell when the chip moves between cells
     - used in OnChangedCell to update the effect's parent transform
     - **Notes**: If false, the effect remains attached to the chip's transform regardless of cell changes
+- `~ lastTriggerName: string`
 - `~ movePositionDependingOnSize: Transform`
 - `~ sendAnimatorTrigger: bool`
 #### Methods
