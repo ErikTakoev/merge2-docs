@@ -256,6 +256,12 @@
     - **Usage**: Call after modifying runtimeData (e.g., IsMoveLocked) to synchronize visual effects
     - **Notes**: Activates or deactivates the moveLockedEffect based on the IsMoveLocked property
     - handles null check for moveLockedEffect
+- `~ InitEffects(): void`
+    - **Purpose**: Initializes all effects for the chip by instantiating effect prefabs and adding them to the effects list
+    - **Usage**: Called from Init
+    - override in derived classes to add custom effects while maintaining base effect initialization
+    - **Notes**: Creates CellHighlightEffect, ChipMergeAvailableEffect, and MoveLockedEffect if their prefabs are provided
+    - designed for virtual extension pattern
 - `~ InstantiateEffect(GameObject prefab): T`
     - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
     - **Usage**: Call during Init or whenever a new visual effect needs to be added to the chip
@@ -494,6 +500,11 @@
     - **Usage**: Overridden to manage generator-specific effects (charging vs. charged)
     - called by base or when charging state changes
     - **Notes**: Synchronizes activation state of generatorEffect and generatorChargedEffect based on generatorRuntimeData.IsCharged
+- `~ InitEffects(): void`
+    - **Purpose**: Initializes generator-specific effects including charged and recharge visual feedback
+    - **Usage**: Called from Init via InitEffects chain
+    - adds generator-specific effects to the base effects list
+    - **Notes**: Calls base.InitEffects() first to ensure standard effects are initialized before adding generator effects
 - `- OnFieldChanged(): void`
     - **Purpose**: Handles field change events for auto-generation mode.
     - **Usage**: Automatically called when the field changes if in auto mode.
@@ -802,6 +813,11 @@
     - **Params**: triggerName - name of the animator trigger to activate
     - **Notes**: Safely handles null animator
     - allows effects to respond to chip-specific events beyond standard Activate/Deactivate
+- `~ ResetTrigger(string triggerName): void`
+    - **Purpose**: Resets an animation trigger on the effect's animator
+    - **Usage**: Internal helper to clear opposing triggers when switching states
+    - **Params**: triggerName - name of the trigger to reset
+    - **Notes**: Safely handles null animator
 ---
 
 ## ExtraChip
