@@ -14,7 +14,7 @@
   - **Type**: Ідентифікатор типу фішки (string).
   - **PrefabLink**: Посилання на префаб фішки.
   - **Size**: Розмір фішки в клітинках (Vector2Int).
-  - **MergeData**: Опціональні налаштування злиття (`ChipMergeData`).
+  - **MergeData**: Опціональні налаштування злиття (`ChipMergeData`). Детальніше про процес злиття читайте у **[MergeableChipLogic](../Interactions/MergeableChipLogic.md)**.
   - **ChipContainerData**: Опціональні налаштування для контейнера.
   - **ChipGeneratorData**: Опціональні налаштування для генератора.
   - **OtherData**: Додаткові дані (ScriptableObject).
