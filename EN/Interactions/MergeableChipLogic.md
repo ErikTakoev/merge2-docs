@@ -20,7 +20,7 @@ Before merging, the system checks:
 When merging is confirmed:
 1. **Determining Result**: Gets `MergeResult` based on source and target chip data.
 2. **Position Check**: If the result chip is larger (e.g., [Multi-cell Chip](../Features/MultiCellChip.md)), the system checks if it fits within field bounds.
-3. **Neighbor Relocation**: If the new chip needs more space, the [Chip Relocation](../Features/ChipRelocation.md) system is called to free up space.
+3. **Neighbor Relocation**: If the new chip needs more space, the [Chip Relocation](../Features/ChipRelocation.md) system is called to free up space. If freeing up space at the primary position fails, the system automatically checks all 8 neighboring cells to find an alternative placement location.
 4. **Field Update**:
    - Previous chips are destroyed.
    - New chip is created via `ChipFactory`.

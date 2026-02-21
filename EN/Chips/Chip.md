@@ -74,7 +74,7 @@ The system distinguishes between **user dragging state** and **visual movement s
 - **`IsMoving()`**: Checks the visual movement state (by `sortingOrder`). Returns `true` for both user dragging and system movement.
 
 ### Other Methods
-- **`OnDraggingChipWithMoveLocked()`**: Virtual method called when attempting to drag a locked chip. Plays the `MoveLocked` animation on the chip and its lock effect, providing visual feedback to the player.
+- **`OnDraggingChipWithMoveLocked()`**: Virtual method called when attempting to drag a locked chip. Plays the `MoveLocked` animation on the chip and its lock effect, providing visual feedback to the player. Uses the `allowRepeat=true` parameter for the effect to ensure every attempt is accompanied by visual feedback.
 
 ### Extensions for Specialized Chips
 - **`ChipGeneratorRuntimeData`**: Adds charging state, timers, recharge counters.

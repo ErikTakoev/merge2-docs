@@ -16,7 +16,7 @@ Base class for all effects. Provides virtual methods for managing effect lifecyc
 
 **Additional Features**:
 - **Animator Integration**: If `sendAnimatorTrigger` is configured, `Activate` and `Deactivate` methods automatically send `"Activate"` and `"Deactivate"` triggers to the `Animator` component, and reset opposite triggers to prevent animation artifacts.
-- **`SendTrigger(string triggerName)`**: Allows sending an arbitrary trigger to the effect's `Animator`. Used for special interactions, such as animation when attempting to drag a locked chip (`MoveLocked`).
+- **`SendTrigger(string triggerName, bool allowRepeat = false)`**: Allows sending an arbitrary trigger to the effect's `Animator`. Used for special interactions, such as animation when attempting to drag a locked chip (`MoveLocked`). The `allowRepeat` parameter allows bypassing the `dontRepeatTrigger` setting for specific calls.
 - **`ResetTrigger(string triggerName)`**: Resets the specified animation trigger in the effect's `Animator`. Called when switching animation states to prevent conflicts between opposite triggers (e.g., resets `"Deactivate"` before sending `"Activate"`). Safely handles the case when `Animator` is `null`.
 
 ---

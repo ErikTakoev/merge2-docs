@@ -806,7 +806,7 @@
     - **Usage**: Override to handle logic when the chip moves over a different cell without changing parent
     - **Params**: underCell - the new cell under the chip
     - overCell - the previous cell under the chip
-- `+ SendTrigger(string triggerName): void`
+- `+ SendTrigger(string triggerName, bool allowRepeat): void`
     - **Purpose**: Sends a custom animation trigger to the effect's animator
     - **Usage**: Call to trigger custom animations on the effect
     - used for special interactions like move-locked feedback
@@ -1211,6 +1211,7 @@
 - `- chipMovingLogic: IChipMovingLogic`
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
+- `- NeighborOffsets: Vector2Int[]`
 #### Methods
 - `+ CanInteract(Cell sourceCell, Cell targetCell): bool`
     - **Purpose**: Validates if two cells can perform a merge interaction.
@@ -1225,8 +1226,18 @@
     - **Usage**: Called by unified interaction system after CanInteract validation passes
     - **Params**: sourceCell - cell with chip being dragged
     - targetCell - destination cell
-    - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed.
+    - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed. If relocation at the primary position fails, it tries all 8 neighboring offsets before giving up.
 - `- HandleExtraChip(MergeResult mergeResult, Cell mergedCell, Vector2Int mergedChipSize): void`
+- `- TryResolveCellPosition(Cell primaryCell, Chip[] chipsToExclude, Vector2Int chipSize, Cell& resolvedCell, List`1& plannedRelocations): bool`
+    - **Purpose**: Resolves the final cell position for a merged chip: tries the primary cell first, then all 8 neighbors
+    - **Usage**: Called from ExecuteInteraction when relocation check is needed
+    - **Params**: primaryCell - preferred cell to place the chip
+    - chipsToExclude - chips to ignore during checks
+    - chipSize - size of chip to place
+    - **resolvedCell - output**: the cell that worked
+    - **plannedRelocations - output**: relocations for the resolved cell
+    - **Returns**: True if a valid position was found (primary or neighbor)
+    - false if all options failed
 ---
 
 ## MergeCombination
