@@ -213,6 +213,7 @@
     - triggers 'MoveLocked' animation on both chip and effect
     - **Notes**: Requires moveLockedEffect to be initialized
     - sends 'MoveLocked' trigger to both chip animator and move-locked effect
+    - uses allowRepeat=true to ensure feedback on every attempt
 - `+ OnDragStart(Vector2 position): void`
     - **Purpose**: Called when drag starts on this chip
     - **Usage**: Override in derived classes to implement custom drag start behavior
@@ -811,6 +812,7 @@
     - **Usage**: Call to trigger custom animations on the effect
     - used for special interactions like move-locked feedback
     - **Params**: triggerName - name of the animator trigger to activate
+    - allowRepeat - if true, bypasses the dontRepeatTrigger check for this call
     - **Notes**: Safely handles null animator
     - allows effects to respond to chip-specific events beyond standard Activate/Deactivate
 - `~ ResetTrigger(string triggerName): void`
@@ -1204,7 +1206,8 @@
 > - **Purpose**: Handles chip merging logic when two compatible chips are combined.
 > - **Usage**: Implements IChipInteractionLogic to provide unified interface for merge operations.
 > - **Notes**: Validates chip compatibility and creates new merged chips
-> - integrates with unified interaction system.
+> - integrates with unified interaction system
+> - handles neighbor-searching logic if primary relocation fails.
 #### Fields
 - `- chipDataCollection: ChipDataCollection`
 - `- chipFactory: ChipFactory`

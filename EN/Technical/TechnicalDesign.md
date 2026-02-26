@@ -76,6 +76,12 @@ The project uses ScriptableObjects to store level state and metadata.
 ### Runtime State
 During the game, lock state is transferred to `ChipRuntimeData`. This allows dynamically changing chip states (e.g., unlocking after meeting certain conditions) while syncing visual effects via `UpdateRuntimeData()`.
 
+## Editor Tools
+We provide specialized tools to facilitate the process of content creation and configuration.
+- **Level Editor**: A visual level editor that allows designers to set up the grid and place chips.
+- **Undo/Redo (Command Pattern)**: All editor actions are encapsulated in command objects (`IEditorCommand`). This enables a reliable undo/redo system, preventing progress loss due to editing errors.
+- **Validation**: An automatic system for checking level data integrity before saving.
+
 ## Context Awareness
 To facilitate code comprehension (especially for AI), the `[ContextCodeAnalyzer]` attribute is used.
 - **Fields**: `@purpose`, `@usage`, `@params`, `@notes`.
