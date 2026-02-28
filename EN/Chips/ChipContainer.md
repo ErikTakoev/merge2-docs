@@ -14,7 +14,7 @@ The `ChipContainer` class stores fill state and manages visual effects.
   - `FillContainerDelegate`: Delegate for container state update event.
   - `OnFillContainer`: Event called on initialization, item addition, or complete fill.
 - **Effects**:
-  - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container-container-requirements)**: Special effect that visualizes required items ("bubbles") above the container.
+  - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container-container-requirements)**: Special effect that implements `IEffectContainer` and visualizes required items ("bubbles") above the container. Assigned via `EffectContainerRef` (InterfaceRef).
 
 ### 1.1. `ChipContainerRuntimeData.cs` (Runtime State)
 Extends base `ChipRuntimeData` to store dynamic container state.
@@ -58,7 +58,7 @@ Main chip addition method:
 ## Visual Effects
 
 ### ChipContainerEffect.cs
-Specialized effect for visualizing container requirements. Manages a Panel above the chip where required items are displayed.
+Specialized effect implementing `IEffectContainer` for visualizing container requirements. Manages a Panel above the chip where required items are displayed.
 
 For a detailed implementation description, see [Effects.md](../Visuals/Effects.md#4-chip-container-container-requirements).
 

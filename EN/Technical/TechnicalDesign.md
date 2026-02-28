@@ -40,6 +40,13 @@ Main system abstractions and their implementations:
   - **Purpose**: Complex movement logic.
   - **Responsibility**: Movement validation, collision handling, and calculating chain movements (relocation) of other chips to free up space.
 
+## Visual Effects System
+Visual effects for chips are implemented via a decoupled interface system to allow for various visual representations.
+- **`IEffect`**: Base interface for all chip effects (activation, triggers, cell changes).
+- **`IEffectContainer`**: Specialized interface for `ChipContainer` visuals, extending `IEffect` with `UpdateElements`.
+- **`IEffectGeneratorCharging`**: Specialized interface for `ChipGenerator` charging visuals, extending `IEffect` with `OnCharging`.
+- **`InterfaceRef<T>`**: We use a custom serialized wrapper (`EffectRef`, `EffectContainerRef`, etc.) to assign interface-implementing MonoBehaviours directly in the Inspector, ensuring type safety and modularity.
+
 ## Interaction Strategies
 We use the "Strategy" pattern. The logic of how chips interact with each other during dragging is extracted into separate components:
 - **Interface**: `IChipInteractionLogic`.

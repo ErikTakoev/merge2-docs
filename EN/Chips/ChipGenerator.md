@@ -44,7 +44,7 @@ Extends base `ChipRuntimeData` to store dynamic generator state.
 **Initialization**: Created in the constructor based on `ChipGeneratorData`, setting initial values from settings.
 
 ## Methods and Logic
-- **`InitEffects()` (Override)**: Overrides the base method to initialize generator-specific effects. First calls `base.InitEffects()` to instantiate standard effects, then adds `ChargedEffect` and `RechargeEffect` if assigned in the inspector. This allows the generator to extend base class behavior without code duplication.
+- **`InitEffects()` (Override)**: Overrides the base method to initialize generator-specific effects. First calls `base.InitEffects()` to instantiate standard effects, then adds `chargedEffect` and `rechargeEffect` (via `InterfaceRef<IEffect>` and `InterfaceRef<IEffectGeneratorCharging>`) if assigned in the inspector. This allows the generator to extend base class behavior while maintaining loose coupling.
 - **`UpdateVisual()` (Override)**: Overrides the base method to manage generator-specific effects. Activates `chargedEffect` and deactivates `rechargeEffect` when the generator is charged (`IsCharged`), and vice versa.
 - **`SetMoving(bool)` (Override)**: Overrides the base method to deactivate `chargedEffect` during the start of movement to avoid cluttering the field's visuals.
 
@@ -66,7 +66,7 @@ Extends base `ChipRuntimeData` to store dynamic generator state.
 3. **Complete**: When time expires, readiness is restored (`IsCharged`). If this was a full cycle, charge count is restored. `UpdateVisual()` is called (if chip is not being dragged).
 
 ## Effects and Visualization
-- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-progress-generator)**: Displays recharge progress (via `maskRectTransform`). Active when `IsCharged` = `false`.
-- **ChargedEffect (generator readiness)**: Active when `IsCharged` = `true` and chip is not being dragged. Uses the base `Effect` class.
+- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-progress-generator)**: Displays recharge progress. Implements `IEffectGeneratorCharging`. Active when `IsCharged` = `false`.
+- **ChargedEffect (generator readiness)**: Implements `IEffect`. Active when `IsCharged` = `true` and chip is not being dragged.
 - **Animator**: Uses triggers `Generate` (on spawn) and `Recharge` (on charge completion).
 

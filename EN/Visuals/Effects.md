@@ -7,12 +7,17 @@ This document describes the visual effect system used to provide feedback to the
 ## Base System
 
 ### `Effect.cs`
-Base class for all effects. Provides virtual methods for managing effect lifecycle:
+Base class for all effects. Implements `IEffect` and provides virtual methods for managing effect lifecycle:
 - **`Init(Chip chip)`**: Initializes the effect, configures position based on chip size, deactivates by default.
 - **`Activate(Chip chip)`**: Enables the effect object.
 - **`Deactivate(Chip chip)`**: Disables the effect object.
-- **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Called when a chip moves. If `effectForCell` is set to `true`, the effect is re-parented to the cell's transform, not the chip's.
+- **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Called when a chip moves.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Handles cell change during Drag-and-Drop.
+
+**Interfaces**:
+- **`IEffect`**: Core contract for all effects (`Activate`, `Deactivate`, `Init`, etc.).
+- **`IEffectContainer`**: Extends `IEffect` for container-specific visuals.
+- **`IEffectGeneratorCharging`**: Extends `IEffect` for charging progress visuals.
 
 **Additional Features**:
 - **Animator Integration**: If `sendAnimatorTrigger` is configured, `Activate` and `Deactivate` methods automatically send `"Activate"` and `"Deactivate"` triggers to the `Animator` component, and reset opposite triggers to prevent animation artifacts.
@@ -45,6 +50,7 @@ Activated on the chip that is "below" when the player brings another chip with w
 
 ### 3. Chip Generator Recharge (Progress Generator)
 **Class**: `ChipGeneratorRechargeEffect.cs`
+**Implements**: `IEffectGeneratorCharging`
 **Used in**: [ChipGenerator](../Chips/ChipGenerator.md)
 
 Visualizes generator recharge progress. Usually implemented through changes to the local position of a mask (`maskRectTransform`), creating a fill-from-bottom effect.
@@ -52,6 +58,7 @@ Visualizes generator recharge progress. Usually implemented through changes to t
 
 ### 4. Chip Container (Container Requirements)
 **Class**: `ChipContainerEffect.cs`
+**Implements**: `IEffectContainer`
 **Used in**: [ChipContainer](../Chips/ChipContainer.md)
 
 Displays a Panel with icons of items needed for the container to complete a quest.

@@ -23,6 +23,9 @@
 - [ContainerInfo](#containerinfo)
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
+- [EffectContainerRef](#effectcontainerref)
+- [EffectGeneratorChargingRef](#effectgeneratorchargingref)
+- [EffectRef](#effectref)
 - [ExtraChip](#extrachip)
 - [FieldChipData](#fieldchipdata)
 - [FieldData](#fielddata)
@@ -34,6 +37,9 @@
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
 - [IChipMovingLogic](#ichipmovinglogic)
+- [IEffect](#ieffect)
+- [IEffectContainer](#ieffectcontainer)
+- [IEffectGeneratorCharging](#ieffectgeneratorcharging)
 - [IFieldEventHandler](#ifieldeventhandler)
 - [IFieldGrid](#ifieldgrid)
 - [IFieldInitializeCommand](#ifieldinitializecommand)
@@ -135,7 +141,7 @@
 - `+- Data: ChipData`
 - `+- RuntimeData: ChipRuntimeData`
 - `~ animator: Animator`
-- `~ effects: List<Effect>`
+- `~ effects: List<IEffect>`
 - `~ fieldGrid: IFieldGrid`
 - `~ isDragging: bool`
     - **Purpose**: Tracks whether the chip is currently being dragged by the user
@@ -144,8 +150,8 @@
     - used to distinguish user drag from automated movement
     - **Notes**: Separate from IsMoving which tracks sorting order
     - allows detection of user-initiated drag vs system movement
-- `~ mergeAvailableEffect: Effect`
-- `~ moveLockedEffect: Effect`
+- `~ mergeAvailableEffect: IEffect`
+- `~ moveLockedEffect: IEffect`
     - **Purpose**: Visual effect displayed when the chip is locked and cannot be moved
     - **Usage**: Automatically activated/deactivated by SetRealtimeData based on IsMoveLocked state
     - instantiated in Init if MoveLockedEffectPrefab is provided
@@ -286,7 +292,7 @@
 > - Requires proper ChipData with ChipContainerData.
 #### Fields
 - `- chipFactory: ChipFactory`
-- `- containerEffect: ChipContainerEffect`
+- `- containerEffect: EffectContainerRef`
 - `~ containerRuntimeData: ChipContainerRuntimeData`
 - `- OnFillContainer: FillContainerDelegate`
 #### Methods
@@ -342,6 +348,7 @@
     - isFull - true if all requirements are met.
     - **Notes**: Dynamically instantiates UI elements (bubbles) and resizes the background panel. Deactivates effect if isFull is true.
 - `- ClearElements(): void`
+- `- Merge2.IEffect.get_gameObject(): GameObject`
 ---
 
 ## ChipContainerRuntimeData
@@ -446,7 +453,7 @@
 > - **Notes**: Manages recharge counts. If TotalRecharges > 0, it recharges N times before evolution/destruction.
 #### Fields
 - `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
-- `- chargedEffect: Effect`
+- `- chargedEffect: EffectRef`
     - **Purpose**: Visual effect active when the generator is fully charged and ready to generate chips.
     - **Usage**: Activated when ChargeCount > 0 and charging is complete
     - Deactivated after generation or during recharge.
@@ -468,7 +475,7 @@
     - **Usage**: Set in Init from generatorData. Controls event subscriptions and tap behavior.
     - **Notes**: Affects event handling and chip generation triggers.
 - `- OnCharging: Action<float>`
-- `- rechargeEffect: ChipGeneratorRechargeEffect`
+- `- rechargeEffect: EffectGeneratorChargingRef`
     - **Purpose**: Effect component for visual feedback during charging (recharge cycle).
     - **Usage**: Assigned via inspector. Used in Init, Update, and generation logic to show progress.
     - **Notes**: Must not be null. Handles visual state changes during charging.
@@ -554,6 +561,7 @@
     - **Purpose**: Updates the visual state of charging based on progress
     - **Usage**: Called via event from ChipGenerator during update loop
     - **Params**: progress - value between 0 and 1 indicating charge percentage
+- `- Merge2.IEffect.get_gameObject(): GameObject`
 ---
 
 ## ChipGeneratorRuntimeData
@@ -812,11 +820,24 @@
     - allowRepeat - if true, bypasses the dontRepeatTrigger check for this call
     - **Notes**: Safely handles null animator
     - allows effects to respond to chip-specific events beyond standard Activate/Deactivate
+- `- Merge2.IEffect.get_gameObject(): GameObject`
 - `~ ResetTrigger(string triggerName): void`
     - **Purpose**: Resets an animation trigger on the effect's animator
     - **Usage**: Internal helper to clear opposing triggers when switching states
     - **Params**: triggerName - name of the trigger to reset
     - **Notes**: Safely handles null animator
+---
+
+## EffectContainerRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
+---
+
+## EffectGeneratorChargingRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
+---
+
+## EffectRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
 ## ExtraChip
@@ -1096,6 +1117,41 @@
     - **Params**: leftTopCell - destination for the primary chip
     - sourceCell - original spot of the primary chip
     - plannedRelocations - list of calculated moves
+---
+
+## IEffect
+
+> - **Purpose**: Interface for all effects that can be activated or deactivated on chips
+> - **Usage**: Implement this interface for custom chip effects. Used by Chip class to manage common effect lifecycle.
+> - **Notes**: Includes core activation, deactivation, trigger, and cell change handling methods.
+#### Fields
+- `+- gameObject: GameObject`
+#### Methods
+- `+ Activate(Chip chip): void`
+- `+ Deactivate(Chip chip, bool force): void`
+- `+ Init(Chip chip): void`
+- `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell underCell): void`
+- `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+- `+ SendTrigger(string triggerName, bool allowRepeat): void`
+---
+
+## IEffectContainer
+
+> - **Purpose**: Interface for ChipContainer specific visual effects
+> - **Usage**: Implemented by ChipContainerEffect to handle bubble container visuals. Used by ChipContainer.
+> - **Notes**: Extends IEffect with UpdateElements method.
+#### Methods
+- `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
+---
+
+## IEffectGeneratorCharging
+
+> - **Purpose**: Interface for ChipGenerator specific charging effects
+> - **Usage**: Implemented by ChipGeneratorRechargeEffect to visualize charging progress. Used by ChipGenerator.
+> - **Notes**: Extends IEffect with OnCharging method.
+#### Methods
+- `+ OnCharging(float progress): void`
 ---
 
 ## IFieldEventHandler

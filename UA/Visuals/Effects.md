@@ -7,12 +7,17 @@
 ## Базова Система
 
 ### `Effect.cs`
-Базовий клас для всіх ефектів. Надає віртуальні методи для керування життєвим циклом ефекту:
+Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
 - **`Init(Chip chip)`**: Ініціалізує ефект, налаштовує позицію залежно від розміру чіпа, деактивує за замовчуванням.
 - **`Activate(Chip chip)`**: Вмикає об'єкт ефекту.
 - **`Deactivate(Chip chip)`**: Вимикає об'єкт ефекту.
-- **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Викликається при переміщенні фішки. Якщо `effectForCell` встановлено в `true`, ефект переприв'язується до трансформу клітинки, а не фішки.
-- **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин над якими або під якими знаходиться фішка під час Drag-and-Drop.
+- **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Викликається при переміщенні фішки.
+- **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин під час Drag-and-Drop.
+
+**Інтерфейси**:
+- **`IEffect`**: Основний контракт для всіх ефектів (`Activate`, `Deactivate`, `Init` тощо).
+- **`IEffectContainer`**: Розширює `IEffect` для візуалізації специфіки контейнерів.
+- **`IEffectGeneratorCharging`**: Розширює `IEffect` для візуалізації прогресу зарядки.
 
 **Додаткові можливості**:
 - **Animator Integration**: Якщо налаштовано `sendAnimatorTrigger`, методи `Activate` та `Deactivate` автоматично відправляють тригери `"Activate"` та `"Deactivate"` в компонент `Animator`, а також скидають протилежні тригери для запобігання анімаційним артефактам.
@@ -45,6 +50,7 @@
 
 ### 3. Chip Generator Recharge (Прогрес Генератора)
 **Клас**: `ChipGeneratorRechargeEffect.cs`
+**Реалізує**: `IEffectGeneratorCharging`
 **Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
 
 Візуалізує процес перезарядки генератора. Зазвичай реалізовано через зміну локальної позиції маски (`maskRectTransform`), що створює ефект заповнення іконки знизу вгору.
@@ -52,6 +58,7 @@
 
 ### 4. Chip Container (Вимоги Контейнера)
 **Клас**: `ChipContainerEffect.cs`
+**Реалізує**: `IEffectContainer`
 **Використовується в**: [ChipContainer](../Chips/ChipContainer.md)
 
 Відображає Panel з іконками предметів, які необхідні контейнеру для виконання квесту.
