@@ -1,10 +1,10 @@
-# Візуальні Ефекти (Visual Effects)
+# Visual Effects
 
 [← На Головну](../Main.md)
 
 Цей документ описує систему візуальних ефектів, що використовуються для забезпечення зворотного зв'язку (Feedback) гравцеві під час взаємодії з фішками (Chips) на ігровому полі.
 
-## Базова Система
+## Base System
 
 ### `Effect.cs`
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
@@ -26,9 +26,9 @@
 
 ---
 
-## Реалізовані Ефекти
+## Implemented Effects
 
-### 1. Cell Highlight (Підсвітка Клітин)
+### 1. Cell Highlight
 **Клас**: `CellHighlightEffect.cs`
 **Використовується в**: [Chip](../Chips/Chip.md)
 
@@ -38,7 +38,7 @@
   - `color`: Колір підсвітки.
   - `order`: Зсув по осі Z для правильного рендерингу над полем.
 
-### 2. Merge Available (Доступність Злиття)
+### 2. Merge Available
 **Клас**: `ChipMergeAvailableEffect.cs`
 **Використовується в**: [Chip](../Chips/Chip.md)
 
@@ -48,7 +48,7 @@
   - `autoPosition`: Центрує ефект відносно фішки.
   - Використовує `Animator` з тригерами `Activate` та `Deactivate`.
 
-### 3. Chip Generator Recharge (Прогрес Генератора)
+### 3. Chip Generator Recharge
 **Клас**: `ChipGeneratorRechargeEffect.cs`
 **Реалізує**: `IEffectGeneratorCharging`
 **Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
@@ -56,7 +56,7 @@
 Візуалізує процес перезарядки генератора. Зазвичай реалізовано через зміну локальної позиції маски (`maskRectTransform`), що створює ефект заповнення іконки знизу вгору.
 - **Метод `OnCharging(float progress)`**: Отримує значення від 0 до 1 та оновлює візуалізацію.
 
-### 4. Chip Container (Вимоги Контейнера)
+### 4. Chip Container
 **Клас**: `ChipContainerEffect.cs`
 **Реалізує**: `IEffectContainer`
 **Використовується в**: [ChipContainer](../Chips/ChipContainer.md)
@@ -77,7 +77,7 @@
   4. Очищає старі елементи та створює нові префаби (`ContainerElementPrefab`) для кожної вимоги.
   5. Якщо контейнер заповнений (`isFull`), викликає `ClearElements` та деактивує ефект.
 
-### 5. Generator Charged (Готовність Генератора)
+### 5. Generator Charged
 **Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
 
 Візуальний ефект, що активується, коли генератор повністю зарядився і готовий до створення нової фішки.
@@ -85,7 +85,7 @@
 - **Деактивація**: Після успішної генерації фішки або під час процесу перезарядки.
 - **Тип**: Використовує базовий клас `Effect`. Зазвичай це cyclic idle-анімація (світіння, пульсація), що показує гравцеві готовність об'єкта до взаємодії.
 
-### 6. Move Locked (Блокування Переміщення)
+### 6. Move Locked
 **Клас**: `Effect` (базовий)
 **Використовується в**: [Chip](../Chips/Chip.md)
 

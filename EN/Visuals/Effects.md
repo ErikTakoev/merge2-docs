@@ -28,7 +28,7 @@ Base class for all effects. Implements `IEffect` and provides virtual methods fo
 
 ## Implemented Effects
 
-### 1. Cell Highlight (Cell Highlighting)
+### 1. Cell Highlight
 **Class**: `CellHighlightEffect.cs`
 **Used in**: [Chip](../Chips/Chip.md)
 
@@ -38,7 +38,7 @@ Dynamically creates and displays highlighting under the chip. Supports multi-cel
   - `color`: Highlight color.
   - `order`: Z-offset for correct rendering above the field.
 
-### 2. Merge Available (Merge Available)
+### 2. Merge Available
 **Class**: `ChipMergeAvailableEffect.cs`
 **Used in**: [Chip](../Chips/Chip.md)
 
@@ -48,7 +48,7 @@ Activated on the chip that is "below" when the player brings another chip with w
   - `autoPosition`: Centers the effect relative to the chip.
   - Uses `Animator` with `Activate` and `Deactivate` triggers.
 
-### 3. Chip Generator Recharge (Progress Generator)
+### 3. Chip Generator Recharge
 **Class**: `ChipGeneratorRechargeEffect.cs`
 **Implements**: `IEffectGeneratorCharging`
 **Used in**: [ChipGenerator](../Chips/ChipGenerator.md)
@@ -56,7 +56,7 @@ Activated on the chip that is "below" when the player brings another chip with w
 Visualizes generator recharge progress. Usually implemented through changes to the local position of a mask (`maskRectTransform`), creating a fill-from-bottom effect.
 - **Method `OnCharging(float progress)`**: Receives a value from 0 to 1 and updates the visualization.
 
-### 4. Chip Container (Container Requirements)
+### 4. Chip Container
 **Class**: `ChipContainerEffect.cs`
 **Implements**: `IEffectContainer`
 **Used in**: [ChipContainer](../Chips/ChipContainer.md)
@@ -77,7 +77,7 @@ Displays a Panel with icons of items needed for the container to complete a ques
   4. Clears old elements and creates new `ContainerElementPrefab` for each requirement.
   5. If the container is full (`isFull`), calls `ClearElements` and deactivates the effect.
 
-### 5. Generator Charged (Generator Readiness)
+### 5. Generator Charged
 **Used in**: [ChipGenerator](../Chips/ChipGenerator.md)
 
 Visual effect activated when the generator is fully charged and ready to create a new chip.
@@ -85,7 +85,7 @@ Visual effect activated when the generator is fully charged and ready to create 
 - **Deactivation**: After successful chip generation or during the recharge process.
 - **Type**: Uses the base `Effect` class. Usually a cyclic idle animation (glow, pulsation) that shows the player the object is ready to interact.
 
-### 6. Move Locked (Move Locking)
+### 6. Move Locked
 **Class**: `Effect` (base)
 **Used in**: [Chip](../Chips/Chip.md)
 

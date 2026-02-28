@@ -1,12 +1,12 @@
-# ChipContainer (Контейнер)
+# ChipContainer (Container)
 
 [← На Головну](../Main.md)
 
 `ChipContainer` — це інтерактивна фішка, яка приймає в себе інші фішки для виконання квестів або замовлень. Вона успадковується від базового класу `Chip` і розширює його функціонал можливістю накопичення предметів.
 
-## Архітектура та Відповідальність
+## Architecture and Responsibility
 
-### 1. `ChipContainer.cs` (Контейнер)
+### 1. `ChipContainer.cs` (Container)
 Клас `ChipContainer` зберігає стан наповнення та керує візуальними ефектами.
 - **Властивості (Data)**:
   - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, нагорода `NextChipData`).
@@ -14,13 +14,13 @@
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
   - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
 - **Ефекти**:
-  - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container-вимоги-контейнера)**: Спеціальний ефект, що реалізує `IEffectContainer` та візуалізує необхідні предмети ("бабли") над контейнером. Призначається через `EffectContainerRef` (InterfaceRef).
+  - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container)**: Спеціальний ефект, що реалізує `IEffectContainer` та візуалізує необхідні предмети ("бабли") над контейнером. Призначається через `EffectContainerRef` (InterfaceRef).
 
-### 1.1. `ChipContainerRuntimeData.cs` (Runtime Стан)
+### 1.1. `ChipContainerRuntimeData.cs` (Runtime State)
 Розширює базовий `ChipRuntimeData` для зберігання динамічного стану контейнера.
 
 **Успадковані властивості** (від `ChipRuntimeData`):
-- **`IsMoveLocked`**: Визначає, чи заблоковано переміщення контейнера. Детальніше див. [Chip Runtime Data](Chip.md#runtime-data-дані-під-час-гри).
+- **`IsMoveLocked`**: Визначає, чи заблоковано переміщення контейнера. Детальніше див. [Chip Runtime Data](Chip.md#runtime-data).
 
 **Власні властивості**:
 - **`containers`**: Словник (`Dictionary<ContainerInfo, int>`), що відслідковує поточний прогрес заповнення кожної вимоги.
@@ -30,7 +30,7 @@
 
 **Ініціалізація**: Створюється в `ChipContainer.Init()` на основі даних з `ChipContainerData`. Початкові значення лічильників встановлюються в 0.
 
-### 2. `FillContainerLogic.cs` (Логіка)
+### 2. `FillContainerLogic.cs` (Logic)
 Керує процесом взаємодії між гравцем, фішкою та контейнером. Детальніше про загальну систему взаємодій див. **[FillContainerLogic](../Interactions/FillContainerLogic.md)**.
 - **Перевірка (`CanInteract`)**:
   - Перевіряє, чи є цільовий об'єкт контейнером (`ChipContainer`).
@@ -39,7 +39,7 @@
   - Викликає `chipContainer.TryAddChip(sourceChip)`.
   - У разі успіху викликає `sourceCell.Chip.Destroy(sourceCell)` для видалення фішки, яку додали.
 
-## Ключові Методи (`ChipContainer.cs`)
+## Key Methods (`ChipContainer.cs`)
 
 ### `IsChipCompatible(Chip chip)`
 Перевіряє, чи відповідає `Type` або `Name` фішки хоча б одній із активних вимог у `containerRuntimeData.containers`. Не змінює стан.
@@ -55,14 +55,14 @@
 3. Якщо лічильник ще не повний — просто інкрементує його значення.
 4. **Результат**: Повертає `true`, якщо фішка була успішно прийнята.
 
-## Візуальні Ефекти
+## Visual Effects
 
 ### ChipContainerEffect.cs
 Спеціалізований ефект, що реалізує `IEffectContainer` для візуалізації вимог контейнера. Керує Panel над фішкою, в якій відображаються потрібні предмети.
 
-Детальний опис реалізації ефекту див. у [Effects.md](../Visuals/Effects.md#4-chip-container-вимоги-контейнера).
+Детальний опис реалізації ефекту див. у [Effects.md](../Visuals/Effects.md#4-chip-container).
 
-## Процес (Flow)
+## Flow
 
 1. **Input**: Гравець починає перетягувати фішку.
 2. **Move**: Система через `FillContainerLogic.CanInteract` постійно перевіряє сумісність при наведенні на контейнери.

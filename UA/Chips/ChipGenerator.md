@@ -1,12 +1,12 @@
-# ChipGenerator (Генератор)
+# ChipGenerator (Generator)
 
 [← На Головну](../Main.md)
 
 `ChipGenerator` — це спеціалізований компонент, який створює (спавнить) нові фішки на ігровому полі. Він працює як автомат станів (State Machine), що перемикається між заряджанням та готовністю до генерації.
 
-## Архітектура та Відповідальність
+## Architecture and Responsibility
 
-### 1. `ChipGenerator.cs` (Основний Компонент)
+### 1. `ChipGenerator.cs` (Main Component)
 Клас `ChipGenerator` керує життєвим циклом генератора, об'єднуючи логіку оновлення та події.
 - **Вхідні дані (Input)**:
   - **Manual**: Обробляє `OnTap` (клік гравця).
@@ -16,7 +16,7 @@
   - `IFreeCellFinder`: Логіка пошуку найближчої вільної клітинки.
   - `ChipFactory`: Фабрика для створення нових об'єктів.
 
-### 2. `ChipGeneratorData.cs` (Налаштування)
+### 2. `ChipGeneratorData.cs` (Configuration)
 Дані містять налаштування та алгоритми вибору.
 - **Властивості**:
   - `Data`: Ваги ймовірностей для різних типів фішок.
@@ -25,11 +25,11 @@
   - `TotalRecharges`: Ліміт життя генератора.
 - **Логіка (`GenerateChipData`)**: Метод, що виконує зважений випадковий вибір (`Weighted Random`) для визначення наступної фішки.
 
-### 3. `ChipGeneratorRuntimeData.cs` (Runtime Стан)
+### 3. `ChipGeneratorRuntimeData.cs` (Runtime State)
 Розширює базовий `ChipRuntimeData` для зберігання динамічного стану генератора.
 
 **Успадковані властивості** (від `ChipRuntimeData`):
-- **`IsMoveLocked`**: Визначає, чи заблоковано переміщення генератора. Детальніше див. [Chip Runtime Data](Chip.md#runtime-data-дані-під-час-гри).
+- **`IsMoveLocked`**: Визначає, чи заблоковано переміщення генератора. Детальніше див. [Chip Runtime Data](Chip.md#runtime-data).
 
 **Власні властивості**:
 - **`IsCharged`**: Чи готовий генератор до створення нової фішки. Коли `true`, генератор може спавнити чіп (вручну або автоматично).
@@ -43,14 +43,14 @@
 
 **Ініціалізація**: Створюється в конструкторі на основі `ChipGeneratorData`, встановлюючи початкові значення з налаштувань.
 
-## Методи та Логіка
+## Methods and Logic
 - **`InitEffects()` (Override)**: Перевизначає базовий метод для ініціалізації специфічних ефектів генератора. Спочатку викликає `base.InitEffects()` для інстанціювання стандартних ефектів, потім додає `chargedEffect` та `rechargeEffect` (через `InterfaceRef<IEffect>` та `InterfaceRef<IEffectGeneratorCharging>`), якщо вони призначені в інспекторі. Це дозволяє розширювати поведінку базового класу, зберігаючи слабку пов'язаність (loose coupling).
 - **`UpdateVisual()` (Override)**: Перевизначає базовий метод для керування специфічними ефектами генератора. Активує `chargedEffect` та деактивує `rechargeEffect`, коли генератор заряджений (`IsCharged`), і навпаки.
 - **`SetMoving(bool)` (Override)**: Перевизначає базовий метод для деактивації `chargedEffect` під час початку переміщення, щоб не захаращувати візуал поля.
 
-## Процес (Flow)
+## Flow
 
-### Генерація
+### Generation
 1. **Trigger**: Подія `OnTap` або `Update` (якщо Auto).
 2. **Check**: Перевірка наявності заряду (`IsCharged`) та пошуку вільного місця (`IFreeCellFinder`). Параметр `onlyAround` встановлюється в `true` тільки для автоматичного режиму (`IsAutoGeneration`), щоб фішки з'являлися поруч із генератором. В ручному режимі (тап) пошук ведеться по всьому полю.
 3. **Select**: Виклик `generatorData.GenerateChipData()` для вибору типу фішки.
@@ -60,13 +60,13 @@
     - Якщо `ChargeCount == 0`: Зменшується `RechargesLeft` та встановлюється повна перезарядка (`ChargingTime`).
 6. **Update Visual**: Виклик `UpdateVisual()` для синхронізації ефектів після зміни стану заряду.
 
-### Перезарядка (Recharge)
+### Recharge
 1. **Update**: У кожному кадрі збільшується `ChargingTimeLeft` до досягнення `CurrentTargetChargingTime`.
 2. **Visuals**: Викликається подія `OnCharging` -> `ChipGeneratorEffect` оновлює маску прогресу.
 3. **Complete**: Коли час вичерпано, відновлюється готовність (`IsCharged`). Якщо це був повний цикл, відновлюється кількість зарядів. Викликається `UpdateVisual()` (якщо чіп не перетягується).
 
-## Ефекти та Візуалізація
-- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-прогрес-генератора)**: Відображає прогрес перезарядки. Реалізує інтерфейс `IEffectGeneratorCharging`. Активний, коли `IsCharged` = `false`.
+## Effects and Visualization
+- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-recharge)**: Відображає прогрес перезарядки. Реалізує інтерфейс `IEffectGeneratorCharging`. Активний, коли `IsCharged` = `false`.
 - **ChargedEffect (готовність генератора)**: Реалізує інтерфейс `IEffect`. Активний, коли `IsCharged` = `true` та чіп не перетягується.
 - **Animator**: Використовує тригери `Generate` (при спавні) та `Recharge` (при завершенні зарядки).
 

@@ -29,7 +29,7 @@ Data contains configuration and selection algorithms.
 Extends base `ChipRuntimeData` to store dynamic generator state.
 
 **Inherited properties** (from `ChipRuntimeData`):
-- **`IsMoveLocked`**: Determines whether the generator's movement is blocked. For details, see [Chip Runtime Data](Chip.md#runtime-data-in-game-state).
+- **`IsMoveLocked`**: Determines whether the generator's movement is blocked. For details, see [Chip Runtime Data](Chip.md#runtime-data).
 
 **Own properties**:
 - **`IsCharged`**: Is the generator ready to create a new chip? When `true`, the generator can spawn (manually or automatically).
@@ -66,7 +66,7 @@ Extends base `ChipRuntimeData` to store dynamic generator state.
 3. **Complete**: When time expires, readiness is restored (`IsCharged`). If this was a full cycle, charge count is restored. `UpdateVisual()` is called (if chip is not being dragged).
 
 ## Effects and Visualization
-- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-progress-generator)**: Displays recharge progress. Implements `IEffectGeneratorCharging`. Active when `IsCharged` = `false`.
+- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-recharge)**: Displays recharge progress. Implements `IEffectGeneratorCharging`. Active when `IsCharged` = `false`.
 - **ChargedEffect (generator readiness)**: Implements `IEffect`. Active when `IsCharged` = `true` and chip is not being dragged.
 - **Animator**: Uses triggers `Generate` (on spawn) and `Recharge` (on charge completion).
 

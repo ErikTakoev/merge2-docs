@@ -1,4 +1,4 @@
-# Chip (Базовий Чіп)
+# Chip (Base Chip)
 
 [← На Головну](../Main.md)
 
@@ -6,9 +6,9 @@
 
 Сама логіка злиття (Merge) та переміщення винесена у відповідні логічні класи.
 
-## Архітектура та Відповідальність
+## Architecture and Responsibility
 
-### 1. `Chip.cs` (Базовий Клас)
+### 1. `Chip.cs` (Base Class)
 Клас `Chip` є візуальним представленням та базовим компонентом.
 - **Дані (Configuration - `ChipData`)**: Зберігає посилання на `ChipData`, який містить налаштування:
   - **Type**: Ідентифікатор типу фішки (string).
@@ -23,65 +23,65 @@
   - **RuntimeData**: Поточний стан (див. нижче).
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Ефекти**: Керує візуальними ефектами, детальніше див. [Visual Effects](../Visuals/Effects.md):
-  - `MergeAvailableEffect`: Підсвітка при можливості злиття ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available-доступність-злиття)).
-  - `CellHighlightEffect`: Підсвітка клітинки під фішкою ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight-підсвітка-клітин)).
-  - `MoveLockedEffect`: Візуальна індикація блокування переміщення ([Move Locked](../Visuals/Effects.md#6-move-locked-блокування-переміщення)).
+  - `MergeAvailableEffect`: Підсвітка при можливості злиття ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available)).
+  - `CellHighlightEffect`: Підсвітка клітинки під фішкою ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight)).
+  - `MoveLockedEffect`: Візуальна індикація блокування переміщення ([Move Locked](../Visuals/Effects.md#6-move-locked)).
 - **Анімація**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`).
 
-## Управління Ефектами (Effect Management)
+## Effect Management
 
 Базовий клас `Chip` автоматично відстежує всі візуальні ефекти, що належать йому, для коректної розсилки подій та очищення при знищенні.
 
-### Ініціалізація Ефектів
+### Effect Initialization
 - **`InitEffects()`**: Віртуальний метод, який викликається з `Init(ChipData)` для ініціалізації всіх ефектів. Базова реалізація створює та додає стандартні ефекти (CellHighlight, MergeAvailable, MoveLocked). Цей метод призначений для перекриття в похідних класах, які можуть додавати свої спеціалізовані ефекти. Приклад: `ChipGenerator` перекриває цей метод, щоб додати `ChargedEffect` та `RechargeEffect`.
 
-### Управління Списком Ефектів
+### Effect List Management
 - **`effects` (List<Effect>)**: Список усіх активних ефектів чіпа. Використовуєтся для ітерації при зміні стану клітинок або взаємодії.
 - **`InstantiateEffect<T>(GameObject prefab)`**: Допоміжний метод для створення ефектів з префабів. Він автоматично інстанціює об'єкт та викликає `Init(this)`.
 
-### Життєвий Цикл Ефектів
+### Effect Lifecycle
 - Всі ефекти, додані до списку `effects`, автоматично отримують сповіщення через методи `OnChangedCell`, `OnInteractionOverCellChanged` та `OnInteractionUnderCellChanged`.
 - При виклику `Destroy(Cell)`, всі ефекти зі списку `effects` також знищуються.
 
-## Runtime Data (Дані Під Час Гри)
+## Runtime Data
 
 ### `ChipRuntimeData`
 Базовий клас для зберігання runtime стану чіпів. Знаходиться в папці `RuntimeData`. Містить динамічні властивості, які змінюються під час гри:
 - **`IsMoveLocked`**: Визначає, чи заблоковано переміщення чіпа. Коли встановлено в `true`, гравець не може перетягувати цей чіп.
 
-### Методи Роботи з Runtime Data
+### Runtime Data Methods
 - **`UpdateVisual()`**: Віртуальний метод для синхронізації візуального стану чіпа з його `RuntimeData`. Автоматично активує/деактивує `MoveLockedEffect` на основі властивості `IsMoveLocked`.
 - **`RuntimeData` (Property)**: Надає доступ до об'єкта `ChipRuntimeData` для читання та модифікації динамічних властивостей.
 - **`CanMoving()`**: Віртуальний метод, що перевіряє, чи можна переміщувати чіп. Повертає `false`, якщо `IsMoveLocked` встановлено в `true`.
 - **`ChipData.Clone()`**: Дозволяє створити копію конфігурації чіпа під час рантайму, якщо потрібно змінити параметри для конкретного екземпляра.
 
-### Управління Списком Взаємодій (Input & Interaction)
+### Input and Interaction List Management
 `Chip` містить віртуальні методи для обробки подій, які викликаються логікою управління (наприклад, `DraggableChipLogic`):
 - **`OnTap(Vector2 position)`**: Викликається при короткому натисканні.
 - **`OnDragStart(Vector2 position)`**: Початок перетягування.
 - **`OnDrag(Vector2 position, Cell anchorCell)`**: Процес перетягування.
 - **`OnDragEnd(Vector2 position)`**: Завершення перетягування.
 
-### Управління Станом Переміщення
+### Movement State Management
 Система розрізняє **стан перетягування користувачем** та **візуальний стан переміщення**:
 
-#### Стан Перетягування (User Drag State)
+#### User Drag State
 - **`SetDragging(bool)`**: Встановлює стан перетягування користувачем. Викликається `DraggableChipLogic` при початку/завершенні перетягування. Автоматично викликає `SetMoving(true)` при необхідності.
 - **`IsDragging()`**: Перевіряє, чи перетягується чіп користувачем. Відстежує саме взаємодію з користувачем, а не лише візуальне переміщення.
 
-#### Візуальний Стан Переміщення (Visual Movement State)
+#### Visual Movement State
 - **`SetMoving(bool)`**: Керує візуальним станом переміщення (змінює `sortingOrder`). Викликається як при перетягуванні користувачем, так і при автоматичному переміщенні системою. Викликає `UpdateVisual()` при завершенні.
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
-### Інші Методи
+### Other Methods
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Відтворює анімацію `MoveLocked` на чіпі та його ефекті блокування, надаючи візуальний зворотний зв'язок гравцеві. Використовує параметрі `allowRepeat=true` для ефекту, щоб кожна спроба супроводжувалася візуальним відгуком.
 
-### Розширення для Спеціалізованих Чіпів
+### Extensions for Specialized Chips
 - **`ChipGeneratorRuntimeData`**: Додає стан зарядки, таймери, лічильники перезарядок.
 - **`ChipContainerRuntimeData`**: Додає словник прогресу заповнення контейнера (`containers`).
 
 
-### 2. `MergeableChipLogic.cs` (Логіка Злиття)
+### 2. `MergeableChipLogic.cs` (Merge Logic)
 Реалізує інтерфейс `IChipInteractionLogic`. Відповідає за перевірку можливості злиття та виконання самої операції.
 - **Перевірка (`CanInteract`)**:
   - Використовує `MergeData` ініціюючої фішки (source), щоб перевірити через `CanMerge`, чи є цільова фішка (target) у списку допустимих партнерів.
@@ -94,31 +94,31 @@
   - Запускає анімацію `Merge`.
   - **Extra Chips**: Якщо `MergeResult` містить `ExtraChip`, система перевіряє шанс його випадіння та спавнить додаткову фішку (використовуючи `FieldChipData` для ідентифікації) на найближчу вільну комірку.
 
-### 3. `DraggableChipLogic.cs` (Управління)
+### 3. `DraggableChipLogic.cs` (Control)
 Обробляє Input гравця (Drag-and-Drop). Координує взаємодію між чіпами, викликаючи `IChipInteractionLogic` (наприклад, `MergeableChipLogic`) для перевірки та виконання дій.
 
-## Правила Злиття (ChipMergeData)
+## Merge Rules (ChipMergeData)
 
 `ChipMergeData` — це об'єкт налаштувань, який визначає, з ким і як може зливатися чіп.
 
-### Структура Даних
+### Data Structure
 
 1. **`MergeCombination`**: Визначає правила для конкретної пари фішок. Містить посилання на **`TargetChip`** (партнер) та список можливих результатів (**`Results`**).
 2. **`MergeResult`**: Описує результат злиття (**`Result`**), його **Weight** (вагу) та можливий **`ExtraChip`**.
 3. **`ExtraChip`**: Описує додаткову фішку (через `FieldChipData`) та шанс її отримання (**Chance**).
 
-### Розрахунок Результату
+### Result Calculation
 
 При злитті система використовує алгоритм **Weighted Random**:
 - Збираються всі можливі результати для даного партнера.
 - На основі їхніх ваг обирається один фінальний чіп.
 - Якщо варіант лише один з вагою 100, він обирається гарантовано.
 
-### Автоматизація в Редакторі
+### Automation in the Editor
 
 Для зручності, `ChipCreatorWindow` автоматично ініціалізує базове правило при ввімкненні Merge: створюється запис про злиття чіпа з самим собою, де результатом є він же.
 
-## Процес Злиття (Flow)
+## Merge Flow
 
 1. **Input**: Гравець перетягує фішку (`DraggableChipLogic`).
 2. **Move**: При переміщенні над іншою фішкою викликається `CanInteract`.
