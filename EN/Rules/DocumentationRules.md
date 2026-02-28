@@ -52,6 +52,13 @@ The document `Docs/Technical/Testing.md` describes the testing approach and test
   - What scenarios it covers.
 - **Updates**: When adding a new test method, it must be documented in `Testing.md`.
 
+
+### 3.6. EN/UA Heading and Anchor Consistency
+- For paired files in `EN/` and `UA/` (same relative path), keep heading structure synchronized (`#`, `##`, `###`, and order).
+- Use the same heading text in both files to keep generated Markdown anchors identical.
+- Do not duplicate translated wording in one heading (for example: `Container (Container)`).
+- When a heading changes in one language, update all internal links with `#fragment` and mirror the change in the paired file.
+
 ## 4. Support and Maintenance
 Documentation should be "living" and match the current state of the code.
 

@@ -14,13 +14,13 @@ The `ChipContainer` class stores fill state and manages visual effects.
   - `FillContainerDelegate`: Delegate for container state update event.
   - `OnFillContainer`: Event called on initialization, item addition, or complete fill.
 - **Effects**:
-  - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container-container-requirements)**: Special effect that implements `IEffectContainer` and visualizes required items ("bubbles") above the container. Assigned via `EffectContainerRef` (InterfaceRef).
+  - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container)**: Special effect that implements `IEffectContainer` and visualizes required items ("bubbles") above the container. Assigned via `EffectContainerRef` (InterfaceRef).
 
 ### 1.1. `ChipContainerRuntimeData.cs` (Runtime State)
 Extends base `ChipRuntimeData` to store dynamic container state.
 
 **Inherited properties** (from `ChipRuntimeData`):
-- **`IsMoveLocked`**: Determines whether the container's movement is blocked. For details, see [Chip Runtime Data](Chip.md#runtime-data-in-game-state).
+- **`IsMoveLocked`**: Determines whether the container's movement is blocked. For details, see [Chip Runtime Data](Chip.md#runtime-data).
 
 **Own properties**:
 - **`containers`**: Dictionary (`Dictionary<ContainerInfo, int>`) tracking the current fill progress for each requirement.
@@ -60,7 +60,7 @@ Main chip addition method:
 ### ChipContainerEffect.cs
 Specialized effect implementing `IEffectContainer` for visualizing container requirements. Manages a Panel above the chip where required items are displayed.
 
-For a detailed implementation description, see [Effects.md](../Visuals/Effects.md#4-chip-container-container-requirements).
+For a detailed implementation description, see [Effects.md](../Visuals/Effects.md#4-chip-container).
 
 ## Flow
 

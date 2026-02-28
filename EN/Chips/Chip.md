@@ -23,9 +23,9 @@ The `Chip` class is a visual representation and basic component.
   - **RuntimeData**: Current state (see below).
   - **LogEnable**: Flag to enable logging of chip events to console.
 - **Effects**: Manages visual effects, for details see [Visual Effects](../Visuals/Effects.md):
-  - `MergeAvailableEffect`: Highlight when merge is possible ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available-merge-available)).
-  - `CellHighlightEffect`: Highlight of the cell under the chip ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight-cell-highlighting)).
-  - `MoveLockedEffect`: Visual indicator of movement blocking ([Move Locked](../Visuals/Effects.md#6-move-locked-move-locking)).
+  - `MergeAvailableEffect`: Highlight when merge is possible ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available)).
+  - `CellHighlightEffect`: Highlight of the cell under the chip ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight)).
+  - `MoveLockedEffect`: Visual indicator of movement blocking ([Move Locked](../Visuals/Effects.md#6-move-locked)).
 - **Animation**: Has a reference to `Animator` for playing states (e.g., `Merge`, `Generate`, `MoveLocked`).
 
 ## Effect Management
@@ -43,7 +43,7 @@ The base `Chip` class automatically tracks all visual effects belonging to it fo
 - All effects added to the `effects` list automatically receive notifications through methods `OnChangedCell`, `OnInteractionOverCellChanged`, and `OnInteractionUnderCellChanged`.
 - When `Destroy(Cell)` is called, all effects in the `effects` list are also destroyed.
 
-## Runtime Data (In-Game State)
+## Runtime Data
 
 ### `ChipRuntimeData`
 Base class for storing runtime state of chips. Located in the `RuntimeData` folder. Contains dynamic properties that change during gameplay:
