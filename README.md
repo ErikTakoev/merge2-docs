@@ -1,6 +1,6 @@
-# Merge2 Module Documentation
+# Merge Toolkit Documentation
 
-Welcome to the documentation for the Merge2 engine and module. This repository contains detailed information about mechanics, architectural decisions, and development guidelines.
+Welcome to the Merge Toolkit documentation. This repository contains detailed information about mechanics, architectural decisions, and development guidelines.
 
 ## Available Languages
 
