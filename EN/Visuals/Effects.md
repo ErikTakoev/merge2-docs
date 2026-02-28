@@ -91,11 +91,11 @@ Visual effect activated when the generator is fully charged and ready to create 
 
 Visual effect displayed on a chip when its movement is blocked.
 - **Activation**: 
-  - When `ChipRuntimeData.IsMoveLocked` is set to `true` via `SetRealtimeData()`.
-  - Automatically called in `Chip.SetRealtimeData()`.
+  - When `ChipRuntimeData.IsMoveLocked` is set to `true` via `UpdateVisual()`.
+  - Automatically handled in `Chip.UpdateVisual()`.
 - **Deactivation**: 
   - When `IsMoveLocked` becomes `false`.
-  - Automatically called in `Chip.SetRealtimeData()`.
+  - Automatically handled in `Chip.UpdateVisual()`.
 - **Behavior**:
   - Uses the base `Effect` class with Animator triggers support (`Activate`/`Deactivate`).
   - Usually implemented as a lock icon or other visual indicator showing the player the chip cannot be moved.
@@ -103,4 +103,4 @@ Visual effect displayed on a chip when its movement is blocked.
   - **Interactive Feedback**: When attempting to drag a locked chip, `Chip.OnDraggingChipWithMoveLocked()` is called, which plays the `MoveLocked` animation via the `Effect.SendTrigger()` method. This allows showing feedback to the player even if they try to move the locked chip.
 - **Settings**:
   - Effect prefab is set in `ChipData.MoveLockedEffectPrefab`.
-  - Created automatically in `Chip.Init()` if the prefab is specified.
+  - Created automatically in `Chip.InitEffects()` if the prefab is specified.

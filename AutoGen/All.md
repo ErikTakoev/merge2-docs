@@ -153,12 +153,11 @@
     - used to distinguish user drag from automated movement
     - **Notes**: Separate from IsMoving which tracks sorting order
     - allows detection of user-initiated drag vs system movement
-- `~ mergeAvailableEffect: IEffect`
 - `~ moveLockedEffect: IEffect`
     - **Purpose**: Visual effect displayed when the chip is locked and cannot be moved
-    - **Usage**: Automatically activated/deactivated by SetRealtimeData based on IsMoveLocked state
-    - instantiated in Init if MoveLockedEffectPrefab is provided
-    - **Notes**: Uses base Effect class with Animator triggers
+    - **Usage**: Automatically activated/deactivated by UpdateVisual based on runtimeData.IsMoveLocked state
+    - instantiated in InitEffects if MoveLockedEffectPrefab is provided
+    - **Notes**: Uses IEffect interface with Animator triggers
     - provides visual feedback to player when chip movement is restricted
 - `~ sorting: SortingGroup`
 #### Methods
@@ -273,10 +272,11 @@
     - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
     - **Usage**: Call during Init or whenever a new visual effect needs to be added to the chip
     - **Params**: prefab - The GameObject prefab containing the effect component
-    - T - The type of the effect component (must inherit from Effect)
+    - T - The type of the effect component (must implement IEffect)
     - **Returns**: The instantiated effect component of type T, or null if prefab is null
     - **Notes**: Automatically calls Init(this) on the instantiated effect
     - return value can be added to the effects list
+    - T must be a class and implement IEffect
 ---
 
 ## ChipContainer
@@ -296,6 +296,12 @@
 #### Fields
 - `- chipFactory: ChipFactory`
 - `- containerEffect: EffectContainerRef`
+    - **Purpose**: Visual effect representing the items inside the container
+    - **Usage**: Serialized as EffectContainerRef (InterfaceRef<IEffectContainer>)
+    - accessed via .Value after checking .Target != null
+    - updated via UpdateElements during Init and TryAddChip
+    - **Notes**: Handles dynamic display of required chips/items
+    - initialized and managed as a specialized chip effect
 - `~ containerRuntimeData: ChipContainerRuntimeData`
 - `- OnFillContainer: FillContainerDelegate`
 #### Methods
@@ -458,10 +464,12 @@
 - `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
 - `- chargedEffect: EffectRef`
     - **Purpose**: Visual effect active when the generator is fully charged and ready to generate chips.
-    - **Usage**: Activated when ChargeCount > 0 and charging is complete
-    - Deactivated after generation or during recharge.
+    - **Usage**: Assigned via inspector as EffectRef
+    - accessed via .Value
+    - activated when ChargeCount > 0 and charging is complete.
     - **Notes**: Optional
-    - used to indicate readiness state.
+    - targets IEffect interface
+    - provides visual feedback for readiness.
 - `- chipFactory: ChipFactory`
 - `- field: IFieldEventHandler`
 - `- findFreePlaceForChip: IFreeCellFinder`
@@ -480,8 +488,11 @@
 - `- OnCharging: Action<float>`
 - `- rechargeEffect: EffectGeneratorChargingRef`
     - **Purpose**: Effect component for visual feedback during charging (recharge cycle).
-    - **Usage**: Assigned via inspector. Used in Init, Update, and generation logic to show progress.
-    - **Notes**: Must not be null. Handles visual state changes during charging.
+    - **Usage**: Assigned via inspector as EffectGeneratorChargingRef
+    - accessed via .Value
+    - used in Init, Update, and generation logic to show progress.
+    - **Notes**: Must not be null if charging visualization is required
+    - targets IEffectGeneratorCharging interface.
 #### Methods
 - `+ Destroy(Cell mainCell): void`
     - **Purpose**: Cleans up the chip generator, removing event subscriptions and clearing delegates.
