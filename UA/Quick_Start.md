@@ -38,13 +38,16 @@ Merge Toolkit потребує двох залежностей:
 
 У меню Unity: **Window → Merge2 → Chip Viewer**
 
-### Крок 2 — Створіть папку гри
+### Крок 2. Створення нового папки гри
+Відкрийте `Window > Merge2 > Chip Viewer`.
+1. У вкладці **Settings** натисніть кнопку **New Game Folder**.
+2. Виберіть шлях для нової гри (всередині `Assets/`).
 
-1. У тулбарі вікна натисніть **Settings**.
-2. У правій панелі з'явиться кнопка **New Game Folder** — натисніть її.
-3. У діалозі вибору папки вкажіть або створіть нову папку **всередині** `Assets/` (наприклад, `Assets/MyGame`).
-
-> ⚠️ Папка обов'язково має знаходитись у межах `Assets/`. Якщо обрати зовнішню папку — з'явиться помилка.
+**Інструмент автоматично:**
+- Створить структуру папок (Data, Scripts, Scenes, Tests тощо).
+- Створить `ChipCreatorSettings` та `ChipDataCollection`.
+- Згенерує початкову сцену `{folderName}Scene.unity` з налаштованим `Merge2LifetimeScope`.
+- Створить інфраструктуру для тестів: `.asmdef`, шаблон тесту та тестові ассети (`TestSettings`, `FieldData`).
 
 Після підтвердження автоматично створюються такі папки:
 
@@ -66,16 +69,6 @@ Merge Toolkit потребує двох залежностей:
 | `Tests/Integration/` | Інтеграційні тести |
 | `Tests/Prefabs/` | Префаби для тестів |
 
-Разом зі структурою папок генеруються два ключові assets:
-
-- **`ChipCreatorSettings`** — головний конфіг Chip Creator;
-- **`ChipDataCollection`** — колекція фішок, одразу прив'язана до `ChipCreatorSettings.ChipDataBase`
-
 Chip Viewer автоматично перемикається на нові settings і одразу готовий до роботи.
 
-### Крок 5 — Що далі?
-
-- **Chips** — відкрийте Chip Viewer і натисніть **Create Chip**, щоб додати першу фішку.
-- **Scene** — додайте сцену до `Scenes/` та налаштуйте поле згідно з документацією [Editors.md](Editors.md).
-- **Tests** — створіть perші тести у `Tests/Editor/` та запустіть їх через **Window → General → Test Runner**.
 

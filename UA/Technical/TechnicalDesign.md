@@ -7,7 +7,7 @@
 
 ## Dependency Injection (VContainer)
 Ми використовуємо **VContainer** для керування залежностями.
-- **LifetimeScope**: `Merge2LifetimeScope` — точка конфігурації для сцени Merge2. Тут також реєструються статичні дані рівня (`FieldData`, `ChipDataCollection`) як синглтони.
+- **LifetimeScope**: `Merge2LifetimeScope` — точка конфігурації для сцени Merge2. Тут також реєструються статичні дані рівня (`FieldData`, `ChipDataCollection`) як синглтони. `FieldData` може бути призначений динамічно, що дозволяє використовувати один і той самий LifetimeScope для різних конфігурацій поля (наприклад, у тестах).
 - **Initialization**: `Merge2Initializer` виступає як Entry Point. Він отримує через конструктор ключові інтерфейси (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) та ініціалізує поле через `IFieldInitializeCommand`.
 - **Component Injection**: Всі ігрові сервіси та логічні класи отримують залежності через `[Inject]` або конструктор.
 

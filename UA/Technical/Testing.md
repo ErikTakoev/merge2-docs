@@ -97,7 +97,15 @@
 ### TestSettings
 Класс-конфігурація для тестових налаштувань.
 - **Призначення**: Зберігає шлях до префабу тестової сцени та прапорці для дебагу.
-- **Оновлення**: Додано пункт меню `Window/Merge2/Tests/Enable Debug Mode` для швидкого ввімкнення режиму налагодження.
+- **Оновлення**: 
+  - Додано пункт меню `Window/Merge2/Tests/Enable Debug Mode` для швидкого ввімкнення режиму налагодження.
+  - Додано посилання на `ChipCreatorSettings` для автоматичного налаштування шляхів до даних та префабів під час виконання тестів.
+
+### Automated Scaffolding
+Інструмент "New Game Folder" автоматично створює:
+- `{folderName}Tests.cs`: Шаблон інтеграційного тесту.
+- `{folderName}.Tests.asmdef`: Налаштований Assembly Definition для тестів.
+- `Test{folderName}Settings.asset`: Налаштування для Resource loading.
 
 ### TestFieldBuilder
 Клас-помічник для створення тестового оточення.
