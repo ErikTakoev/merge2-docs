@@ -401,8 +401,6 @@
 **Inherits**: `ScriptableObject`
 #### Fields
 - `++ Data: ChipData[]`
-- `+- ChipDataFolder: string`
-- `+- ChipPrefabFolder: string`
 #### Methods
 - `+ GetChipData(string chipName): ChipData`
 ---
