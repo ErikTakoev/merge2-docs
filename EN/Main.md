@@ -4,6 +4,12 @@ Welcome to the Merge Toolkit documentation. This file is a navigation hub for al
 
 ## Contents
 
+### Quick Start
+Quick start guide for the first module run, dependency check, and creating your own merge scenario.
+
+- **[Quick Start](Quick_Start.md)**
+  > **Context**: Start with `VContainer` setup, then run `ElementalMerge2` step by step and follow a practical workflow via `Level Editor` and `Chip Viewer`.
+
 ### Game Objects (Chips)
 This section describes the main objects on the game field (Grid). All objects inherit from or use the basic principles of `Chip`.
 

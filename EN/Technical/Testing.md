@@ -97,7 +97,15 @@ Tests for container functionality (`ChipContainer`).
 ### TestSettings
 Configuration class for test settings.
 - **Purpose**: Stores the path to the test scene prefab and debug flags.
-- **Update**: Added menu item `Window/Merge2/Tests/Enable Debug Mode` for quick debug mode enabling.
+- **Update**:
+  - Added menu item `Window/Merge2/Tests/Enable Debug Mode` for quick debug mode enabling.
+  - Added a link to `ChipCreatorSettings` for automatic path configuration for data and prefabs during test execution.
+
+### Automated Scaffolding
+The "New Game Folder" tool automatically creates:
+- `{folderName}Tests.cs`: Integration test template.
+- `{folderName}.Tests.asmdef`: Preconfigured Assembly Definition for tests.
+- `Test{folderName}Settings.asset`: Settings for Resource loading.
 
 ### TestFieldBuilder
 Helper class for creating test environment.
