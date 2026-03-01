@@ -1,6 +1,6 @@
-# Merge2 Module Documentation
+# Merge Toolkit Documentation
 
-Welcome to the Merge2 module documentation. This file is a navigation hub for all project documentation, describing mechanics, architecture, and development processes.
+Welcome to the Merge Toolkit documentation. This file is a navigation hub for all project documentation, describing mechanics, architecture, and development processes.
 
 ## Contents
 
@@ -66,7 +66,7 @@ Custom tools for facilitating development and content configuration.
   > **Context**: Description of custom editor tools (Unity Editor) for level configuration, chip setup, and gameplay balance.
 
 ### Auto-generated API Reference
-Automatically generated API reference for the Merge2 module. Useful for quickly finding classes, interfaces, and methods.
+Automatically generated API reference for Merge Toolkit. Useful for quickly finding classes, interfaces, and methods.
 
 - **[All](../AutoGen/All.md)**
   > **Context**: Full aggregated overview of all discovered entities (classes, interfaces, fields, methods) in a single file.
