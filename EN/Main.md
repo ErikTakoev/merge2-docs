@@ -10,6 +10,12 @@ Quick start guide for the first module run, dependency check, and creating your 
 - **[Quick Start](Quick_Start.md)**
   > **Context**: Start with `VContainer` setup, then run `ElementalMerge2` step by step and follow a practical workflow via `Level Editor` and `Chip Viewer`.
 
+### Extension Guide
+How to extend the project: adding new types of chips, effects, interactions, and services.
+
+- **[Extension Guide](ExtensionGuide.md)**
+  > **Context**: Step-by-step guide on extending the project via VContainer, creating new Chip types, adding effects, and new interactions.
+
 ### Game Objects (Chips)
 This section describes the main objects on the game field (Grid). All objects inherit from or use the basic principles of `Chip`.
 
