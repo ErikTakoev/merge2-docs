@@ -565,10 +565,13 @@
 > - referenced by ChipGenerator to visualize charging.
 > - **Notes**: Updates maskRectTransform based on charging progress.
 #### Fields
-- `- maskRectTransform: RectTransform`
+- `- EraseLevelId: int`
+- `- maskMaterial: Material`
+- `- maskSpriteRenderer: SpriteRenderer`
 #### Methods
 - `+ Activate(Chip chip): void`
 - `+ Deactivate(Chip chip, bool force): void`
+- `+ Init(Chip chip): void`
 - `+ OnCharging(float progress): void`
     - **Purpose**: Updates the visual state of charging based on progress
     - **Usage**: Called via event from ChipGenerator during update loop
