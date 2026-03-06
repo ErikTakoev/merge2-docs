@@ -10,9 +10,10 @@ This guide helps you quickly connect Merge Toolkit:
 - review basic interactions.
 
 ## Dependencies
-Merge Toolkit requires two dependencies:
+Merge Toolkit requires three dependencies:
 - **VContainer**: https://github.com/hadashiA/VContainer
 - **Input System**: `com.unity.inputsystem`
+- **Shader Graph**: `com.unity.shadergraph`
 
 Add them to `Packages/manifest.json` or via Package Manager.
 

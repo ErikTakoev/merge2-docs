@@ -282,7 +282,7 @@ public override void Init(ChipData data)
 The effects system is built on the `IEffect` interface and the `Effect` base class. Detailed description of all effects: [Visual Effects](Visuals/Effects.md).
 
 > [!TIP]
-> There is no strict binding to specific effect implementations. All built-in effects (Highlight, MergeAvailable, MoveLocked, etc.) are connected via **prefabs**, so they can be easily **replaced** with your own implementation or **extended** by creating a derived class. It is enough to create a new prefab with your component implementing `IEffect`, `IEffectContainer`, `IEffectGeneratorCharging`, or your own interface inheriting from `IEffect`.
+> There is no strict binding to specific effect implementations. The chip binds to the **effect interface**, not the implementation. All built-in effects (Highlight, MergeAvailable, MoveLocked, etc.) are connected via **prefabs**, so they can be easily **replaced** with your own implementation or **extended** by creating a derived class. It is enough to create a new prefab with your component implementing `IEffect`, `IEffectContainer`, `IEffectGeneratorCharging`, or your own interface inheriting from `IEffect`.
 
 ### Option A — Inheriting from `Effect` (Recommended)
 

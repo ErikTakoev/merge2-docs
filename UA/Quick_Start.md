@@ -10,9 +10,10 @@
 - переглянути базові взаємодії.
 
 ## Dependencies
-Merge Toolkit потребує двох залежностей:
+Merge Toolkit має три залежності:
 - **VContainer**: https://github.com/hadashiA/VContainer
 - **Input System**: `com.unity.inputsystem`
+- **Shader Graph**: `com.unity.shadergraph`
 
 Додайте їх у `Packages/manifest.json` або через Package Manager.
 
