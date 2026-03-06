@@ -6,6 +6,9 @@
 The project uses a combination of Integration and Unit tests to ensure stability.
 
 ## Integration Tests
+> [!IMPORTANT]
+> Integration tests are supported starting from Unity version **6000.0**.
+
 Located in `Modules/Merge2/Tests/Scripts/Integration/`. They verify system operation in assembly on a real field (or its emulation).
 
 ### ChipBaseTests

@@ -15,6 +15,9 @@ Merge Toolkit requires three dependencies:
 - **Input System**: `com.unity.inputsystem`
 - **Shader Graph**: `com.unity.shadergraph`
 
+> [!NOTE]
+> Integrated tests require Unity version 6000.0 or newer.
+
 Add them to `Packages/manifest.json` or via Package Manager.
 
 ## Getting Started

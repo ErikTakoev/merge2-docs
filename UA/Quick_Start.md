@@ -15,6 +15,9 @@ Merge Toolkit має три залежності:
 - **Input System**: `com.unity.inputsystem`
 - **Shader Graph**: `com.unity.shadergraph`
 
+> [!NOTE]
+> Для інтегрованих тестів є залежність від 6000.0 версії юніті.
+
 Додайте їх у `Packages/manifest.json` або через Package Manager.
 
 ## Getting Started

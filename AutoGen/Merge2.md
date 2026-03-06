@@ -342,8 +342,8 @@
 > - **Notes**: Instantiates and positions element prefabs based on ContainerInfo
 > - Handles activation/deactivation animations
 #### Fields
-- `- elements: ElementInfo[]`
-- `- layoutForElements: RectTransform`
+- `- layoutConfigs: LayoutConfig[]`
+- `- layoutForElements: Transform`
 - `- panelSpriteRenderer: SpriteRenderer`
 #### Methods
 - `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
