@@ -23,6 +23,11 @@
   - **Призначення**: Команда ініціалізації рівня.
   - **Відповідальність**: Створення візуальної сітки та завантаження початкових чіпів. Отримує `FieldData` та `ChipDataCollection` через Injection.
 
+- **`IChipChangeNotifier`** -> `DeferredChipChangeNotifier`
+  - **Призначення**: Агрегація змін клітинок протягом кадру та єдиний `Flush` у `LateUpdate`.
+  - **Відповідальність**: `FieldGrid` додає події через `Enqueue`, `FieldEventHandler` викликає `Flush`, а підписники отримують консистентний набір `ChipChangedEvent`.
+  - **Деталі**: [CellObserverManager](CellObserverManager.md).
+
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
   - **Призначення**: Абстракція системи вводу для Dependency Injection.

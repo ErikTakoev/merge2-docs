@@ -3,7 +3,11 @@
 ## Table of Contents
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
+- [CellObserverManager](#cellobservermanager)
+- [CellSubscriber](#cellsubscriber)
+- [CellSubscriberRef](#cellsubscriberref)
 - [Chip](#chip)
+- [ChipChangedEvent](#chipchangedevent)
 - [ChipContainer](#chipcontainer)
 - [ChipContainerData](#chipcontainerdata)
 - [ChipContainerEffect](#chipcontainereffect)
@@ -19,8 +23,11 @@
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
 - [ChipMovingLogic](#chipmovinglogic)
+- [ChipPowerBooster](#chippowerbooster)
+- [ChipPowerBoosterData](#chippowerboosterdata)
 - [ChipRuntimeData](#chipruntimedata)
 - [ContainerInfo](#containerinfo)
+- [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
 - [EffectContainerRef](#effectcontainerref)
@@ -34,6 +41,8 @@
 - [FieldInitializeCommand](#fieldinitializecommand)
 - [FillContainerLogic](#fillcontainerlogic)
 - [FreeCellFinder](#freecellfinder)
+- [ICellSubscriber](#icellsubscriber)
+- [IChipChangeNotifier](#ichipchangenotifier)
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
 - [IChipMovingLogic](#ichipmovinglogic)
@@ -44,11 +53,14 @@
 - [IFieldGrid](#ifieldgrid)
 - [IFieldInitializeCommand](#ifieldinitializecommand)
 - [IFreeCellFinder](#ifreecellfinder)
+- [IPowerBoosterModifier](#ipowerboostermodifier)
 - [Merge2Initializer](#merge2initializer)
 - [Merge2LifetimeScope](#merge2lifetimescope)
 - [MergeableChipLogic](#mergeablechiplogic)
 - [MergeCombination](#mergecombination)
 - [MergeResult](#mergeresult)
+- [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
+- [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
 
 ---
 
@@ -106,24 +118,109 @@
 > - **Notes**: Handles multiple cells if chip size > 1x1
 > - updates position during drag interaction
 #### Fields
-- `- color: Color`
-- `- highlightPrefab: GameObject`
-- `- highlights: GameObject[]`
-- `- order: float`
+- `~ chipSize: Vector2Int`
+- `~ color: Color`
+- `~ highlightPrefab: GameObject`
+- `~ highlights: List<GameObject>`
+- `~ order: float`
+- `~ sharedMaterial: Material`
 #### Methods
 - `+ Activate(Chip chip): void`
 - `+ Deactivate(Chip chip, bool force): void`
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
-- `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell interactableCell): void`
-- `+ UpdateCell(Cell sourceCell, Cell targetCell): void`
-    - **Purpose**: Updates the currently highlighted cell and shows all highlights
-    - **Usage**: Call when the highlighted cell changes to update the highlight effect
-    - **Params**: sourceCell - previous cell
-    - targetCell - new cell to highlight
-    - **Notes**: Shows all highlights without any cutting/clipping logic
-- `- CreateHighlights(Vector2Int chipSize): void`
-- `- DestroyHighlights(): void`
-- `- ShowAllHighlights(): void`
+- `+ OnInteractionOverCellChanged(Cell sourceCell, Cell targetCell, Cell interactableCell): void`
+- `~ CreateHighlight(Vector3 localPosition): GameObject`
+- `~ CreateHighlights(): void`
+- `~ DestroyHighlights(): void`
+---
+
+## CellObserverManager
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Manages cell observation subscriptions with a physical-cell index.
+> - **Usage**: Subscribers are stored per physical cell. On flush, notifications are expanded by old/new chip footprint so secondary-cell observers are notified without fold/promote state.
+> - **Notes**: Optimized for low churn: no topology migration, O(1) subscribe/unsubscribe operations, and reusable snapshot list for callback-safe iteration.
+#### Fields
+- `- cellToSubscribers: Dictionary<Cell, HashSet<ICellSubscriber>>`
+    - **Purpose**: Primary forward index: physical cell to subscribers.
+    - **Usage**: Used by event-area notification for O(1) lookup of observers per cell.
+    - **Notes**: HashSet prevents duplicate subscriptions for the same subscriber-cell pair.
+- `- eventNotifiedSubscribers: HashSet<ICellSubscriber>`
+    - **Purpose**: Per-event dedupe set reused across flush loop iterations.
+    - **Usage**: Prevents duplicate callbacks when an event area touches multiple watched cells.
+- `- fieldGrid: IFieldGrid`
+- `- logEnable: bool`
+- `- notifier: IChipChangeNotifier`
+- `- subscriberSnapshot: List<ICellSubscriber>`
+    - **Purpose**: Reusable snapshot list for safe callback iteration.
+    - **Usage**: Copies current subscriber set before callbacks to avoid collection-modified issues when unsubscribe happens during callback.
+- `- subscriberToCells: Dictionary<ICellSubscriber, HashSet<Cell>>`
+    - **Purpose**: Reverse index: subscriber to all watched physical cells.
+    - **Usage**: Used for O(k) unsubscribe and API data extraction without scanning all cells.
+#### Methods
+- `+ GetSubscriptionData(ICellSubscriber subscriber): List<SubscriptionData>`
+    - **Purpose**: Returns subscription state for diagnostics/tests with backward-compatible direct/virtual representation.
+    - **Usage**: Secondary watched cells are grouped under current MainCell as virtual positions to preserve old API contract.
+- `+ LogSubscriptions(): void`
+- `+ Subscribe(ICellSubscriber subscriber, List<Vector2Int> cellPositions): void`
+- `+ Unsubscribe(ICellSubscriber subscriber): void`
+- `- AddSubscription(ICellSubscriber subscriber, Cell cell): void`
+    - **Purpose**: Adds a subscriber-cell relation to both forward and reverse indexes.
+    - **Usage**: Used by Subscribe and internal resubscription flows.
+    - **Notes**: Duplicate relations are ignored by HashSet.Add to avoid redundant reverse-index writes.
+- `- HandleFlush(IReadOnlyList<ChipChangedEvent> events): void`
+    - **Purpose**: Dispatches notifications for all events in the current flush batch.
+    - **Usage**: Reuses one dedupe HashSet per event to minimize allocations.
+- `- NotifySubscribersForEvent(ChipChangedEvent evt, HashSet<ICellSubscriber> alreadyNotified): void`
+    - **Purpose**: Expands a single cell change event to old/new occupied areas and notifies affected subscribers once.
+    - **Usage**: Fast path handles same-size replace in one area pass
+    - fallback handles old-only/new-only and defensive empty-empty event.
+- `- NotifySubscribersInArea(Vector2Int origin, Vector2Int size, ChipChangedEvent evt, HashSet<ICellSubscriber> alreadyNotified): void`
+- `- OnDestroy(): void`
+- `- OnValidate(): void`
+- `- Start(): void`
+---
+
+## CellSubscriber
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: A chip that observes all neighboring cells and reacts when their chips change.
+> - **Usage**: Attach to a cell prefab to use booster behaviour
+> - override OnNeighborChipChanged for custom logic.
+> - **Notes**: Subscribes to every cell that borders the chip's occupied area (supports multi-cell chips) via CellObserverManager on Init and unsubscribes on Destroy.
+#### Fields
+- `+- ObservedCellPositions: IReadOnlyList<Vector2Int>`
+- `~ cellObserverManager: CellObserverManager`
+- `~ chip: Chip`
+- `~ fieldGrid: IFieldGrid`
+#### Methods
+- `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+    - **Purpose**: Re-subscribes to neighbors whenever the chip is placed or moved to a new cell.
+    - **Usage**: Called by Cell.Chip setter
+    - sourceCell == null means initial placement.
+    - **Params**: sourceCell - previous cell (null on initial placement)
+    - targetCell - new cell with correct CellPosition
+    - **Notes**: Unsubscribes from old neighbors first to avoid stale subscriptions after a move.
+- `+ OnChipDestroy(Cell mainCell): void`
+    - **Purpose**: Unsubscribes from CellObserverManager and cleans up before the chip is removed.
+    - **Usage**: Called by the base Destroy path or directly when the chip is cleared from the field.
+    - **Params**: mainCell - the cell this chip occupies
+- `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
+    - **Purpose**: Receives chip-change notifications for any watched neighboring cell.
+    - **Usage**: Invoked by CellObserverManager once per frame flush
+    - delegates to OnNeighborChipChanged.
+    - **Params**: evt - event data with Cell, OldChip, NewChip
+- `~ Awake(): void`
+- `~ GetAllChipsByType(List<Vector2Int> cellPositions): HashSet<T>`
+- `~ SubscribeToNeighbors(Vector2Int origin): void`
+    - **Purpose**: Computes all cells that border the chip's occupied area and subscribes to them via CellObserverManager.
+    - **Usage**: Called from OnChangedCell with the target cell's position.
+    - **Params**: origin - top-left position of the chip on the grid
+    - **Notes**: Supports multi-cell chips: iterates the expanded bounding box (origin-1 .. origin+size) and excludes cells owned by the chip itself. Skips out-of-bounds positions.
+---
+
+## CellSubscriberRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
 ## Chip
@@ -138,6 +235,7 @@
 #### Fields
 - `++ CellPosition: Vector2Int`
 - `++ LogEnable: bool`
+- `+- CellSubscriber: ICellSubscriber`
 - `+- Data: ChipData`
 - `+- RuntimeData: ChipRuntimeData`
 - `~ animator: Animator`
@@ -274,6 +372,21 @@
     - **Notes**: Automatically calls Init(this) on the instantiated effect
     - return value can be added to the effects list
     - T must be a class and implement IEffect
+---
+
+## ChipChangedEvent
+
+> - **Purpose**: Describes a chip change on a single cell.
+> - **Usage**: Produced by FieldGrid.SetChipInCell and delivered once per frame via DeferredChipChangeNotifier.
+#### Fields
+- `+- Cell: Cell`
+- `+- ChipAdded: bool`
+- `+- ChipRemoved: bool`
+- `+- ChipReplaced: bool`
+- `+- NewChip: Chip`
+- `+- OldChip: Chip`
+#### Methods
+- `+ ToString(): string`
 ---
 
 ## ChipContainer
@@ -456,6 +569,7 @@
 > - **Usage**: Attach to a cell. Handles generation, charging, recharges, evolution to NextChipData, or destruction.
 > - **Notes**: Manages recharge counts. If TotalRecharges > 0, it recharges N times before evolution/destruction.
 #### Fields
+- `+- PowerBoosterModifiers: HashSet<ChipPowerBooster>`
 - `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
 - `- chargedEffect: EffectRef`
     - **Purpose**: Visual effect active when the generator is fully charged and ready to generate chips.
@@ -481,6 +595,7 @@
     - **Usage**: Set in Init from generatorData. Controls event subscriptions and tap behavior.
     - **Notes**: Affects event handling and chip generation triggers.
 - `- OnCharging: Action<float>`
+- `- powerMultiplier: float`
 - `- rechargeEffect: EffectGeneratorChargingRef`
     - **Purpose**: Effect component for visual feedback during charging (recharge cycle).
     - **Usage**: Assigned via inspector as EffectGeneratorChargingRef
@@ -489,6 +604,7 @@
     - **Notes**: Must not be null if charging visualization is required
     - targets IEffectGeneratorCharging interface.
 #### Methods
+- `+ ApplyPowerBoosterModifier(ChipPowerBooster chipPowerBooster): bool`
 - `+ Destroy(Cell mainCell): void`
     - **Purpose**: Cleans up the chip generator, removing event subscriptions and clearing delegates.
     - **Usage**: Call when destroying or removing a ChipGenerator instance.
@@ -503,6 +619,7 @@
     - **Usage**: Call when the player taps the generator in manual mode.
     - **Params**: position - Tap position in world coordinates.
     - **Notes**: No effect in auto mode or if not charged. Uses TryGenerateChip for logic.
+- `+ RemovePowerBoosterModifier(ChipPowerBooster chipPowerBooster): void`
 - `+ SetMoving(bool value): void`
     - **Purpose**: Updates dragging state and deactivates charged effect during drag
     - **Usage**: Called when drag starts or ends
@@ -669,6 +786,28 @@
 - `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<Cell>`
 ---
 
+## ChipPowerBooster
+**Inherits**: `Chip`
+#### Fields
+- `+- Generators: HashSet<IPowerBoosterModifier>`
+- `+- Power: float`
+- `~ cellSubscriber: PowerBoosterCellSubscriber`
+- `~ chipPowerBoosterData: ChipPowerBoosterData`
+- `- connectorCellsHighlightEffect: EffectRef`
+#### Methods
+- `+ ApplyPowerBoosterModifier(IPowerBoosterModifier generator): void`
+- `+ Init(ChipData data): void`
+- `+ RemovePowerBoosterModifier(IPowerBoosterModifier generator): void`
+- `+ SetMoving(bool value): void`
+- `+ UpdateVisual(): void`
+- `~ InitEffects(): void`
+---
+
+## ChipPowerBoosterData
+#### Fields
+- `++ Power: float`
+---
+
 ## ChipRuntimeData
 
 > - **Purpose**: Stores runtime state for chips during gameplay, including dynamic properties that change during game execution
@@ -687,6 +826,27 @@
 - `+ Type: ContainerType`
 - `+ TypeOrId: string`
 - `+- ContainerElementPrefab: GameObject`
+---
+
+## DeferredChipChangeNotifier
+
+> - **Purpose**: Plain-class implementation of IChipChangeNotifier.
+> - **Usage**: Register as Singleton in VContainer
+> - no MonoBehaviour needed.
+#### Fields
+- `- OnFlush: Action<IReadOnlyList<ChipChangedEvent>>`
+- `- pending: List<ChipChangedEvent>`
+    - **Purpose**: Stores pending per-frame chip change events in insertion order.
+    - **Usage**: Read by Flush and then cleared.
+- `- pendingIndexByCell: Dictionary<Cell, int>`
+    - **Purpose**: Maps changed cell to its index in pending list.
+    - **Usage**: Allows O(1) collapse of repeated updates for the same cell within one frame.
+#### Methods
+- `+ Enqueue(Cell cell, Chip oldChip, Chip newChip): void`
+    - **Purpose**: Enqueues or merges chip change for a cell.
+    - **Usage**: If the same cell changed earlier in the frame, keeps the first OldChip and updates only NewChip.
+    - **Notes**: Uses pendingIndexByCell for O(1) merge instead of linear scan.
+- `+ Flush(): void`
 ---
 
 ## DraggableChipLogic
@@ -908,6 +1068,7 @@
 > - coordinates chip placement, movement, and merging.
 > - **Notes**: Central controller for grid logic and chip management.
 #### Fields
+- `- chipChangeNotifier: IChipChangeNotifier`
 - `~ draggableChip: DraggableChipLogic`
 - `- fieldGrid: IFieldGrid`
 - `- OnChangeField: Action`
@@ -948,6 +1109,7 @@
 #### Fields
 - `+- Cells: Cell[]`
 - `+- FieldSize: Vector2Int`
+- `- chipChangeNotifier: IChipChangeNotifier`
 - `- resolver: IObjectResolver`
 #### Methods
 - `+ CreateCells(Vector2Int fieldSize): void`
@@ -1008,6 +1170,8 @@
     - **Notes**: Validates FieldData before proceeding
     - sets camera size and creates cells.
 - `+ GetFieldData(): FieldData`
+    - **Purpose**: Returns the current FieldData used by this field.
+    - **Usage**: Used in tests to access ChipDataCollection and other field configurations.
 - `+ LoadChips(): void`
     - **Purpose**: Loads and creates chips from field data.
     - **Usage**: Call after CreateField to populate the field with initial chips.
@@ -1051,8 +1215,8 @@
 - `- fieldGrid: IFieldGrid`
 #### Methods
 - `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): Cell`
-    - **Purpose**: Finds the nearest free space for placing a chip, can exclude cells and potentially move other chips.
-    - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips.
+    - **Purpose**: Finds the nearest free cell for placing a chip, starting the search from a rectangular area.
+    - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips. The search is performed first within the specified parent area and then spirally expands around it.
     - **Params**: parentPos - area start
     - parentSize - area size
     - childChipSize - chip size
@@ -1062,6 +1226,37 @@
     - onlyAround - if true, search only in the immediate neighborhood.
     - **Returns**: The nearest free Cell or null if none found.
 - `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<Cell> excludedCellsSet, HashSet<Chip> movingChipsSet): bool`
+---
+
+## ICellSubscriber
+
+> - **Purpose**: Implemented by any object that wants to be notified when a chip on a watched cell changes.
+> - **Usage**: Deliver via CellObserverManager.Subscribe.
+#### Fields
+- `+- ObservedCellPositions: IReadOnlyList<Vector2Int>`
+#### Methods
+- `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChipDestroy(Cell mainCell): void`
+- `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
+    - **Purpose**: Called once per changed cell after all frame changes have been collected and flushed.
+    - **Usage**: Handle local chip/cell logic updates here.
+    - **Params**: evt - event data containing cell and chip state
+---
+
+## IChipChangeNotifier
+
+> - **Purpose**: Collects chip-change records from FieldGrid during the frame.
+> - **Usage**: Flushes changes all at once (called from FieldEventHandler.LateUpdate) to ensure consistent end-of-frame snapshots.
+#### Methods
+- `+ Enqueue(Cell cell, Chip oldChip, Chip newChip): void`
+    - **Purpose**: Record a chip change.
+    - **Usage**: Called by FieldGrid.SetChipInCell before mutating state.
+    - **Params**: cell - the location of change
+    - oldChip - previous chip
+    - newChip - current chip
+- `+ Flush(): void`
+    - **Purpose**: Fire OnFlush with all pending events and clear the queue.
+    - **Usage**: Called from FieldEventHandler.LateUpdate.
 ---
 
 ## IChipFlyAnimation
@@ -1086,6 +1281,9 @@
 ---
 
 ## IChipInteractionLogic
+
+> - **Purpose**: Unified interface for all chip interaction logic implementations.
+> - **Usage**: Provides a standardized contract for validating and executing chip interactions.
 #### Methods
 - `+ CanInteract(Cell sourceCell, Cell targetCell): bool`
     - **Purpose**: Validates whether a chip interaction can be performed between source and target cells.
@@ -1235,6 +1433,14 @@
     - **Returns**: The nearest free Cell or null if none found.
 ---
 
+## IPowerBoosterModifier
+#### Fields
+- `+- PowerBoosterModifiers: HashSet<ChipPowerBooster>`
+#### Methods
+- `+ ApplyPowerBoosterModifier(ChipPowerBooster chipPowerBooster): bool`
+- `+ RemovePowerBoosterModifier(ChipPowerBooster chipPowerBooster): void`
+---
+
 ## Merge2Initializer
 
 > - **Purpose**: Main initializer for the Merge2 game module using VContainer.
@@ -1333,5 +1539,42 @@
 - `++ ExtraChip: Optional<ExtraChip>`
 - `++ Result: ChipData`
 - `++ Weight: int`
+---
+
+## PowerBoosterCellSubscriber
+**Inherits**: `CellSubscriber`
+#### Fields
+- `+- Generators: HashSet<IPowerBoosterModifier>`
+- `~ chipPowerBooster: ChipPowerBooster`
+#### Methods
+- `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChipDestroy(Cell mainCell): void`
+- `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
+- `~ Awake(): void`
+---
+
+## PowerBoosterConnectorCellsHighlightEffect
+**Inherits**: `CellHighlightEffect`
+#### Fields
+- `+ distractionAmount: float`
+- `+ globalAlpha: float`
+- `~ alphaId: int`
+- `~ connectorCellPositions: IReadOnlyList<Vector2Int>`
+- `~ distractionAmountId: int`
+- `~ originCellPosition: Vector2Int`
+- `~ powerEffectCoroutine: Coroutine`
+- `~ waitTimeBeforePowerEffect: float`
+#### Methods
+- `+ Activate(Chip chip): void`
+- `+ Deactivate(Chip chip, bool force): void`
+- `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
+    - **Purpose**: Reacts to cell changes by triggering the PowerBooster animation
+    - **Usage**: Called automatically via CellHighlightEffect when the chip is moved
+    - **Params**: sourceCell - original cell
+    - targetCell - result cell
+- `+ OnInteractionOverCellChanged(Cell sourceCell, Cell targetCell, Cell interactableCell): void`
+- `~ CreateHighlights(): void`
+- `- StartPowerEffect(Chip chip, float waitTime): IEnumerator`
+- `- Update(): void`
 ---
 

@@ -28,6 +28,9 @@
 - **[ChipContainer](Chips/ChipContainer.md)**
   > **Контекст**: Чіп-контейнер, який "споживає" інші фішки для виконання квестів або завдань. Після заповнення зазвичай видає винагороду.
 
+- **[ChipPowerBooster](Chips/ChipPowerBooster.md)**
+  > **Контекст**: Чіп-підсилювач, який модифікує сусідні чіпи (наприклад, прискорює зарядку генераторів). Використовує систему підписок `CellSubscriber` та візуальний ефект підсвітки з'єднаних клітинок.
+
 ### Key Features
 Механіки, що відрізняють цей проект від класичних Merge-ігор.
 
@@ -67,6 +70,9 @@
   > **Контекст**: Опис Core-архітектури.
   > - **DI (VContainer)**: Як працює ін'єкція залежностей через `Merge2LifetimeScope`.
   > - **Interfaces**: Опис ключових абстракцій (`IFieldGrid`, `IChipMovingLogic`, `IFieldEventHandler` і т.д).
+
+- **[Cell Observer Pipeline](Technical/CellObserverManager.md)**
+  > **Контекст**: Відкладений пайплайн змін клітинок через `DeferredChipChangeNotifier` та менеджер підписок `CellObserverManager` для нотифікації сусідніх клітинок.
 
 - **[Testing](Technical/Testing.md)**
   > **Контекст**: Гайд по написанню тестів. Фокус на **Integration Tests**, які використовують реальний префаб поля (`TestFieldBuilder`) для перевірки ігрових сценаріїв (Spawn -> Move -> Merge -> Validation).

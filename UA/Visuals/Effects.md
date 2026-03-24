@@ -37,6 +37,12 @@
   - `highlightPrefab`: Префаб візуального елемента підсвітки.
   - `color`: Колір підсвітки.
   - `order`: Зсув по осі Z для правильного рендерингу над полем.
+- **Shared Material**: Перший створений хайлайт генерує `Material` (через `SpriteRenderer.material`), всі наступні використовують `sharedMaterial` для спільного кольору.
+- **Extensibility**: Клас спроектований для наслідування та перевизначення:
+  - `CreateHighlights()`: Віртуальний — базова реалізація створює сітку за `chipSize`. Може бути перевизначений для іншої геометрії (наприклад, [§ 7 Power Booster Connector Highlight](#7-power-booster-connector-highlight)).
+  - `DestroyHighlights()`: Віртуальний — очищує `highlights` список та `sharedMaterial`.
+  - `CreateHighlight(Vector3)`: Віртуальний — створює один елемент підсвітки з префабу.
+  - `OnChangedCell(Cell, Cell)`: Віртуальний — реагує на зміну клітинки (активація/деактивація `gameObject`).
 
 ### 2. Merge Available
 **Клас**: `ChipMergeAvailableEffect.cs`
@@ -104,3 +110,18 @@
 - **Налаштування**:
   - Префаб ефекту задається в `ChipData.MoveLockedEffectPrefab`.
   - Створюється автоматично в `Chip.InitEffects()`, якщо префаб вказано.
+
+### 7. Power Booster Connector Highlight
+**Клас**: `PowerBoosterConnectorCellsHighlightEffect.cs` (наслідує `CellHighlightEffect`)
+**Використовується в**: [ChipPowerBooster](../Chips/ChipPowerBooster.md)
+
+Підсвічує клітинки, за якими спостерігає бустер (його `ObservedCellPositions`), показуючи гравцеві зону впливу Power Booster.
+- **Параметри**:
+  - `globalAlpha`: Глобальна прозорість ефекту (шейдерний параметр `_Alpha`).
+  - `distractionAmount`: Інтенсивність візуального спотворення (шейдерний параметр `_DistractionAmount`).
+  - `waitTimeBeforePowerEffect`: Час очікування перед першим запуском анімації Power Effect.
+- **Power Effect**: Корутіна `StartPowerEffect` після `waitTimeBeforePowerEffect` секунд відправляє анімаційний тригер `"PowerBooster"` на чіп та ефект, потім перезапускається з подвоєним інтервалом.
+- **CreateHighlights()**: Перевизначає базовий метод — створює хайлайти за позиціями `connectorCellPositions` (зміщення відносно `originCellPosition` бустера), а не за сіткою `chipSize`.
+- **OnChangedCell**: Перевизначає базовий — оновлює `originCellPosition` та `connectorCellPositions` з `ChipPowerBooster.CellSubscriber.ObservedCellPositions`, потім перестворює хайлайти.
+- **Deactivate**: Зупиняє корутіну Power Effect та скидає `globalAlpha` до 0.
+- **Update**: Кожен кадр оновлює шейдерні параметри `_Alpha` та `_DistractionAmount` на `sharedMaterial`.
