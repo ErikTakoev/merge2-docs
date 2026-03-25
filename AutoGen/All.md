@@ -46,6 +46,7 @@
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
 - [IChipMovingLogic](#ichipmovinglogic)
+- [IChipSpecialData](#ichipspecialdata)
 - [IEffect](#ieffect)
 - [IEffectContainer](#ieffectcontainer)
 - [IEffectGeneratorCharging](#ieffectgeneratorcharging)
@@ -407,6 +408,7 @@
 > - Uses event OnFillContainer for notification
 > - Requires proper ChipData with ChipContainerData.
 #### Fields
+- `- chipContainerData: ChipContainerData`
 - `- chipFactory: ChipFactory`
 - `- containerEffect: EffectContainerRef`
     - **Purpose**: Visual effect representing the items inside the container
@@ -497,19 +499,18 @@
 #### Fields
 - `++ Size: Vector2Int`
 - `+ CellHighlightPrefab: GameObject`
-- `+ ChipContainerData: Optional<ChipContainerData>`
-- `+ ChipGeneratorData: Optional<ChipGeneratorData>`
 - `+ MergeAvailableEffectPrefab: GameObject`
 - `+ MergeData: Optional<ChipMergeData>`
 - `+ MoveLockedEffectPrefab: GameObject`
-- `+ OtherData: ScriptableObject`
 - `+ PrefabLink: GameObject`
 - `+ Type: string`
+- `- specialDatas: List<IChipSpecialData>`
 #### Methods
 - `+ Clone(): ChipData`
     - **Purpose**: Creates a deep copy of this ChipData asset
     - **Usage**: Call at runtime to create a unique instance of ChipData that can be modified without affecting the original asset
     - **Returns**: A new ChipData instance with identical field values
+- `+ GetSpecialData(): T`
 - `- OnEnable(): void`
 ---
 
@@ -792,7 +793,7 @@
 ## ChipPowerBooster
 **Inherits**: `Chip`
 #### Fields
-- `+- Generators: HashSet<IPowerBoosterModifier>`
+- `+- ModifiedEntities: HashSet<IPowerBoosterModifier>`
 - `+- Power: float`
 - `~ cellSubscriber: PowerBoosterCellSubscriber`
 - `~ chipPowerBoosterData: ChipPowerBoosterData`
@@ -1332,6 +1333,9 @@
     - plannedRelocations - list of calculated moves
 ---
 
+## IChipSpecialData
+---
+
 ## IEffect
 
 > - **Purpose**: Interface for all effects that can be activated or deactivated on chips
@@ -1547,7 +1551,7 @@
 ## PowerBoosterCellSubscriber
 **Inherits**: `CellSubscriber`
 #### Fields
-- `+- Generators: HashSet<IPowerBoosterModifier>`
+- `+- ModifiedEntities: HashSet<IPowerBoosterModifier>`
 - `~ chipPowerBooster: ChipPowerBooster`
 #### Methods
 - `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`

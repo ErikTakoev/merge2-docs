@@ -53,6 +53,7 @@
 ## Main Features
 - **Chip List**: Перегляд усіх фішок у проекті з іконками (ліва панель).
 - **Properties Editor**: Перегляд та редагування серіалізованих даних фішки (права панель).
+- **Special Data Section**: Керування поліморфними даними `ChipData.specialDatas` (типи `IChipSpecialData`) з додаванням/видаленням елементів.
 - **Undo/Redo System**: Повна підтримка скасування змін властивостей та перейменування.
 - **Asset Management**: Кнопки для створення нових фішок, збереження змін та оновлення списку.
 
@@ -65,6 +66,7 @@
 
 ### Supported Actions
 - **Редагування властивостей**: Усі зміни, зроблені в `SerializedObject` під час редагування в інспекторі.
+- **Редагування Special Data**: Додавання/видалення записів у `specialDatas`, редагування полів конкретного типу (`ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо).
 - **Перейменування**: Перейменування асета фішки (також перейменовує пов'язаний префаб).
 
 ## Technical Implementation
@@ -72,9 +74,14 @@
 ### Key Components
 - **`IChipCreatorCommand`**: Інтерфейс для команд, що керують станом `ChipData`.
 - **`ChipCreatorCommandHistory`**: Керує стеками undo/redo спеціально для контексту редагування фішок.
+- **`ChipCreatorWindow.SpecialDataSection.cs`**: Окремий partial для UI секції `Special Data`.
+    - Ліниво знаходить всі реалізації `IChipSpecialData` в завантажених assembly.
+    - Показує кожен елемент `specialDatas` як foldout з редагуванням полів через `SerializeReference`.
+    - Дозволяє додати лише ті типи, яких ще немає в поточному `ChipData` (без дублювань типів).
+    - Дозволяє видалення елемента зі списку.
 - **`ChipCreatorWindow.UndoRedo.cs`**: Містить визначення команд:
     - `SetChipPropertyCommand` — записує JSON-знімки стану асета `ChipData` "до" та "після".
     - `RenameChipCommand` — обробляє перейменування асета як для `ChipData`, так і для префаба.
 
 ### Workflow (Flow)
-Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`.
+Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Special Data`. Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`.

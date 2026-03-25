@@ -15,9 +15,9 @@
   - **PrefabLink**: Посилання на префаб фішки.
   - **Size**: Розмір фішки в клітинках (Vector2Int).
   - **MergeData**: Опціональні налаштування злиття (`ChipMergeData`). Детальніше про процес злиття читайте у **[MergeableChipLogic](../Interactions/MergeableChipLogic.md)**.
-  - **ChipContainerData**: Опціональні налаштування для контейнера.
-  - **ChipGeneratorData**: Опціональні налаштування для генератора.
-  - **OtherData**: Додаткові дані (ScriptableObject).
+  - **specialDatas**: Поліморфна колекція (`SerializeReference`) для додаткових типізованих налаштувань чіпа.
+  - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas` (або `default`, якщо тип не знайдено).
+  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Типові реалізації: `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`.
 - **Runtime Властивості**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
   - **RuntimeData**: Поточний стан (див. нижче).

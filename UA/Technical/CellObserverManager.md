@@ -84,9 +84,9 @@
 ### `PowerBoosterCellSubscriber.cs`
 Спеціалізація `CellSubscriber` для [ChipPowerBooster](../Chips/ChipPowerBooster.md). Потребує `[RequireComponent(typeof(ChipPowerBooster))]`.
 
-- **`Generators`** (`HashSet<IPowerBoosterModifier>`): Набір активних модифікаторів (сусідніх чіпів, що реалізують `IPowerBoosterModifier`).
+- **`ModifiedEntities`** (`HashSet<IPowerBoosterModifier>`): Набір активних модифікаторів (сусідніх чіпів, що реалізують `IPowerBoosterModifier`).
 - **`OnObservedCellChipChanged(ChipChangedEvent)`**: 
-  - Якщо `NewChip` реалізує `IPowerBoosterModifier` → додає до `generators`, викликає `ApplyPowerBoosterModifier`.
-  - Якщо `OldChip` реалізує `IPowerBoosterModifier` → видаляє з `generators`, викликає `RemovePowerBoosterModifier`.
+  - Якщо `NewChip` реалізує `IPowerBoosterModifier` → додає до `modifiedEntities`, викликає `ApplyPowerBoosterModifier`.
+  - Якщо `OldChip` реалізує `IPowerBoosterModifier` → видаляє з `modifiedEntities`, викликає `RemovePowerBoosterModifier`.
 - **`OnChipChangedCell(Cell, Cell)`**: Знімає всі існуючі модифікатори → `base.OnChipChangedCell` (re-subscribe) → збирає нові через `GetAllChipsByType<IPowerBoosterModifier>` → застосовує всі.
 - **`OnChipDestroy(Cell)`**: Базова відписка від `CellObserverManager`.

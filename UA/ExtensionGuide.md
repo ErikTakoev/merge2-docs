@@ -223,9 +223,13 @@ public override void Init(ChipData data)
     base.Init(data); // Важливо! Ініціалізує базові ефекти та runtimeData
     
     // Власна логіка ініціалізації
-    // Наприклад, читання додаткових даних з data.OtherData
+    // Наприклад, читання додаткових даних з specialDatas
+    var settings = data.GetSpecialData<ExtensionChipData>();
 }
 ```
+
+> [!TIP]
+> Рекомендовано викликати `GetSpecialData<T>()` лише один раз під час `Init` і кешувати результат у полі чіпа. Не викликайте його повторно в `Update` або інших гарячих ділянках логіки.
 
 ### Крок 3 — Додати специфічні ефекти через `InitEffects`
 
@@ -368,9 +372,28 @@ public class MyPureEffect : MonoBehaviour, IEffect
 ### Крок 1 — Налаштування ChipData
 
 Починайте з визначення даних. Бажано не захаращувати базовий `ChipData`.
-1. Створіть окремий **ScriptableObject** для параметрів вашої механіки (наприклад, `ExtensionChipData`).
-2. Прикріпіть цей SO до поля **OtherData** у вашому `ChipData`.
-3. В коді чіпа ви зможете отримати ці дані: `var settings = data.OtherData as ExtensionChipData;`.
+1. Створіть окремий serializable-клас для параметрів вашої механіки (наприклад, `ExtensionChipData`), який реалізує `IChipSpecialData`.
+2. Додайте цей тип у `ChipData.specialDatas` через `Chip Creator` -> секцію **Special Data**.
+3. В коді чіпа отримуйте дані в `Init` так: `var settings = data.GetSpecialData<ExtensionChipData>();` (рекомендовано викликати один раз і зберігати в полі).
+
+```csharp
+[Serializable]
+public class ExtensionChipData : IChipSpecialData
+{
+    public float Power = 1.2f;
+}
+```
+
+> [!TIP]
+> `SpecialData`-класи можна розширювати через наслідування. Наприклад, якщо ви робите власний чіп на базі `ChipGenerator`, зручно наслідуватися від `ChipGeneratorData` і додати тільки нові параметри.
+
+```csharp
+[Serializable]
+public class ChipGeneratorDataEx : ChipGeneratorData
+{
+    ...
+}
+```
 
 ### Крок 2 — Створення тестів
 

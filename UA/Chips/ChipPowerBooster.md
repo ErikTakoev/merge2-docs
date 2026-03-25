@@ -8,13 +8,15 @@
 
 ### 1. `ChipPowerBooster.cs`
 Наслідує `Chip`. Основний клас бустера.
-- **Дані (Configuration)**: Зберігає `ChipPowerBoosterData` з параметром `Power` (множник підсилення).
+- **Дані (Configuration)**: Зберігає `ChipPowerBoosterData` з параметром `Power` (множник підсилення), читаючи його через `data.GetSpecialData<ChipPowerBoosterData>()`.
 - **Підписки**: Вимагає компонент `PowerBoosterCellSubscriber` (`[RequireComponent]`), який відстежує сусідні клітинки та збирає активні модифікатори.
-- **Generators**: Делегує колекцію `HashSet<IPowerBoosterModifier>` до `PowerBoosterCellSubscriber.Generators`.
+- **ModifiedEntities**: Делегує колекцію `HashSet<IPowerBoosterModifier>` до `PowerBoosterCellSubscriber.ModifiedEntities`.
+- **Fail-fast перевірки**: В `Init(ChipData)` перевіряє наявність `PowerBoosterCellSubscriber` і `ChipPowerBoosterData`; при відсутності логіка бустера зупиняється з `Debug.LogError`.
 - **Ефекти**: Ініціалізує `connectorCellsHighlightEffect` (див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight)).
 
 ### 2. `ChipPowerBoosterData`
 Серіалізований об'єкт налаштувань бустера.
+- Реалізує `IChipSpecialData` і зберігається в `ChipData.specialDatas`.
 - **`Power`** (`float`): Множник підсилення, який передається через `IPowerBoosterModifier.ApplyPowerBoosterModifier`.
 
 ### 3. `IPowerBoosterModifier` (Interface)
@@ -33,9 +35,9 @@
 Бустер використовує систему [CellSubscriber](../Technical/CellObserverManager.md#subscribers-cellsubscriber) для спостереження за сусідніми клітинками.
 
 Спеціалізована реалізація `PowerBoosterCellSubscriber`:
-- Трекає набір `generators: HashSet<IPowerBoosterModifier>` — усі сусідні чіпи, що реалізують `IPowerBoosterModifier`.
-- При появі нового чіпа (`OnObservedCellChipChanged`) — додає до `generators` та викликає `ApplyPowerBoosterModifier`.
-- При зникненні чіпа — видаляє з `generators` та викликає `RemovePowerBoosterModifier`.
+- Трекає набір `modifiedEntities: HashSet<IPowerBoosterModifier>` — усі сусідні чіпи, що реалізують `IPowerBoosterModifier`.
+- При появі нового чіпа (`OnObservedCellChipChanged`) — додає до `modifiedEntities` та викликає `ApplyPowerBoosterModifier`.
+- При зникненні чіпа — видаляє з `modifiedEntities` та викликає `RemovePowerBoosterModifier`.
 - При переміщенні бустера (`OnChipChangedCell`) — спочатку знімає всі модифікатори, перепідписується на нові клітинки, збирає нові модифікатори через `GetAllChipsByType<IPowerBoosterModifier>`, та повторно застосовує їх.
 
 Детальніше: [Cell Observer Pipeline — Subscribers](../Technical/CellObserverManager.md#subscribers-cellsubscriber).
