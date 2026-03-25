@@ -14,13 +14,13 @@
   - **Type**: Ідентифікатор типу фішки (string).
   - **PrefabLink**: Посилання на префаб фішки.
   - **Size**: Розмір фішки в клітинках (Vector2Int).
-  - **MergeData**: Опціональні налаштування злиття (`ChipMergeData`). Детальніше про процес злиття читайте у **[MergeableChipLogic](../Interactions/MergeableChipLogic.md)**.
-  - **specialDatas**: Поліморфна колекція (`SerializeReference`) для додаткових типізованих налаштувань чіпа.
+  - **specialDatas**: Поліморфна колекція (`SerializeReference`) для додаткових типізованих налаштувань чіпа, включно з `ChipMergeData`.
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas` (або `default`, якщо тип не знайдено).
-  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Типові реалізації: `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`.
+  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Типові реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`.
 - **Runtime Властивості**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
   - **RuntimeData**: Поточний стан (див. нижче).
+  - **MergeData**: Runtime-доступ до merge-конфігурації. Під час `Init(ChipData)` чіп кешує `data.GetSpecialData<ChipMergeData>()` у властивість `Chip.MergeData`.
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Ефекти**: Керує візуальними ефектами, детальніше див. [Visual Effects](../Visuals/Effects.md):
   - `MergeAvailableEffect`: Підсвітка при можливості злиття ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available)).
@@ -84,9 +84,9 @@
 ### 2. `MergeableChipLogic.cs` (Merge Logic)
 Реалізує інтерфейс `IChipInteractionLogic`. Відповідає за перевірку можливості злиття та виконання самої операції.
 - **Перевірка (`CanInteract`)**:
-  - Використовує `MergeData` ініціюючої фішки (source), щоб перевірити через `CanMerge`, чи є цільова фішка (target) у списку допустимих партнерів.
+  - Перевіряє, що `sourceChip.MergeData != null`, і через `CanMerge` визначає, чи є цільова фішка (target) у списку допустимих партнерів.
 - **Виконання (`ExecuteInteraction`)**:
-  - Визначає результат злиття через `GetNextChip` об'єкта `MergeData`.
+  - Визначає результат злиття через `sourceCell.Chip.MergeData.GetNextChip(mainCell.Chip.Data)`.
   - Враховує ваги (Weighted Random), якщо для даної пари передбачено кілька результатів.
   - Обробляє ситуації, коли нова фішка більша за попередні (зсув сусідніх фішок через `IChipMovingLogic`).
   - Знищує обидві вихідні фішки.
@@ -100,6 +100,7 @@
 ## Merge Rules (ChipMergeData)
 
 `ChipMergeData` — це об'єкт налаштувань, який визначає, з ким і як може зливатися чіп.
+Він реалізує `IChipSpecialData` і зберігається в `ChipData.specialDatas`.
 
 ### Data Structure
 
@@ -116,7 +117,8 @@
 
 ### Automation in the Editor
 
-Для зручності, `ChipCreatorWindow` автоматично ініціалізує базове правило при ввімкненні Merge: створюється запис про злиття чіпа з самим собою, де результатом є він же.
+У `Chip Creator` merge-правила для `ChipMergeData` налаштовуються вручну в секції `Special Data`.
+Система не додає auto-generated self-merge комбінацію.
 
 ## Merge Flow
 

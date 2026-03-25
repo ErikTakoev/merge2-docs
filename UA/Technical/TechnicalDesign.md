@@ -81,10 +81,12 @@
 Проект використовує ScriptableObjects для збереження стану рівнів та метаданих.
 
 ### ChipData & SpecialData
-`ChipData` зберігає базові параметри чіпа (тип, префаб, розмір, merge-конфігурацію), а розширювані дані винесені в `specialDatas` (`SerializeReference`).
+`ChipData` зберігає базові параметри чіпа (тип, префаб, розмір), а розширювані дані винесені в `specialDatas` (`SerializeReference`).
 - **Контракт**: `IChipSpecialData` — базовий інтерфейс для спеціалізованих конфігурацій.
-- **Доступ**: `GetSpecialData<T>()` повертає типізований блок даних (`ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData` тощо).
+- **Merge як SpecialData**: `ChipMergeData` тепер є одним із блоків `IChipSpecialData` і не зберігається окремим полем у `ChipData`.
+- **Доступ**: `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData` тощо).
 - **Перевага**: Дозволяє додавати нові типи даних без розширення базового `ChipData` окремими полями.
+- **Runtime доступ до merge**: Під час `Chip.Init` merge-дані кешуються у `Chip.MergeData`; `MergeableChipLogic` використовує саме цей доступ.
 
 ### FieldData & CellData
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:

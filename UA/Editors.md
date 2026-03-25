@@ -54,8 +54,9 @@
 - **Chip List**: Перегляд усіх фішок у проекті з іконками (ліва панель).
 - **Properties Editor**: Перегляд та редагування серіалізованих даних фішки (права панель).
 - **Special Data Section**: Керування поліморфними даними `ChipData.specialDatas` (типи `IChipSpecialData`) з додаванням/видаленням елементів.
+- **Merge Configuration**: Merge-правила задаються вручну через `ChipMergeData` у секції `Special Data` (без авто-створення self-merge комбінації).
 - **Undo/Redo System**: Повна підтримка скасування змін властивостей та перейменування.
-- **Asset Management**: Кнопки для створення нових фішок, збереження змін та оновлення списку.
+- **Asset Management**: Кнопки для створення нових фішок, збереження змін та оновлення списку; при відсутності template-prefab показується попередження і створення блокується.
 
 ## Undo/Redo System
 редактор фішок використовує той самий патерн **Command**, що і Редактор Рівнів, для відстеження змін.
@@ -66,8 +67,9 @@
 
 ### Supported Actions
 - **Редагування властивостей**: Усі зміни, зроблені в `SerializedObject` під час редагування в інспекторі.
-- **Редагування Special Data**: Додавання/видалення записів у `specialDatas`, редагування полів конкретного типу (`ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо).
+- **Редагування Special Data**: Додавання/видалення записів у `specialDatas`, редагування полів конкретного типу (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо).
 - **Перейменування**: Перейменування асета фішки (також перейменовує пов'язаний префаб).
+- **Стабільний Undo/Redo після rename/type-change**: Після змін імені або `Type` список фішок і фільтри синхронізуються коректно.
 
 ## Technical Implementation
 
@@ -82,6 +84,10 @@
 - **`ChipCreatorWindow.UndoRedo.cs`**: Містить визначення команд:
     - `SetChipPropertyCommand` — записує JSON-знімки стану асета `ChipData` "до" та "після".
     - `RenameChipCommand` — обробляє перейменування асета як для `ChipData`, так і для префаба.
+    - При Undo/Redo змін, що впливають на список (name/type), виконується синхронізація `SerializedObject`, сортування списку та оновлення фільтрів.
+- **`ChipCreatorWindow.CreateChip.cs`**:
+    - Кешує список template-префабів для створення нових чіпів.
+    - Коректно обробляє порожню папку шаблонів (показує warning замість некоректного створення).
 
 ### Workflow (Flow)
-Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Special Data`. Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`.
+Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Special Data` (зокрема `ChipMergeData`). Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`.
