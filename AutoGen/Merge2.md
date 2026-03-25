@@ -507,6 +507,7 @@
     - **Purpose**: Creates a deep copy of this ChipData asset
     - **Usage**: Call at runtime to create a unique instance of ChipData that can be modified without affecting the original asset
     - **Returns**: A new ChipData instance with identical field values
+- `+ CreateSpecialData(): T`
 - `+ GetSpecialData(): T`
 - `- OnEnable(): void`
 ---
@@ -797,6 +798,7 @@
 - `- connectorCellsHighlightEffect: EffectRef`
 #### Methods
 - `+ ApplyPowerBoosterModifier(IPowerBoosterModifier generator): void`
+- `+ Destroy(Cell mainCell): void`
 - `+ Init(ChipData data): void`
 - `+ RemovePowerBoosterModifier(IPowerBoosterModifier generator): void`
 - `+ SetMoving(bool value): void`

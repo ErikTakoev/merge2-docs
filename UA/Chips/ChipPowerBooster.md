@@ -57,4 +57,9 @@
 2. **Placement**: `FieldGrid.SetChipInCell` → `CellSubscriber.OnChipChangedCell` → `SubscribeToNeighbors` (обчислення bounding box + neighbors).
 3. **Observation**: `CellObserverManager` нотифікує `PowerBoosterCellSubscriber.OnObservedCellChipChanged` → Apply/Remove модифікаторів.
 4. **Move**: `SetMoving(true)` → ефект деактивується → після drop: `OnChipChangedCell` → re-subscribe → новий набір модифікаторів.
-5. **Destroy**: `OnChipDestroy` → unsubscribe від `CellObserverManager`.
+5. **Destroy**: 
+   - Викликається `ChipPowerBooster.Destroy(Cell mainCell)` override.
+   - Спочатку `cellSubscriber.OnChipDestroy(mainCell)` викликає `RemovePowerBoosterModifier()` для **всіх** елементів в `modifiedEntities`.
+   - Потім очищує колекцію `modifiedEntities.Clear()`.
+   - Завершує `base.Destroy(mainCell)`, який відписує бустер від `CellObserverManager`.
+   - **Результат**: Всі пов'язані генератори отримують очищення модифікаторів перед знищенням бустера, забезпечуючи консистентність стану при merge/еволюції бустера (наприклад, при злитті двох бустерів в інший тип чіпа).

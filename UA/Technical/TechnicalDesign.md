@@ -84,7 +84,14 @@
 `ChipData` зберігає базові параметри чіпа (тип, префаб, розмір), а розширювані дані винесені в `specialDatas` (`SerializeReference`).
 - **Контракт**: `IChipSpecialData` — базовий інтерфейс для спеціалізованих конфігурацій.
 - **Merge як SpecialData**: `ChipMergeData` тепер є одним із блоків `IChipSpecialData` і не зберігається окремим полем у `ChipData`.
-- **Доступ**: `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData` тощо).
+- **Доступ**: 
+  - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData` тощо).
+  - `CreateSpecialData<T>()` — динамічно створює нову інстанцію спеціальних даних, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
+    ```csharp
+    ChipData clonedData = originalData.Clone();
+    ChipMergeData mergeData = clonedData.CreateSpecialData<ChipMergeData>();
+    mergeData.Combinations = new MergeCombination[] { /* ... */ };
+    ```
 - **Перевага**: Дозволяє додавати нові типи даних без розширення базового `ChipData` окремими полями.
 - **Runtime доступ до merge**: Під час `Chip.Init` merge-дані кешуються у `Chip.MergeData`; `MergeableChipLogic` використовує саме цей доступ.
 
@@ -92,7 +99,7 @@
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
 - **FieldChipData**: Містить дані фішки (**ChipId**) та її поточний стан або ефекти (**IsMoveLocked**).
 - **Позиція**: Координати якоря (top-left).
-- **Розташування в коді**: `FieldData` і `FieldChipData` знаходяться в `Core/Scripts/Field/Data` (релокація з `Core/Scripts/Chips/Data`).
+- **Розташування в коді**: `FieldData` і `FieldChipData` знаходяться в `Core/Scripts/Field/Data`.
 
 ### Runtime State
 У грі стан заблокованості переноситься у `ChipRuntimeData`. Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), синхронізуючи візуальні ефекти через `UpdateRuntimeData()`.
