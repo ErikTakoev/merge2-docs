@@ -50,7 +50,7 @@
 - `Flush` викликає `OnFlush` один раз за кадр і очищає обидві структури.
 
 ## Interactions
-- [`FieldGrid.cs`](../../../Core/Scripts/Field/FieldGrid.cs) у `SetChipInCell` викликає `IChipChangeNotifier.Enqueue` до мутації/після призначення чіпа.
+- [`FieldGrid.cs`](../../../Core/Scripts/Field/FieldGrid.cs) у `SetChipInCell` викликає `IChipChangeNotifier.Enqueue` при кожній зміні клітинки: для очищення після `ClearCells(...)`, для встановлення чіпа після оновлення `cell.Chip` і `chip.CellPosition`.
 - [`FieldEventHandler.cs`](../../../Core/Scripts/Field/FieldEventHandler.cs) у `LateUpdate` викликає `Flush`, щоб завершити кадр консистентним набором змін.
 - `CellObserverManager` підписується на `IChipChangeNotifier.OnFlush` у `Start` і відписується в `OnDestroy`.
 - Споживачами є реалізації [`ICellSubscriber`](../../../Core/Scripts/VContainer/Interfaces/ICellSubscriber.cs) (наприклад, `CellSubscriber`), які отримують `OnObservedCellChipChanged(ChipChangedEvent evt)`.
@@ -60,11 +60,12 @@
 Ланцюг обробки: `SetChipInCell -> Enqueue -> LateUpdate/Flush -> HandleFlush -> OnObservedCellChipChanged`.
 
 1. Зміна клітинки проходить через `FieldGrid.SetChipInCell`.
-2. `SetChipInCell` додає запис у `IChipChangeNotifier.Enqueue(cell, oldChip, newChip)`.
-3. Наприкінці кадру `FieldEventHandler.LateUpdate` викликає `IChipChangeNotifier.Flush()`.
-4. `DeferredChipChangeNotifier.Flush` публікує пакет `ChipChangedEvent` через `OnFlush`.
-5. `CellObserverManager.HandleFlush` проходить по подіях і для кожної події обчислює релевантну область клітинок.
-6. Для знайдених підписників викликається `ICellSubscriber.OnObservedCellChipChanged(evt)` без дублювання викликів у межах однієї події.
+2. Якщо чіп прибирається (`chip == null`), `SetChipInCell` спочатку очищає зайняті клітинки через `ClearCells`, після чого додає `Enqueue(cell, oldChip, null)`.
+3. Якщо чіп встановлюється, `SetChipInCell` призначає `cell.Chip`, оновлює `chip.CellPosition`, і тільки потім додає `Enqueue(cell, oldChip, chip)`, щоб підписники бачили актуальну позицію.
+4. Наприкінці кадру `FieldEventHandler.LateUpdate` викликає `IChipChangeNotifier.Flush()`.
+5. `DeferredChipChangeNotifier.Flush` публікує пакет `ChipChangedEvent` через `OnFlush`.
+6. `CellObserverManager.HandleFlush` проходить по подіях і для кожної події обчислює релевантну область клітинок.
+7. Для знайдених підписників викликається `ICellSubscriber.OnObservedCellChipChanged(evt)` без дублювання викликів у межах однієї події.
 
 ## Subscribers (CellSubscriber)
 
@@ -79,14 +80,14 @@
 - **`OnChipChangedCell(Cell source, Cell target)`**: Відписується від старих клітинок, підписується на нових сусідів навколо `target`.
 - **`OnChipDestroy(Cell)`**: Відписується від `CellObserverManager`.
 - **`OnObservedCellChipChanged(ChipChangedEvent)`**: Базова реалізація — логування (якщо `chip.LogEnable`).
-- **`GetAllChipsByType<T>(List<Vector2Int>)`**: Утиліта — збирає всі чіпи певного типу з вказаних позицій поля.
+- **`GetAllChipsByType<T>(List<Vector2Int>, ref HashSet<T>)`**: Утиліта — збирає всі чіпи певного типу з вказаних позицій поля в caller-owned `HashSet` (очищає і перевикористовує колекцію без додаткових алокацій).
 
 ### `PowerBoosterCellSubscriber.cs`
 Спеціалізація `CellSubscriber` для [ChipPowerBooster](../Chips/ChipPowerBooster.md). Потребує `[RequireComponent(typeof(ChipPowerBooster))]`.
 
 - **`ModifiedEntities`** (`HashSet<IPowerBoosterModifier>`): Набір активних модифікаторів (сусідніх чіпів, що реалізують `IPowerBoosterModifier`).
 - **`OnObservedCellChipChanged(ChipChangedEvent)`**: 
-  - Якщо `NewChip` реалізує `IPowerBoosterModifier` → додає до `modifiedEntities`, викликає `ApplyPowerBoosterModifier`.
-  - Якщо `OldChip` реалізує `IPowerBoosterModifier` → видаляє з `modifiedEntities`, викликає `RemovePowerBoosterModifier`.
-- **`OnChipChangedCell(Cell, Cell)`**: Знімає всі існуючі модифікатори → `base.OnChipChangedCell` (re-subscribe) → збирає нові через `GetAllChipsByType<IPowerBoosterModifier>` → застосовує всі.
-- **`OnChipDestroy(Cell)`**: Базова відписка від `CellObserverManager`.
+  - Якщо `NewChip` реалізує `IPowerBoosterModifier` → викликає `modifiedEntities.Add(...)`; модифікатор застосовується лише при `true` (idempotent захист).
+  - Якщо `OldChip` реалізує `IPowerBoosterModifier` → викликає `modifiedEntities.Remove(...)`; модифікатор знімається лише при `true`.
+- **`OnChipChangedCell(Cell, Cell)`**: Знімає всі існуючі модифікатори → `base.OnChipChangedCell` (re-subscribe) → оновлює набір через `GetAllChipsByType<IPowerBoosterModifier>(..., ref modifiedEntities)` → застосовує нові модифікатори.
+- **`OnChipDestroy(Cell)`**: Знімає всі активні модифікатори, очищує `modifiedEntities`, після чого викликає базову відписку від `CellObserverManager`.

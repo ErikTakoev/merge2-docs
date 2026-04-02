@@ -18,6 +18,7 @@
 - **`IFieldGrid`** -> `FieldGrid`
   - **Призначення**: Управління станом сітки (2D масив `Cell`).
   - **Відповідальність**: Створення комірок, валідація координат, низькорівневі операції розміщення чіпів (`SetChipInCell`).
+  - **Деталь `SetChipInCell`**: При встановленні чіпа `FieldGrid` призначає `chip.CellPosition` до `IChipChangeNotifier.Enqueue(...)`, щоб підписники отримували подію вже з актуальними координатами. При очищенні спочатку скидає occupancy (`ClearCells`), потім enqueue події `oldChip -> null`.
 
 - **`IFieldInitializeCommand`** -> `FieldInitializeCommand`
   - **Призначення**: Команда ініціалізації рівня.
@@ -27,6 +28,10 @@
   - **Призначення**: Агрегація змін клітинок протягом кадру та єдиний `Flush` у `LateUpdate`.
   - **Відповідальність**: `FieldGrid` додає події через `Enqueue`, `FieldEventHandler` викликає `Flush`, а підписники отримують консистентний набір `ChipChangedEvent`.
   - **Деталі**: [CellObserverManager](CellObserverManager.md).
+
+- **`ICellSubscriber`** -> `CellSubscriber`, `PowerBoosterCellSubscriber`
+  - **Призначення**: Контракт для компонентів, що реагують на зміни в сусідніх клітинках.
+  - **Відповідальність**: `OnChipChangedCell` перев'язує підписки після переміщення, `OnChipDestroy` виконує cleanup перед знищенням чіпа, `OnObservedCellChipChanged` обробляє батч-події з `CellObserverManager`.
 
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
@@ -45,12 +50,17 @@
   - **Призначення**: Комплексна логіка переміщення.
   - **Відповідальність**: Валідація переміщень, обробка колізій та розрахунок ланцюгових переміщень (relocation) інших чіпів, щоб звільнити місце.
 
+- **`IPowerBoosterModifier`** -> `ChipGenerator` (`partial` у `ChipGenerator.PowerBoosterModifier.cs`)
+  - **Призначення**: Контракт для сутностей, що можуть бути посилені `ChipPowerBooster`.
+  - **Відповідальність**: Зберігання набору активних бустерів, реалізація apply/remove модифікаторів, надання `JoinPoints` для join-візуалізації.
+
 ## Visual Effects System
 Візуальні ефекти для фішок реалізовані через систему інтерфейсів для гнучкості та розділення логіки.
 - **`IEffect`**: Базовий інтерфейс для всіх ефектів фішок (активація, тригери, зміна комірок).
 - **`IEffectContainer`**: Спеціалізований інтерфейс для візуалізації `ChipContainer`, розширює `IEffect` методом `UpdateElements`.
 - **`IEffectGeneratorCharging`**: Спеціалізований інтерфейс для візуалізації зарядки `ChipGenerator`, розширює `IEffect` методом `OnCharging`.
-- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
+- **`IEffectPowerBoosterJoin`**: Спеціалізований інтерфейс для join-візуалізації бустера (`OnJoin`, `OnLeave`, `Show`) між `ChipPowerBooster` та `IPowerBoosterModifier`.
+- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerRef`, `EffectPowerBoosterJoinRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
 
 ## Interaction Strategies
 Використовуємо патерн "Стратегія". Логіка того, як фішки взаємодіють між собою під час перетягування, винесена в окремі компоненти:

@@ -125,3 +125,12 @@
 - **OnChangedCell**: Перевизначає базовий — оновлює `originCellPosition` та `connectorCellPositions` з `ChipPowerBooster.CellSubscriber.ObservedCellPositions`, потім перестворює хайлайти.
 - **Deactivate**: Зупиняє корутіну Power Effect та скидає `globalAlpha` до 0.
 - **Update**: Кожен кадр оновлює шейдерні параметри `_Alpha` та `_DistractionAmount` на `sharedMaterial`.
+
+### 8. Power Booster Join Links
+**Клас**: `PowerBoosterJoinEffect.cs` (наслідує `Effect`, реалізує `IEffectPowerBoosterJoin`)
+**Використовується в**: [ChipPowerBooster](../Chips/ChipPowerBooster.md)
+
+Відповідає за динамічні particle-лінки між бустером і кожним активним `IPowerBoosterModifier`.
+- **Join API**: `ChipPowerBooster` викликає `OnJoin`/`OnLeave` через контракт `IEffectPowerBoosterJoin` (`EffectPowerBoosterJoinRef`) під час apply/remove модифікаторів.
+- **JoinPoints**: Ефект використовує `JoinPoints` бустера та модифікатора, обирає найближчі кандидати, а далі періодично перебіндовує активні лінки через корутіну `ChangeJoinPointsCoroutine` (`changeJoinPointsTime`).
+- **Cleanup**: `OnLeave` і `Deactivate` зупиняють particle systems, планують `Destroy` по `startLifetime` і очищують runtime-словник лінків; `SetMoving(true)` у бустері також викликає `joinEffect.Deactivate(...)`.

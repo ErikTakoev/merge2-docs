@@ -111,8 +111,8 @@
 - **Сценарій**: Створює генератор далеко від бустера — перевіряє `ModifiedEntities.Count == 0`. Переміщує генератор поруч з бустером — перевіряє `ModifiedEntities.Count == 1` та `PowerBoosterModifiers.Count == 1`. Переміщує генератор на бустер та від нього — перевіряє динамічне оновлення модифікаторів.
 
 #### CheckModifierPower
-- **Мета**: Перевіряє, що `Power` бустера прискорює зарядку генератора.
-- **Сценарій**: Створює копію генератора, встановлює `IsStartCharged = false` та `ChargingTime = 5f` через `GetSpecialData<ChipGeneratorData>()`, потім ставить бустер поруч. Чекає час `ChargingTime / Power`. Перевіряє, що генератор зарядився швидше завдяки модифікатору.
+- **Мета**: Перевіряє, що один `ChipPowerBooster` прискорює одночасно manual і auto генератори в зоні впливу.
+- **Сценарій**: Створює manual-генератор (`IsStartCharged = false`, `ChargingTime = 5f`) і auto-генератор (`ChargingTime = 5f`), ставить бустер так, щоб обидва потрапили в range. Після очікування `ChargingTime / Power` перевіряє, що manual-генератор став `IsCharged == true`, а auto-генератор перейшов у заряджений цикл (`RuntimeDataOnlyEditor.ChargeCount != 0`).
 
 #### CheckModifierPower_MoveGenerator
 - **Мета**: Перевіряє, що модифікатор знімається при переміщенні генератора від бустера.

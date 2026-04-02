@@ -5,7 +5,6 @@
 - [CellHighlightEffect](#cellhighlighteffect)
 - [CellObserverManager](#cellobservermanager)
 - [CellSubscriber](#cellsubscriber)
-- [CellSubscriberRef](#cellsubscriberref)
 - [Chip](#chip)
 - [ChipChangedEvent](#chipchangedevent)
 - [ChipContainer](#chipcontainer)
@@ -32,6 +31,7 @@
 - [Effect](#effect)
 - [EffectContainerRef](#effectcontainerref)
 - [EffectGeneratorChargingRef](#effectgeneratorchargingref)
+- [EffectPowerBoosterJoinRef](#effectpowerboosterjoinref)
 - [EffectRef](#effectref)
 - [ExtraChip](#extrachip)
 - [FieldChipData](#fieldchipdata)
@@ -50,6 +50,7 @@
 - [IEffect](#ieffect)
 - [IEffectContainer](#ieffectcontainer)
 - [IEffectGeneratorCharging](#ieffectgeneratorcharging)
+- [IEffectPowerBoosterJoin](#ieffectpowerboosterjoin)
 - [IFieldEventHandler](#ifieldeventhandler)
 - [IFieldGrid](#ifieldgrid)
 - [IFieldInitializeCommand](#ifieldinitializecommand)
@@ -62,6 +63,7 @@
 - [MergeResult](#mergeresult)
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
+- [PowerBoosterJoinEffect](#powerboosterjoineffect)
 - [IInputManager](#iinputmanager)
 - [InputManager](#inputmanager)
 - [Merge2Input](#merge2input)
@@ -188,10 +190,9 @@
 ## CellSubscriber
 **Inherits**: `MonoBehaviour`
 
-> - **Purpose**: A chip that observes all neighboring cells and reacts when their chips change.
-> - **Usage**: Attach to a cell prefab to use booster behaviour
-> - override OnNeighborChipChanged for custom logic.
-> - **Notes**: Subscribes to every cell that borders the chip's occupied area (supports multi-cell chips) via CellObserverManager on Init and unsubscribes on Destroy.
+> - **Purpose**: Base component for chips that need batched notifications about changes in neighboring cells.
+> - **Usage**: Inherit for domain-specific subscribers (for example boosters) and override virtual callbacks to react when observed chips appear, disappear, or the owner chip changes cell.
+> - **Notes**: Computes a border around the chip occupied area (supports multi-cell chips), subscribes through CellObserverManager, and guarantees unsubscription on destroy.
 #### Fields
 - `+- ObservedCellPositions: IReadOnlyList<Vector2Int>`
 - `~ cellObserverManager: CellObserverManager`
@@ -212,19 +213,21 @@
 - `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
     - **Purpose**: Receives chip-change notifications for any watched neighboring cell.
     - **Usage**: Invoked by CellObserverManager once per frame flush
-    - delegates to OnNeighborChipChanged.
-    - **Params**: evt - event data with Cell, OldChip, NewChip
+    - base implementation only logs debug information when chip.LogEnable is true.
+    - **Params**: evt - event payload containing the changed cell and old/new chip references
 - `~ Awake(): void`
-- `~ GetAllChipsByType(List<Vector2Int> cellPositions): HashSet<T>`
+- `~ GetAllChipsByType(List<Vector2Int> cellPositions, HashSet`1& chips): void`
+    - **Purpose**: Collects unique neighboring chips matching a target reference type into a reusable set.
+    - **Usage**: Call from derived subscribers when recomputing tracked neighbors after movement or subscription changes.
+    - **Params**: cellPositions - observed grid positions to scan
+    - chips - destination set passed by ref and cleared before population
+    - **Notes**: Uses caller-owned HashSet to avoid per-call allocations
+    - only main chip references present on scanned cells are added.
 - `~ SubscribeToNeighbors(Vector2Int origin): void`
     - **Purpose**: Computes all cells that border the chip's occupied area and subscribes to them via CellObserverManager.
-    - **Usage**: Called from OnChangedCell with the target cell's position.
+    - **Usage**: Called from OnChipChangedCell with the target cell position after previous subscriptions are removed.
     - **Params**: origin - top-left position of the chip on the grid
     - **Notes**: Supports multi-cell chips: iterates the expanded bounding box (origin-1 .. origin+size) and excludes cells owned by the chip itself. Skips out-of-bounds positions.
----
-
-## CellSubscriberRef
-**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
 ## Chip
@@ -244,6 +247,7 @@
 - `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
 - `~ animator: Animator`
+- `- chipChangeNotifier: IChipChangeNotifier`
 - `~ effects: List<IEffect>`
 - `~ fieldGrid: IFieldGrid`
 - `~ isDragging: bool`
@@ -271,8 +275,10 @@
     - prevents drag-and-drop when locked
 - `+ Destroy(Cell mainCell): void`
     - **Purpose**: Destroys the chip and all its attached effects
-    - **Usage**: Call to remove the chip from the scene and clean up its effects
-    - override in derived classes for custom destruction logic
+    - **Usage**: Call to remove the chip from the field and scene
+    - override in derived classes for custom teardown before or after base destruction
+    - **Params**: mainCell - the chip's main occupied cell on the field grid
+    - **Notes**: Clears grid occupancy via FieldGrid first (which enqueues chip-change notifications), then invokes ICellSubscriber cleanup while cell context is still valid, destroys spawned effect objects, and finally schedules GameObject destruction with a short delay (0.1s)
 - `+ Init(ChipData data): void`
     - **Purpose**: Initializes the chip with data and sets up all required components and effects
     - **Usage**: Call after creating a chip instance to assign data and prepare effects
@@ -356,6 +362,7 @@
     - used for both user dragging and automated chip movement
     - **Params**: value - true if starting movement, false if ending movement
     - **Notes**: Sets sorting order to 2 for moving chips to ensure they're on top
+    - on move-start it enqueues a chip-change event with NewChip=null for the current cell so observer-based systems can immediately react to temporary chip departure
     - calls UpdateVisual when movement ends
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the chip based on its runtime data
@@ -574,6 +581,7 @@
 > - **Usage**: Attach to a cell. Handles generation, charging, recharges, evolution to NextChipData, or destruction.
 > - **Notes**: Manages recharge counts. If TotalRecharges > 0, it recharges N times before evolution/destruction.
 #### Fields
+- `+- JoinPoints: IReadOnlyList<Transform>`
 - `+- PowerBoosterModifiers: HashSet<ChipPowerBooster>`
 - `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
 - `- chargedEffect: EffectRef`
@@ -600,7 +608,11 @@
     - **Usage**: Set in Init from generatorData. Controls event subscriptions and tap behavior.
     - **Notes**: Affects event handling and chip generation triggers.
 - `- OnCharging: Action<float>`
-- `- powerMultiplier: float`
+- `~ powerMultiplier: float`
+    - **Purpose**: Current generation speed multiplier contributed by nearby power boosters.
+    - **Usage**: Updated when boosters are applied/removed
+    - consumed by Update() charging logic to scale Time.deltaTime.
+    - **Notes**: Defaults to 1f (no boost) and tracks the highest active booster power.
 - `- rechargeEffect: EffectGeneratorChargingRef`
     - **Purpose**: Effect component for visual feedback during charging (recharge cycle).
     - **Usage**: Assigned via inspector as EffectGeneratorChargingRef
@@ -610,10 +622,18 @@
     - targets IEffectGeneratorCharging interface.
 #### Methods
 - `+ ApplyPowerBoosterModifier(ChipPowerBooster chipPowerBooster): bool`
+    - **Purpose**: Applies a booster to the generator and recalculates effective multiplier.
+    - **Usage**: Called when booster subscriber detects this generator entering observed range.
+    - **Params**: chipPowerBooster - booster to register as active modifier
+    - **Returns**: True when the modifier was newly added
+    - false when it was already present.
+    - **Notes**: Multiplier becomes the maximum power among active boosters to prevent stacking by sum.
 - `+ Destroy(Cell mainCell): void`
-    - **Purpose**: Cleans up the chip generator, removing event subscriptions and clearing delegates.
-    - **Usage**: Call when destroying or removing a ChipGenerator instance.
-    - **Notes**: Ensures no memory leaks or dangling event handlers.
+    - **Purpose**: Cleans up generator-owned callbacks and subscriptions before the base chip destruction flow runs.
+    - **Usage**: Call when removing a ChipGenerator from the field
+    - this override must execute before base.Destroy so auto-mode callbacks cannot fire against a chip that is already being removed.
+    - **Params**: mainCell - the generator main cell used by base destruction to clear occupancy
+    - **Notes**: Resets OnCharging delegates and unsubscribes from field.OnChangeField in auto mode, then delegates to base.Destroy for grid/effect/GameObject cleanup.
 - `+ Init(ChipData data): void`
     - **Purpose**: Initializes the chip generator with provided data and sets up event subscriptions.
     - **Usage**: Call when creating or resetting a ChipGenerator instance.
@@ -625,6 +645,11 @@
     - **Params**: position - Tap position in world coordinates.
     - **Notes**: No effect in auto mode or if not charged. Uses TryGenerateChip for logic.
 - `+ RemovePowerBoosterModifier(ChipPowerBooster chipPowerBooster): void`
+    - **Purpose**: Removes a booster modifier and recalculates multiplier from remaining active boosters.
+    - **Usage**: Called when booster subscriber detects this generator leaving observed range or booster destruction.
+    - **Params**: chipPowerBooster - booster to remove from active modifier set
+    - **Notes**: Resets multiplier to 1f when no boosters remain
+    - logs warning if removal is requested for a non-registered booster.
 - `+ SetMoving(bool value): void`
     - **Purpose**: Updates dragging state and deactivates charged effect during drag
     - **Usage**: Called when drag starts or ends
@@ -793,20 +818,58 @@
 
 ## ChipPowerBooster
 **Inherits**: `Chip`
+
+> - **Purpose**: Chip that boosts nearby IPowerBoosterModifier entities and controls linked booster-specific effects.
+> - **Usage**: Attach to booster chip prefabs together with PowerBoosterCellSubscriber to auto-apply/remove modifiers as neighbor composition changes.
+> - **Notes**: Coordinates numeric power boost state and optional join/highlight effects for movement and destruction lifecycles.
 #### Fields
 - `+- ModifiedEntities: HashSet<IPowerBoosterModifier>`
 - `+- Power: float`
 - `~ cellSubscriber: PowerBoosterCellSubscriber`
 - `~ chipPowerBoosterData: ChipPowerBoosterData`
-- `- connectorCellsHighlightEffect: EffectRef`
+- `~ connectorCellsHighlightEffect: EffectRef`
+    - **Purpose**: Optional effect reference that visualizes currently observed booster coverage cells.
+    - **Usage**: Initialized in InitEffects and toggled by movement/visual updates.
+    - **Notes**: When missing, booster still functions but no connector cell highlighting is shown.
+- `~ joinEffect: EffectPowerBoosterJoinRef`
+    - **Purpose**: Optional effect reference that draws dynamic join links between booster and modified generators.
+    - **Usage**: Receives OnJoin/OnLeave callbacks when modifiers are applied or removed.
+    - **Notes**: Deactivated when booster starts moving to prevent stale visual links.
 #### Methods
 - `+ ApplyPowerBoosterModifier(IPowerBoosterModifier generator): void`
+    - **Purpose**: Applies booster influence to a modifier target and notifies join effect.
+    - **Usage**: Called by PowerBoosterCellSubscriber when a matching modifier enters observed cells.
+    - **Params**: generator - modifier-capable chip/entity receiving this booster
 - `+ Destroy(Cell mainCell): void`
+    - **Purpose**: Ensures booster subscriptions/modifiers are cleared before base chip destruction.
+    - **Usage**: Called by chip lifecycle when booster is removed from field.
+    - **Params**: mainCell - booster main grid cell at destruction time
+    - **Notes**: Explicitly invokes subscriber cleanup before base.Destroy to release modifier links deterministically.
 - `+ Init(ChipData data): void`
+    - **Purpose**: Initializes booster-specific dependencies and validates booster data payload.
+    - **Usage**: Called after creation
+    - must run before boost application logic and effect usage.
+    - **Params**: data - chip data expected to contain ChipPowerBoosterData
+    - **Notes**: Caches PowerBoosterCellSubscriber and ChipPowerBoosterData
+    - logs errors and exits early when required components/data are missing.
 - `+ RemovePowerBoosterModifier(IPowerBoosterModifier generator): void`
+    - **Purpose**: Removes booster influence from a modifier target and notifies join effect.
+    - **Usage**: Called by PowerBoosterCellSubscriber when a matching modifier leaves observed cells or gets removed.
+    - **Params**: generator - modifier-capable chip/entity losing this booster
 - `+ SetMoving(bool value): void`
+    - **Purpose**: Handles movement-state transitions and immediately deactivates booster-only effects on move start.
+    - **Usage**: Called by drag/movement flows with true on start and false on stop.
+    - **Params**: value - true to start moving, false to stop
+    - **Notes**: Always delegates sorting/notification behavior to base.SetMoving first.
 - `+ UpdateVisual(): void`
+    - **Purpose**: Updates booster visual state while preserving base chip visuals.
+    - **Usage**: Called when runtime state changes and when movement state toggles.
+    - **Notes**: Connector cell highlight is active only while the booster is stationary.
 - `~ InitEffects(): void`
+    - **Purpose**: Initializes optional booster effects in addition to base chip effects.
+    - **Usage**: Called from base Init flow.
+    - **Notes**: Only adds connectorCellsHighlightEffect when target exists
+    - effect instance is tracked in shared effects list for lifecycle propagation.
 ---
 
 ## ChipPowerBoosterData
@@ -1014,6 +1077,10 @@
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
+## EffectPowerBoosterJoinRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
+---
+
 ## EffectRef
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
@@ -1144,10 +1211,12 @@
     - **Returns**: True if the area is fully within field bounds
     - otherwise false.
 - `+ SetChipInCell(Cell cell, Chip chip): void`
-    - **Purpose**: Places a chip in the specified cell.
-    - **Usage**: Call to assign a chip to a cell and update multi-cell occupancy if needed.
-    - **Params**: cell - the target cell
-    - chip - the chip to place.
+    - **Purpose**: Places a chip into a target cell and updates observer-visible state for placement/removal.
+    - **Usage**: Call to place, move, or remove a chip in grid coordinates while keeping chip-change notifications and multi-cell occupancy metadata in sync.
+    - **Params**: cell - target main cell for placement or clearing
+    - chip - chip instance to place (null means clear).
+    - **Notes**: When placing, CellPosition is assigned before chipChangeNotifier.Enqueue so observers handling the event read the chip at its new logical coordinates
+    - when clearing, all occupied cells are reset via ClearCells before enqueueing old/new chip state.
 - `- ClearCells(Cell cell): void`
     - **Purpose**: Clears all chips from cells occupied by the specified cell's chip.
     - **Usage**: Call to remove a chip and its multi-cell occupancy from the field.
@@ -1242,7 +1311,14 @@
 - `+- ObservedCellPositions: IReadOnlyList<Vector2Int>`
 #### Methods
 - `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+    - **Purpose**: Rebinds neighbor observation when the owning chip changes its main cell.
+    - **Usage**: Called by chip movement/placement flow after field occupancy is updated to the target cell.
+    - **Params**: sourceCell - previous main cell (may be null on first placement)
+    - targetCell - current main cell after relocation
 - `+ OnChipDestroy(Cell mainCell): void`
+    - **Purpose**: Performs subscriber cleanup before the owning chip is destroyed or removed from the field.
+    - **Usage**: Called by chip destruction flow to release observer subscriptions and derived-state links.
+    - **Params**: mainCell - chip main cell at destruction time
 - `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
     - **Purpose**: Called once per changed cell after all frame changes have been collected and flushed.
     - **Usage**: Handle local chip/cell logic updates here.
@@ -1373,6 +1449,24 @@
 - `+ OnCharging(float progress): void`
 ---
 
+## IEffectPowerBoosterJoin
+
+> - **Purpose**: Effect contract for visualizing dynamic join links between a power booster and modifier-capable targets.
+> - **Usage**: Implemented by effects that react to booster OnJoin/OnLeave lifecycle and follow IEffect activation rules.
+#### Methods
+- `+ OnJoin(IPowerBoosterModifier powerBoosterModifier): void`
+    - **Purpose**: Registers a modifier target and creates/updates visual links for it.
+    - **Usage**: Called when a booster starts affecting the provided modifier.
+    - **Params**: powerBoosterModifier - target receiving booster influence
+- `+ OnLeave(IPowerBoosterModifier powerBoosterModifier): void`
+    - **Purpose**: Removes visual links associated with the provided modifier target.
+    - **Usage**: Called when a booster stops affecting the modifier or the modifier is removed.
+    - **Params**: powerBoosterModifier - target losing booster influence
+- `+ Show(): void`
+    - **Purpose**: Starts standalone display logic for this join effect implementation.
+    - **Usage**: Optional explicit trigger for implementations that expose manual show behavior.
+---
+
 ## IFieldEventHandler
 #### Methods
 - `+ NotifyFieldChanged(): void`
@@ -1443,11 +1537,23 @@
 ---
 
 ## IPowerBoosterModifier
+
+> - **Purpose**: Contract for entities that can be modified by ChipPowerBooster instances.
+> - **Usage**: Implemented by chips (for example ChipGenerator) that expose join points and manage active booster modifiers.
 #### Fields
+- `+- JoinPoints: IReadOnlyList<Transform>`
 - `+- PowerBoosterModifiers: HashSet<ChipPowerBooster>`
 #### Methods
 - `+ ApplyPowerBoosterModifier(ChipPowerBooster chipPowerBooster): bool`
+    - **Purpose**: Adds a booster modifier to this entity.
+    - **Usage**: Called when booster observation detects this entity in range.
+    - **Params**: chipPowerBooster - booster to apply
+    - **Returns**: True if the modifier was added
+    - false if it was already active.
 - `+ RemovePowerBoosterModifier(ChipPowerBooster chipPowerBooster): void`
+    - **Purpose**: Removes a booster modifier from this entity.
+    - **Usage**: Called when booster observation no longer includes this entity or booster is removed.
+    - **Params**: chipPowerBooster - booster to remove
 ---
 
 ## Merge2Initializer
@@ -1552,13 +1658,30 @@
 
 ## PowerBoosterCellSubscriber
 **Inherits**: `CellSubscriber`
+
+> - **Purpose**: Cell subscriber that maintains power booster modifier links to nearby IPowerBoosterModifier entities.
+> - **Usage**: Attached to ChipPowerBooster
+> - reacts to observed chip changes and chip movement to keep modifier application and removal consistent.
+> - **Notes**: Tracks unique modifier targets in modifiedEntities to prevent duplicate apply/remove calls.
 #### Fields
 - `+- ModifiedEntities: HashSet<IPowerBoosterModifier>`
 - `~ chipPowerBooster: ChipPowerBooster`
 #### Methods
 - `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+    - **Purpose**: Recomputes modifier links after the booster itself changes cell.
+    - **Usage**: Called during owner chip relocation
+    - removes all existing links, re-subscribes via base logic, then rebuilds links from newly observed cells.
+    - **Params**: sourceCell - previous booster main cell
+    - targetCell - new booster main cell
 - `+ OnChipDestroy(Cell mainCell): void`
+    - **Purpose**: Removes all active modifier links before subscriber teardown.
+    - **Usage**: Called during booster destruction to guarantee counterpart modifiers are reverted.
+    - **Params**: mainCell - booster main cell at destruction time
 - `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
+    - **Purpose**: Applies/removes booster modifiers when observed neighboring chips change.
+    - **Usage**: Invoked by CellObserverManager flush events
+    - idempotent membership checks avoid duplicate callbacks.
+    - **Params**: evt - neighbor chip change payload with old/new chip references
 - `~ Awake(): void`
 ---
 
@@ -1585,6 +1708,74 @@
 - `~ CreateHighlights(): void`
 - `- StartPowerEffect(Chip chip, float waitTime): IEnumerator`
 - `- Update(): void`
+---
+
+## PowerBoosterJoinEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: Effect that spawns and maintains animated particle links between a booster and each active power-booster modifier target.
+> - **Usage**: Used by ChipPowerBooster via IEffectPowerBoosterJoin.OnJoin/OnLeave
+> - periodically rebinds endpoints to create dynamic join visuals.
+> - **Notes**: Owns instantiated particle systems per modifier and stops/destroys them on leave/deactivate.
+#### Fields
+- `- changeJoinPointsCoroutine: Coroutine`
+- `- changeJoinPointsTime: float`
+- `- effectPowerDistance: float`
+- `~ effects: Dictionary<IPowerBoosterModifier, List<JoinEffectData>>`
+- `~ joinEffectPrefab: ParticleSystem`
+- `~ joinPoints: Transform[]`
+- `- minMaxEffectsForOneModifier: Vector2Int`
+#### Methods
+- `+ Deactivate(Chip chip, bool force): void`
+    - **Purpose**: Stops all running join visuals and clears tracked modifier links.
+    - **Usage**: Called when owning booster starts moving or effect is forcefully deactivated.
+    - **Params**: chip - owning chip passed by effect lifecycle
+    - force - optional force flag from IEffect contract
+    - **Notes**: Stops coroutine, stops particles, schedules particle GameObject destruction using each particle lifetime, then clears state dictionary.
+- `+ OnJoin(IPowerBoosterModifier powerBoosterModifier): void`
+    - **Purpose**: Registers a new modifier target and creates one or more visual join effects for it.
+    - **Usage**: Called when a booster starts affecting a modifier target.
+    - **Params**: powerBoosterModifier - modifier target that should receive join visuals
+    - **Notes**: Starts the join-point reshuffle coroutine on first active modifier.
+- `+ OnLeave(IPowerBoosterModifier powerBoosterModifier): void`
+    - **Purpose**: Removes and schedules cleanup of all join effects associated with a modifier target.
+    - **Usage**: Called when booster influence on a modifier ends.
+    - **Params**: powerBoosterModifier - modifier target to remove
+    - **Notes**: Stops reshuffle coroutine when no modifiers remain.
+- `+ Show(): void`
+    - **Purpose**: Optional explicit show entrypoint for IEffectPowerBoosterJoin contract.
+    - **Usage**: Currently unused in this implementation.
+- `- CalcRotation(Transform joinPoint, Transform entityTransformJoinPoint): Quaternion`
+    - **Purpose**: Calculates particle orientation so link visuals point from booster join point toward modifier join point.
+    - **Usage**: Called when (re)binding an effect to selected endpoints.
+    - **Params**: joinPoint - selected booster-side transform
+    - entityTransformJoinPoint - selected modifier-side transform
+    - **Returns**: World-space rotation for the particle system.
+- `- ChangeJoinPointsCoroutine(): IEnumerator`
+    - **Purpose**: Periodically reassigns random join endpoints for active effects to keep links visually dynamic.
+    - **Usage**: Started on first join and runs until all modifier links are removed.
+    - **Notes**: Waits changeJoinPointsTime between updates and mutates one random active effect per tick.
+- `- ChangeStartLifetime(ParticleSystem particleSystem, float distance): void`
+    - **Purpose**: Adjusts particle lifetime so visual link length matches the current endpoint distance.
+    - **Usage**: Called after endpoint selection or reassignment.
+    - **Params**: particleSystem - effect instance to update
+    - distance - world-space endpoint distance used for lifetime scaling
+- `- GetTopClosest(IReadOnlyList<Transform> sources, IReadOnlyList<Transform> targets, int n, List`1& distances): List<Transform>`
+    - **Purpose**: Selects up to N source transforms that are closest to any target transform.
+    - **Usage**: Used to prefilter candidate join points on both booster and modifier sides.
+    - **Params**: sources - candidate points to rank
+    - targets - points to measure distance against
+    - n - max number of closest sources to return
+    - distances - reusable scratch list for distance calculations
+    - **Returns**: List containing the N closest source transforms (or fewer when sources are limited).
+    - **Notes**: Uses a reusable distance list to reduce temporary allocations during repeated effect updates.
+- `- Merge2.IEffect.get_gameObject(): GameObject`
+- `- ShowEffect(IPowerBoosterModifier powerBoosterModifier, JoinEffectData joinEffectData): JoinEffectData`
+    - **Purpose**: Creates or rebinds a single join particle effect between booster and modifier join points.
+    - **Usage**: Called for initial spawn and periodic endpoint reshuffles.
+    - **Params**: powerBoosterModifier - modifier target for this link
+    - joinEffectData - existing effect data to update (null creates a new record)
+    - **Returns**: Effect data instance containing selected endpoints and the particle system instance.
 ---
 
 ## IInputManager

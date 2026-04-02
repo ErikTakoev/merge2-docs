@@ -29,7 +29,7 @@
   > **Контекст**: Чіп-контейнер, який "споживає" інші фішки для виконання квестів або завдань. Після заповнення зазвичай видає винагороду.
 
 - **[ChipPowerBooster](Chips/ChipPowerBooster.md)**
-  > **Контекст**: Чіп-підсилювач, який модифікує сусідні чіпи (наприклад, прискорює зарядку генераторів). Використовує систему підписок `CellSubscriber` та візуальний ефект підсвітки з'єднаних клітинок.
+  > **Контекст**: Чіп-підсилювач, який модифікує сусідні чіпи (наприклад, прискорює зарядку генераторів), підтримує `JoinPoints` у модифікаторах та керує двома типами візуалізації: підсвіткою зони впливу і динамічними join-лінками через `IEffectPowerBoosterJoin`.
 
 ### Key Features
 Механіки, що відрізняють цей проект від класичних Merge-ігор.
@@ -61,6 +61,7 @@
   > - **Chip**: Cell Highlight, Merge Available, Move Locked.
   > - **ChipGenerator**: Generator Recharge, Generator Charged.
   > - **ChipContainer**: Container Requirements.
+  > - **ChipPowerBooster**: Connector Highlight, Particle Join Links (`PowerBoosterJoinEffect`).
   > Способи їх виклику через компоненти `Effect`.
 
 ### Technical Section
@@ -75,7 +76,7 @@
   > **Контекст**: Відкладений пайплайн змін клітинок через `DeferredChipChangeNotifier` та менеджер підписок `CellObserverManager` для нотифікації сусідніх клітинок.
 
 - **[Testing](Technical/Testing.md)**
-  > **Контекст**: Гайд по написанню тестів. Фокус на **Integration Tests**, які використовують реальний префаб поля (`TestFieldBuilder`) для перевірки ігрових сценаріїв (Spawn -> Move -> Merge -> Validation).
+  > **Контекст**: Гайд по написанню тестів. Фокус на **Integration Tests**, які використовують реальний префаб поля (`TestFieldBuilder`) для перевірки ігрових сценаріїв (Spawn -> Move -> Merge -> Validation), включно з pipeline підписок `CellObserverManager` та сценаріями `ChipPowerBooster` для manual+auto генераторів.
 
 ### Tools
 Кастомні інструменти для полегшення розробки та налаштування контенту.
