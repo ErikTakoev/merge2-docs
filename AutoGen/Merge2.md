@@ -21,6 +21,7 @@
 - [ChipGeneratorRuntimeData](#chipgeneratorruntimedata)
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
+- [ChipMoveLockedData](#chipmovelockeddata)
 - [ChipMovingLogic](#chipmovinglogic)
 - [ChipPowerBooster](#chippowerbooster)
 - [ChipPowerBoosterData](#chippowerboosterdata)
@@ -61,6 +62,7 @@
 - [MergeableChipLogic](#mergeablechiplogic)
 - [MergeCombination](#mergecombination)
 - [MergeResult](#mergeresult)
+- [MoveLockedSettings](#movelockedsettings)
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
@@ -257,7 +259,7 @@
 - `~ moveLockedEffect: IEffect`
     - **Purpose**: Visual effect displayed when the chip is locked and cannot be moved
     - **Usage**: Automatically activated/deactivated by UpdateVisual based on runtimeData.IsMoveLocked state
-    - instantiated in InitEffects if MoveLockedEffectPrefab is provided
+    - instantiated in InitEffects if ChipMoveLockedData prefab is provided
     - **Notes**: Uses IEffect interface with Animator triggers
     - provides visual feedback to player when chip movement is restricted
 - `~ sorting: SortingGroup`
@@ -370,7 +372,7 @@
     - **Purpose**: Initializes all effects for the chip by instantiating effect prefabs and adding them to the effects list
     - **Usage**: Called from Init
     - override in derived classes to add custom effects while maintaining base effect initialization
-    - **Notes**: Creates CellHighlightEffect, ChipMergeAvailableEffect, and MoveLockedEffect if their prefabs are provided
+    - **Notes**: Creates CellHighlightEffect, ChipMergeAvailableEffect, and MoveLockedEffect if their prefabs are provided via chip data/special data
     - designed for virtual extension pattern
 - `~ InstantiateEffect(GameObject prefab): T`
     - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
@@ -505,11 +507,11 @@
 - `++ Size: Vector2Int`
 - `+ CellHighlightPrefab: GameObject`
 - `+ MergeAvailableEffectPrefab: GameObject`
-- `+ MoveLockedEffectPrefab: GameObject`
 - `+ PrefabLink: GameObject`
 - `+ Type: string`
 - `- specialDatas: List<IChipSpecialData>`
 #### Methods
+- `+ AddSpecialData(IChipSpecialData specialData): void`
 - `+ Clone(): ChipData`
     - **Purpose**: Creates a deep copy of this ChipData asset
     - **Usage**: Call at runtime to create a unique instance of ChipData that can be modified without affecting the original asset
@@ -774,6 +776,16 @@
     - returns null if chips are incompatible
     - **Params**: otherChip - the chip to merge with
     - **Returns**: New ChipData or null
+---
+
+## ChipMoveLockedData
+
+> - **Purpose**: Runtime data for move-locked chip states, holds settings and current visual prefab instance.
+> - **Usage**: Should be added to the specialDatas list in ChipData.
+> - **Notes**: Provides the necessary state for ChipMoveLocked logic to operate.
+#### Fields
+- `+- Prefab: GameObject`
+- `+- Settings: MoveLockedSettings`
 ---
 
 ## ChipMovingLogic
@@ -1651,6 +1663,19 @@
 - `++ ExtraChip: Optional<ExtraChip>`
 - `++ Result: ChipData`
 - `++ Weight: int`
+---
+
+## MoveLockedSettings
+**Inherits**: `ScriptableObject`
+
+> - **Purpose**: Configuration for move-locked chips, defining their behavior and visual effects.
+> - **Usage**: Create via Merge2/MoveLockedSettings menu and assign to move lock logic.
+> - **Notes**: Controls chip interactions such as merging, filling, and item generation while locked.
+#### Fields
+- `+- AllowOtherInteractions: bool`
+- `+- CanBeMerged: bool`
+- `+- CanGenerate: bool`
+- `+- EffectDestroyedWhenNeighboringMerge: bool`
 ---
 
 ## PowerBoosterCellSubscriber

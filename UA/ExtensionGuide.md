@@ -355,8 +355,9 @@ public class MyPureEffect : MonoBehaviour, IEffect
 
 ### Підключення ефекту до чіпа
 
-1. **Через ChipData**: Задайте префаб ефекту в полі `ChipData` (наприклад, `CellHighlightPrefab`, `MergeAvailableEffectPrefab`, `MoveLockedEffectPrefab`).
-2. **Через InitEffects**: У похідному класі `Chip` створіть ефект через `InstantiateEffect<T>(prefab)` та додайте до `effects`.
+1. **Через ChipData**: Задайте префаби базових ефектів у полях `ChipData` (наприклад, `CellHighlightPrefab`, `MergeAvailableEffectPrefab`).
+2. **Через ChipData.specialDatas**: Для lock-ефекту додайте `ChipMoveLockedData` і заповніть `Prefab` (за потреби також `Settings`).
+3. **Через InitEffects**: У похідному класі `Chip` створіть ефект через `InstantiateEffect<T>(prefab)` та додайте до `effects`.
 
 Ефекти, додані до `effects`, автоматично отримують сповіщення про:
 - Зміну комірки (`OnChangedCell`)

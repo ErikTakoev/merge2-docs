@@ -108,8 +108,8 @@
   - Перевірка можливості переміщення виконується через метод `Chip.CanMoving()`, який використовується в `DraggableChipLogic`.
   - **Інтерактивний зворотний зв'язок**: При спробі перетягнути заблокований чіп викликається `Chip.OnDraggingChipWithMoveLocked()`, який відтворює спеціальну анімацію `MoveLocked` через метод `Effect.SendTrigger()`. Це дозволяє показати гравцеві, що чіп заблокований, навіть якщо він намагається його перемістити.
 - **Налаштування**:
-  - Префаб ефекту задається в `ChipData.MoveLockedEffectPrefab`.
-  - Створюється автоматично в `Chip.InitEffects()`, якщо префаб вказано.
+  - Префаб ефекту задається в `ChipData.specialDatas` через `ChipMoveLockedData.Prefab`.
+  - Створюється автоматично в `Chip.InitEffects()`, якщо `GetSpecialData<ChipMoveLockedData>()` повертає дані з валідним `Prefab`.
 
 ### 7. Power Booster Connector Highlight
 **Клас**: `PowerBoosterConnectorCellsHighlightEffect.cs` (наслідує `CellHighlightEffect`)

@@ -16,7 +16,7 @@
   - **Size**: Розмір фішки в клітинках (Vector2Int).
   - **specialDatas**: Поліморфна колекція (`SerializeReference`) для додаткових типізованих налаштувань чіпа, включно з `ChipMergeData`.
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas` (або `default`, якщо тип не знайдено).
-  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Типові реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`.
+  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Типові реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipMoveLockedData`.
 - **Runtime Властивості**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
   - **RuntimeData**: Поточний стан (див. нижче).
@@ -25,7 +25,7 @@
 - **Ефекти**: Керує візуальними ефектами, детальніше див. [Visual Effects](../Visuals/Effects.md):
   - `MergeAvailableEffect`: Підсвітка при можливості злиття ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available)).
   - `CellHighlightEffect`: Підсвітка клітинки під фішкою ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight)).
-  - `MoveLockedEffect`: Візуальна індикація блокування переміщення ([Move Locked](../Visuals/Effects.md#6-move-locked)).
+  - `MoveLockedEffect`: Візуальна індикація блокування переміщення ([Move Locked](../Visuals/Effects.md#6-move-locked)), що ініціалізується з `ChipMoveLockedData.Prefab` у `ChipData.specialDatas`.
 - **Анімація**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`).
 
 ## Effect Management
@@ -33,7 +33,7 @@
 Базовий клас `Chip` автоматично відстежує всі візуальні ефекти, що належать йому, для коректної розсилки подій та очищення при знищенні.
 
 ### Effect Initialization
-- **`InitEffects()`**: Віртуальний метод, який викликається з `Init(ChipData)` для ініціалізації всіх ефектів. Базова реалізація створює та додає стандартні ефекти (CellHighlight, MergeAvailable, MoveLocked). Цей метод призначений для перекриття в похідних класах, які можуть додавати свої спеціалізовані ефекти. Приклад: `ChipGenerator` перекриває цей метод, щоб додати `ChargedEffect` та `RechargeEffect`.
+- **`InitEffects()`**: Віртуальний метод, який викликається з `Init(ChipData)` для ініціалізації всіх ефектів. Базова реалізація створює та додає стандартні ефекти: `CellHighlight` і `MergeAvailable` з полів `ChipData`, а `MoveLocked` — через `GetSpecialData<ChipMoveLockedData>()` (поле `Prefab`). Цей метод призначений для перекриття в похідних класах, які можуть додавати свої спеціалізовані ефекти. Приклад: `ChipGenerator` перекриває цей метод, щоб додати `ChargedEffect` та `RechargeEffect`.
 
 ### Effect List Management
 - **`effects` (List<Effect>)**: Список усіх активних ефектів чіпа. Використовуєтся для ітерації при зміні стану клітинок або взаємодії.

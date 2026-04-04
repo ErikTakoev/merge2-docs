@@ -54,6 +54,7 @@
 - **Chip List**: Перегляд усіх фішок у проекті з іконками (ліва панель).
 - **Properties Editor**: Перегляд та редагування серіалізованих даних фішки (права панель).
 - **Special Data Section**: Керування поліморфними даними `ChipData.specialDatas` (типи `IChipSpecialData`) з додаванням/видаленням елементів.
+- **Default Special Data (Create Only)**: У вкладці Settings можна задати шаблони `defaultSpecialDatas`, які автоматично застосовуються лише під час `Create Chip`.
 - **Merge Configuration**: Merge-правила задаються вручну через `ChipMergeData` у секції `Special Data` (без авто-створення self-merge комбінації).
 - **Undo/Redo System**: Повна підтримка скасування змін властивостей та перейменування.
 - **Asset Management**: Кнопки для створення нових фішок, збереження змін та оновлення списку; при відсутності template-prefab показується попередження і створення блокується.
@@ -81,6 +82,12 @@
     - Показує кожен елемент `specialDatas` як foldout з редагуванням полів через `SerializeReference`.
     - Дозволяє додати лише ті типи, яких ще немає в поточному `ChipData` (без дублювань типів).
     - Дозволяє видалення елемента зі списку.
+- **`ChipCreatorWindow.RightPanel.cs` (Settings)**:
+    - Містить секцію **Default Special Data (Create Only)** для налаштування `defaultSpecialDatas` у `ChipCreatorSettings`.
+    - Дозволяє додавати тільки унікальні типи `IChipSpecialData` (один тип — один запис), редагувати їх поля та видаляти записи.
+- **`ChipCreatorSettings`**:
+    - Зберігає `defaultSpecialDatas` замість окремого поля для default-префаба lock-ефекту.
+    - Рекомендований сценарій для lock-ефекту: додати `ChipMoveLockedData` у `defaultSpecialDatas` і задати `Prefab`.
 - **`ChipCreatorWindow.UndoRedo.cs`**: Містить визначення команд:
     - `SetChipPropertyCommand` — записує JSON-знімки стану асета `ChipData` "до" та "після".
     - `RenameChipCommand` — обробляє перейменування асета як для `ChipData`, так і для префаба.
@@ -88,6 +95,7 @@
 - **`ChipCreatorWindow.CreateChip.cs`**:
     - Кешує список template-префабів для створення нових чіпів.
     - Коректно обробляє порожню папку шаблонів (показує warning замість некоректного створення).
+    - Під час `Create Chip` клонує всі елементи з `DefaultSpecialDatas` у новий `ChipData` (`ApplyDefaultSpecialDataToNewChip` + `CloneSpecialData`).
 
 ### Workflow (Flow)
-Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Special Data` (зокрема `ChipMergeData`). Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`.
+Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Special Data` (зокрема `ChipMergeData`). Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`. Під час створення нового чіпа (`Create Chip`) застосовуються шаблони з `defaultSpecialDatas`, тому default-налаштування `MoveLocked` також переносяться через `ChipMoveLockedData`, а не через окреме поле префаба.

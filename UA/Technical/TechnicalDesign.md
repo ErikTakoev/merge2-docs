@@ -95,14 +95,16 @@
 - **Контракт**: `IChipSpecialData` — базовий інтерфейс для спеціалізованих конфігурацій.
 - **Merge як SpecialData**: `ChipMergeData` тепер є одним із блоків `IChipSpecialData` і не зберігається окремим полем у `ChipData`.
 - **Доступ**: 
-  - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData` тощо).
+  - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipMoveLockedData` тощо).
   - `CreateSpecialData<T>()` — динамічно створює нову інстанцію спеціальних даних, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
+  - `AddSpecialData(IChipSpecialData)` — додає готовий екземпляр спеціальних даних у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Chip Creator).
     ```csharp
     ChipData clonedData = originalData.Clone();
     ChipMergeData mergeData = clonedData.CreateSpecialData<ChipMergeData>();
     mergeData.Combinations = new MergeCombination[] { /* ... */ };
     ```
 - **Перевага**: Дозволяє додавати нові типи даних без розширення базового `ChipData` окремими полями.
+- **MoveLocked як SpecialData**: Налаштування lock-ефекту винесені в `ChipMoveLockedData` (`Prefab` + `Settings`), тому `Chip.InitEffects()` отримує lock-ефект через `GetSpecialData<ChipMoveLockedData>()`.
 - **Runtime доступ до merge**: Під час `Chip.Init` merge-дані кешуються у `Chip.MergeData`; `MergeableChipLogic` використовує саме цей доступ.
 
 ### FieldData & CellData
@@ -112,7 +114,7 @@
 - **Розташування в коді**: `FieldData` і `FieldChipData` знаходяться в `Core/Scripts/Field/Data`.
 
 ### Runtime State
-У грі стан заблокованості переноситься у `ChipRuntimeData`. Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), синхронізуючи візуальні ефекти через `UpdateRuntimeData()`.
+У грі стан заблокованості переноситься у `ChipRuntimeData`. Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), синхронізуючи візуальні ефекти через `UpdateVisual()`.
 
 ## Editor Tools
 Ми надаємо спеціалізовані інструменти для полегшення процесу створення та налаштування контенту.
