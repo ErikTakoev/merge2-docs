@@ -20,14 +20,15 @@ public struct CellData
 
 Додатково конфігурація lock-ефекту зберігається в `ChipData.specialDatas` через `ChipMoveLockedData`:
 - `ChipMoveLockedData.Prefab` — префаб візуального lock-ефекту.
-- `ChipMoveLockedData.Settings` — посилання на `MoveLockedSettings` (`ScriptableObject`) з параметрами поведінки заблокованого чіпа (`CanBeMerged`, `CanGenerate`, `AllowOtherInteractions`, `EffectDestroyedWhenNeighboringMerge`).
+- `ChipMoveLockedData.Settings` — посилання на `EffectBlockingSettings` (`ScriptableObject`) з параметрами поведінки заблокованого чіпа (наприклад, `CanBeMergedAsSource`, `CanBeMergedAsTarget`, `CanBeMoved`, `CanGenerate`, `CanBeFilled`, `CanAffectOthers`).
 
 ### Runtime (Chip)
 Клас `Chip` містить `ChipRuntimeData`, який синхронізується з даними рівня при ініціалізації:
 
-- **`runtimeData.IsMoveLocked`**: Булеве значення, що визначає можливість перетягування.
-- **`UpdateVisual()`**: Метод для візуальної синхронізації ефекту блокування.
-- **`CanMoving()`**: Метод валідації, який повертає `false`, якщо фішка заблокована.
+- **`runtimeData.IsMoveLocked`**: Булевий стан, що вказує на наявність блокування (зазвичай завантажується з даних рівня).
+- **`UpdateVisual()`**: Метод, який активує чи деактивує візуальний ефект блокування на основі `IsMoveLocked`.
+- **`CombinedBlockingState`**: Агрегований стан (`BlockingState`), в який активований ефект передає свої заборони (через налаштування `EffectBlockingSettings`).
+- **`CanMoving()`**: Метод валідації, який перевіряє можливість перетягування через `BlockingState.CanBeMoved`.
 
 ### Visualization
 Для візуального відображення заблокованого стану використовується **MoveLockedEffect**:
@@ -42,7 +43,8 @@ public struct CellData
 3.  **Збереження**: Стан блокування автоматично зберігається в Asset поля при натисканні кнопки "Save".
 
 ## Use in Gameplay
-Заблоковані фішки:
-- Не можуть бути переміщені гравцем (DRAG заблоковано).
-- Можуть брати участь у злитті (якщо це передбачено логікою конкретного типу фішки), але самі не ініціюють переміщення.
-- Будуть ігноруватися системою **Chip Relocation**, оскільки їх позиція вважається статичною ("прибитою").
+Залежно від конфігурації `EffectBlockingSettings` в ефекті, заблоковані фішки:
+- Зазвичай не можуть бути переміщені гравцем (`CanBeMoved = false`).
+- Можуть або не можуть бути ціллю злиття чи джерелом злиття (`CanBeMergedAsTarget`, `CanBeMergedAsSource`).
+- Можуть впливати або не впливати на здатність генератора до створенння нових фішок чи контейнера приймати елементи.
+- Зазвичай ігноруються системою **Chip Relocation**, якщо блокують переміщення, оскільки їх позиція вважається статичною ("прибитою").

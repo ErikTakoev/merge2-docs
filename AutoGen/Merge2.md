@@ -26,10 +26,12 @@
 - [ChipPowerBooster](#chippowerbooster)
 - [ChipPowerBoosterData](#chippowerboosterdata)
 - [ChipRuntimeData](#chipruntimedata)
+- [CombinedBlockingState](#combinedblockingstate)
 - [ContainerInfo](#containerinfo)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
+- [EffectBlockingSettings](#effectblockingsettings)
 - [EffectContainerRef](#effectcontainerref)
 - [EffectGeneratorChargingRef](#effectgeneratorchargingref)
 - [EffectPowerBoosterJoinRef](#effectpowerboosterjoinref)
@@ -49,6 +51,7 @@
 - [IChipMovingLogic](#ichipmovinglogic)
 - [IChipSpecialData](#ichipspecialdata)
 - [IEffect](#ieffect)
+- [IEffectBlockingSettings](#ieffectblockingsettings)
 - [IEffectContainer](#ieffectcontainer)
 - [IEffectGeneratorCharging](#ieffectgeneratorcharging)
 - [IEffectPowerBoosterJoin](#ieffectpowerboosterjoin)
@@ -62,7 +65,6 @@
 - [MergeableChipLogic](#mergeablechiplogic)
 - [MergeCombination](#mergecombination)
 - [MergeResult](#mergeresult)
-- [MoveLockedSettings](#movelockedsettings)
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
@@ -241,12 +243,13 @@
 #### Fields
 - `++ CellPosition: Vector2Int`
 - `++ LogEnable: bool`
+- `+- BlockingState: CombinedBlockingState`
 - `+- CellSubscriber: ICellSubscriber`
 - `+- Data: ChipData`
 - `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
 - `~ animator: Animator`
-- `- chipChangeNotifier: IChipChangeNotifier`
+- `~ chipChangeNotifier: IChipChangeNotifier`
 - `~ effects: List<IEffect>`
 - `~ fieldGrid: IFieldGrid`
 - `~ isDragging: bool`
@@ -278,13 +281,14 @@
     - override in derived classes for custom teardown before or after base destruction
     - **Params**: mainCell - the chip's main occupied cell on the field grid
     - **Notes**: Clears grid occupancy via FieldGrid first (which enqueues chip-change notifications), then invokes ICellSubscriber cleanup while cell context is still valid, destroys spawned effect objects, and finally schedules GameObject destruction with a short delay (0.1s)
-- `+ Init(ChipData data): void`
+- `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
     - **Purpose**: Initializes the chip with data and sets up all required components and effects
     - **Usage**: Call after creating a chip instance to assign data and prepare effects
     - override in derived classes for custom initialization
     - **Params**: data - the data object containing chip configuration and effect prefabs
     - **Notes**: Creates highlight and merge-available effects if prefabs are provided
     - logs errors if required components are missing
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData& runtimeData): void`
 - `+ IsDragging(): bool`
     - **Purpose**: Checks if the chip is currently being dragged by the user
     - **Usage**: Use to determine if the chip is in a user-initiated drag state
@@ -368,6 +372,8 @@
     - **Usage**: Call after modifying runtimeData (e.g., IsMoveLocked) to synchronize visual effects
     - **Notes**: Activates or deactivates the moveLockedEffect based on the IsMoveLocked property
     - handles null check for moveLockedEffect
+- `~ AddEffect(IEffect effect, bool activate): void`
+- `~ DestroyEffects(): void`
 - `~ InitEffects(): void`
     - **Purpose**: Initializes all effects for the chip by instantiating effect prefabs and adding them to the effects list
     - **Usage**: Called from Init
@@ -383,6 +389,7 @@
     - **Notes**: Automatically calls Init(this) on the instantiated effect
     - return value can be added to the effects list
     - T must be a class and implement IEffect
+- `~ NotifyEffectsOnChangedCell(Cell sourceCell, Cell targetCell): void`
 ---
 
 ## ChipChangedEvent
@@ -415,7 +422,7 @@
 > - Uses event OnFillContainer for notification
 > - Requires proper ChipData with ChipContainerData.
 #### Fields
-- `- chipContainerData: ChipContainerData`
+- `~ chipContainerData: ChipContainerData`
 - `- chipFactory: ChipFactory`
 - `- containerEffect: EffectContainerRef`
     - **Purpose**: Visual effect representing the items inside the container
@@ -427,7 +434,8 @@
 - `~ containerRuntimeData: ChipContainerRuntimeData`
 - `- OnFillContainer: FillContainerDelegate`
 #### Methods
-- `+ Init(ChipData data): void`
+- `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData& runtimeData): void`
 - `+ IsChipCompatible(Chip chip): bool`
     - **Purpose**: Checks if a given chip is compatible with any of the container's remaining requirements
     - **Usage**: Called by interaction logic to determine if a chip can be dropped into this container
@@ -447,6 +455,7 @@
     - Triggers OnFillContainer event
     - If full, destroys parent Cell content and spawns NextChipData result.
 - `+ UpdateVisual(): void`
+- `~ InitEffects(): void`
 ---
 
 ## ChipContainerData
@@ -539,8 +548,8 @@
 - `~ fieldGrid: IFieldGrid`
 - `~ resolver: IObjectResolver`
 #### Methods
-- `+ CreateChip(Cell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition): Chip`
-- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition): Chip`
+- `+ CreateChip(Cell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer): Chip`
+- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer): Chip`
 - `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid): void`
 ---
 
@@ -633,11 +642,12 @@
     - this override must execute before base.Destroy so auto-mode callbacks cannot fire against a chip that is already being removed.
     - **Params**: mainCell - the generator main cell used by base destruction to clear occupancy
     - **Notes**: Resets OnCharging delegates and unsubscribes from field.OnChangeField in auto mode, then delegates to base.Destroy for grid/effect/GameObject cleanup.
-- `+ Init(ChipData data): void`
+- `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
     - **Purpose**: Initializes the chip generator with provided data and sets up event subscriptions.
     - **Usage**: Call when creating or resetting a ChipGenerator instance.
     - **Params**: data - ChipData for initialization, must contain valid ChipGeneratorData.
     - **Notes**: Handles event subscriptions, effect activation, and runtime state setup.
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData& runtimeData): void`
 - `+ OnTap(Vector2 position): void`
     - **Purpose**: Handles tap input for manual chip generation.
     - **Usage**: Call when the player taps the generator in manual mode.
@@ -785,7 +795,6 @@
 > - **Notes**: Provides the necessary state for ChipMoveLocked logic to operate.
 #### Fields
 - `+- Prefab: GameObject`
-- `+- Settings: MoveLockedSettings`
 ---
 
 ## ChipMovingLogic
@@ -854,7 +863,7 @@
     - **Usage**: Called by chip lifecycle when booster is removed from field.
     - **Params**: mainCell - booster main grid cell at destruction time
     - **Notes**: Explicitly invokes subscriber cleanup before base.Destroy to release modifier links deterministically.
-- `+ Init(ChipData data): void`
+- `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
     - **Purpose**: Initializes booster-specific dependencies and validates booster data payload.
     - **Usage**: Called after creation
     - must run before boost application logic and effect usage.
@@ -895,7 +904,21 @@
 > - **Notes**: Serializable for save/load support
 > - contains only runtime state, not configuration data
 #### Fields
-- `++ IsMoveLocked: bool`
+- `+ IsMoveLocked: bool`
+---
+
+## CombinedBlockingState
+#### Fields
+- `++ CanAffectOthers: bool`
+- `++ CanBeFilled: bool`
+- `++ CanBeMergedAsSource: bool`
+- `++ CanBeMergedAsTarget: bool`
+- `++ CanBeMoved: bool`
+- `++ CanBeTaped: bool`
+- `++ CanGenerate: bool`
+#### Methods
+- `+ ApplyBlock(IEffectBlockingSettings blockSettings): void`
+- `+ SetTrue(): void`
 ---
 
 ## ContainerInfo
@@ -1017,14 +1040,11 @@
 > - override virtual methods to implement custom effect behavior
 > - supports both chip-based and cell-based effects
 #### Fields
+- `+- BlockingSettings: EffectBlockingSettings`
 - `~ animator: Animator`
 - `~ dontRepeatTrigger: bool`
 - `~ durationMovePositionDependingOnSize: Vector2`
 - `~ effectForCell: bool`
-    - **Purpose**: Determines whether the effect should be attached to the cell's transform instead of the chip's
-    - **Usage**: Set to true if the effect must follow the cell when the chip moves between cells
-    - used in OnChangedCell to update the effect's parent transform
-    - **Notes**: If false, the effect remains attached to the chip's transform regardless of cell changes
 - `~ lastTriggerName: string`
 - `~ movePositionDependingOnSize: Transform`
 - `~ sendAnimatorTrigger: bool`
@@ -1076,6 +1096,19 @@
     - **Usage**: Internal helper to clear opposing triggers when switching states
     - **Params**: triggerName - name of the trigger to reset
     - **Notes**: Safely handles null animator
+---
+
+## EffectBlockingSettings
+**Inherits**: `ScriptableObject`
+#### Fields
+- `+- CanAffectOthers: bool`
+- `+- CanBeFilled: bool`
+- `+- CanBeMergedAsSource: bool`
+- `+- CanBeMergedAsTarget: bool`
+- `+- CanBeMoved: bool`
+- `+- CanBeTaped: bool`
+- `+- CanGenerate: bool`
+- `- mergeFlagsMigrated: bool`
 ---
 
 ## EffectContainerRef
@@ -1429,6 +1462,7 @@
 > - **Usage**: Implement this interface for custom chip effects. Used by Chip class to manage common effect lifecycle.
 > - **Notes**: Includes core activation, deactivation, trigger, and cell change handling methods.
 #### Fields
+- `+- BlockingSettings: EffectBlockingSettings`
 - `+- gameObject: GameObject`
 #### Methods
 - `+ Activate(Chip chip): void`
@@ -1438,6 +1472,17 @@
 - `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell underCell): void`
 - `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
+---
+
+## IEffectBlockingSettings
+#### Fields
+- `+- CanAffectOthers: bool`
+- `+- CanBeFilled: bool`
+- `+- CanBeMergedAsSource: bool`
+- `+- CanBeMergedAsTarget: bool`
+- `+- CanBeMoved: bool`
+- `+- CanBeTaped: bool`
+- `+- CanGenerate: bool`
 ---
 
 ## IEffectContainer
@@ -1665,19 +1710,6 @@
 - `++ Weight: int`
 ---
 
-## MoveLockedSettings
-**Inherits**: `ScriptableObject`
-
-> - **Purpose**: Configuration for move-locked chips, defining their behavior and visual effects.
-> - **Usage**: Create via Merge2/MoveLockedSettings menu and assign to move lock logic.
-> - **Notes**: Controls chip interactions such as merging, filling, and item generation while locked.
-#### Fields
-- `+- AllowOtherInteractions: bool`
-- `+- CanBeMerged: bool`
-- `+- CanGenerate: bool`
-- `+- EffectDestroyedWhenNeighboringMerge: bool`
----
-
 ## PowerBoosterCellSubscriber
 **Inherits**: `CellSubscriber`
 
@@ -1705,6 +1737,7 @@
     - idempotent membership checks avoid duplicate callbacks.
     - **Params**: evt - neighbor chip change payload with old/new chip references
 - `~ Awake(): void`
+- `- ClearAllModifiers(): void`
 ---
 
 ## PowerBoosterConnectorCellsHighlightEffect

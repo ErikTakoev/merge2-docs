@@ -20,12 +20,13 @@
 - **Runtime Властивості**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
   - **RuntimeData**: Поточний стан (див. нижче).
-  - **MergeData**: Runtime-доступ до merge-конфігурації. Під час `Init(ChipData)` чіп кешує `data.GetSpecialData<ChipMergeData>()` у властивість `Chip.MergeData`.
+  - **BlockingState**: (`CombinedBlockingState`) агрегований стан дозволів (наприклад, `CanBeMoved`, `CanBeMergedAsSource`), що визначається активними ефектами.
+  - **MergeData**: Runtime-доступ до merge-конфігурації. Під час `Init(ChipData, ChipRuntimeData)` чіп кешує `data.GetSpecialData<ChipMergeData>()` у властивість `Chip.MergeData`.
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Ефекти**: Керує візуальними ефектами, детальніше див. [Visual Effects](../Visuals/Effects.md):
   - `MergeAvailableEffect`: Підсвітка при можливості злиття ([ChipMergeAvailableEffect](../Visuals/Effects.md#2-merge-available)).
   - `CellHighlightEffect`: Підсвітка клітинки під фішкою ([CellHighlightEffect](../Visuals/Effects.md#1-cell-highlight)).
-  - `MoveLockedEffect`: Візуальна індикація блокування переміщення ([Move Locked](../Visuals/Effects.md#6-move-locked)), що ініціалізується з `ChipMoveLockedData.Prefab` у `ChipData.specialDatas`.
+  - `MoveLockedEffect`: Візуальна індикація блокування ([Move Locked](../Visuals/Effects.md#6-move-locked)), що ініціалізується з `ChipMoveLockedData.Prefab` у `ChipData.specialDatas`. Цей ефект взаємодіє з налаштуваннями ефекту (`EffectBlockingSettings`), які застосовуються до фінального `BlockingState`.
 - **Анімація**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`).
 
 ## Effect Management
@@ -33,7 +34,7 @@
 Базовий клас `Chip` автоматично відстежує всі візуальні ефекти, що належать йому, для коректної розсилки подій та очищення при знищенні.
 
 ### Effect Initialization
-- **`InitEffects()`**: Віртуальний метод, який викликається з `Init(ChipData)` для ініціалізації всіх ефектів. Базова реалізація створює та додає стандартні ефекти: `CellHighlight` і `MergeAvailable` з полів `ChipData`, а `MoveLocked` — через `GetSpecialData<ChipMoveLockedData>()` (поле `Prefab`). Цей метод призначений для перекриття в похідних класах, які можуть додавати свої спеціалізовані ефекти. Приклад: `ChipGenerator` перекриває цей метод, щоб додати `ChargedEffect` та `RechargeEffect`.
+- **`InitEffects()`**: Віртуальний метод, який викликається з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація створює та додає стандартні ефекти: `CellHighlight` і `MergeAvailable` з полів `ChipData`, а `MoveLocked` — через `GetSpecialData<ChipMoveLockedData>()` (поле `Prefab`). Цей метод призначений для перекриття в похідних класах, які можуть додавати свої спеціалізовані ефекти. Приклад: `ChipGenerator` перекриває цей метод, щоб додати `ChargedEffect` та `RechargeEffect`.
 
 ### Effect List Management
 - **`effects` (List<Effect>)**: Список усіх активних ефектів чіпа. Використовуєтся для ітерації при зміні стану клітинок або взаємодії.
@@ -42,25 +43,6 @@
 ### Effect Lifecycle
 - Всі ефекти, додані до списку `effects`, автоматично отримують сповіщення через методи `OnChangedCell`, `OnInteractionOverCellChanged` та `OnInteractionUnderCellChanged`.
 - При виклику `Destroy(Cell)`, базова реалізація спочатку очищає occupancy в `FieldGrid`, потім викликає `ICellSubscriber.OnChipDestroy(mainCell)`, знищує всі ефекти зі списку `effects`, і лише після цього запускає відкладене `Destroy(gameObject, 0.1f)`.
-
-## Runtime Data
-
-### `ChipRuntimeData`
-Базовий клас для зберігання runtime стану чіпів. Знаходиться в папці `RuntimeData`. Містить динамічні властивості, які змінюються під час гри:
-- **`IsMoveLocked`**: Визначає, чи заблоковано переміщення чіпа. Коли встановлено в `true`, гравець не може перетягувати цей чіп.
-
-### Runtime Data Methods
-- **`UpdateVisual()`**: Віртуальний метод для синхронізації візуального стану чіпа з його `RuntimeData`. Автоматично активує/деактивує `MoveLockedEffect` на основі властивості `IsMoveLocked`.
-- **`RuntimeData` (Property)**: Надає доступ до об'єкта `ChipRuntimeData` для читання та модифікації динамічних властивостей.
-- **`CanMoving()`**: Віртуальний метод, що перевіряє, чи можна переміщувати чіп. Повертає `false`, якщо `IsMoveLocked` встановлено в `true`.
-- **`ChipData.Clone()`**: Дозволяє створити копію конфігурації чіпа під час рантайму, якщо потрібно змінити параметри для конкретного екземпляра.
-
-### Input and Interaction List Management
-`Chip` містить віртуальні методи для обробки подій, які викликаються логікою управління (наприклад, `DraggableChipLogic`):
-- **`OnTap(Vector2 position)`**: Викликається при короткому натисканні.
-- **`OnDragStart(Vector2 position)`**: Початок перетягування.
-- **`OnDrag(Vector2 position, Cell anchorCell)`**: Процес перетягування.
-- **`OnDragEnd(Vector2 position)`**: Завершення перетягування.
 
 ### Movement State Management
 Система розрізняє **стан перетягування користувачем** та **візуальний стан переміщення**:

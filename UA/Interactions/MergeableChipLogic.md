@@ -13,8 +13,10 @@
 Перед початком злиття система перевіряє:
 1. Чи обидві клітинки мають фішки.
 2. Чи не є вони однією і тією ж фішкою.
-3. Чи має фішка, яку тягнуть, merge-конфігурацію: `sourceChip.MergeData != null`.
-4. Чи дозволяє `sourceChip.MergeData` злиття з цільовою фішкою через метод `CanMerge`.
+3. Чи має фішка, яку тягнуть, дозволи на злиття як джерело: `sourceChip.BlockingState.CanBeMergedAsSource`.
+4. Чи має цільова фішка дозволи на злиття як ціль: `targetChip.BlockingState.CanBeMergedAsTarget`.
+5. Чи має фішка, яку тягнуть, merge-конфігурацію: `sourceChip.MergeData != null`.
+6. Чи дозволяє `sourceChip.MergeData` злиття з цільовою фішкою через метод `CanMerge`.
 
 ### Execution (ExecuteInteraction)
 Коли злиття підтверджено:

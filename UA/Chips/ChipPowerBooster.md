@@ -13,7 +13,7 @@
 - **ModifiedEntities**: Делегує колекцію `HashSet<IPowerBoosterModifier>` до `PowerBoosterCellSubscriber.ModifiedEntities`.
 - **Fail-fast перевірки**: В `Init(ChipData)` перевіряє наявність `PowerBoosterCellSubscriber` і `ChipPowerBoosterData`; при відсутності логіка бустера зупиняється з `Debug.LogError`.
 - **Ефекти**: Підтримує два опційні ефекти: `connectorCellsHighlightEffect` (підсвітка зони, див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight)) і `joinEffect` (`EffectPowerBoosterJoinRef`) для лінків між бустером та модифікаторами (див. [Visual Effects § 8](../Visuals/Effects.md#8-power-booster-join-links)).
-- **Apply/Remove API**: `ApplyPowerBoosterModifier(IPowerBoosterModifier)` і `RemovePowerBoosterModifier(IPowerBoosterModifier)` не лише оновлюють геймплейний модифікатор, а й викликають `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`, якщо ефект призначений.
+- **Apply/Remove API**: `ApplyPowerBoosterModifier(IPowerBoosterModifier)` і `RemovePowerBoosterModifier(IPowerBoosterModifier)` не лише оновлюють геймплейний модифікатор, а й викликають `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`, якщо ефект призначений. При застосуванні модифікатора також відбувається перевірка `BlockingState.CanAffectOthers` (якщо бустер сам заблокований для впливу на сусідів, дія призупиняється).
 - **Move lifecycle**: `SetMoving(true)` одразу деактивує обидва booster-ефекти (`connectorCellsHighlightEffect` і `joinEffect`), щоб уникати stale-візуалізації під час drag/relocation.
 - **Destroy lifecycle**: `Destroy(Cell mainCell)` спочатку викликає `cellSubscriber.OnChipDestroy(mainCell)`, і лише потім делегує у `base.Destroy(...)`, щоб гарантовано зняти всі модифікатори до фінального очищення чіпа.
 

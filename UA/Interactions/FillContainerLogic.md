@@ -12,7 +12,9 @@
 ### Validation (CanInteract)
 Система дозволяє взаємодію, якщо:
 1. Цільова фішка є спадкоємцем класу `ChipContainer`.
-2. Вихідна фішка є сумісною з цим контейнером (перевіряється через `chipContainer.IsChipCompatible`).
+2. Контейнер не має заборон на заповнення (`targetChip.BlockingState.CanBeFilled`).
+3. Вихідна фішка дозволяє використання себе як ресурсу (`sourceChip.BlockingState.CanBeMergedAsSource`).
+4. Вихідна фішка є сумісною з цим контейнером (перевіряється через `chipContainer.IsChipCompatible`).
 
 ### Execution (ExecuteInteraction)
 При завершенні взаємодії:

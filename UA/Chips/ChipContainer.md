@@ -13,6 +13,9 @@
 - **Події та Делегати**:
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
   - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
+- **Події та Делегати**:
+  - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
+  - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
 - **Ефекти**:
   - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container)**: Спеціальний ефект, що реалізує `IEffectContainer` та візуалізує необхідні предмети ("бабли") над контейнером. Призначається через `EffectContainerRef` (InterfaceRef).
 
@@ -20,7 +23,7 @@
 Розширює базовий `ChipRuntimeData` для зберігання динамічного стану контейнера.
 
 **Успадковані властивості** (від `ChipRuntimeData`):
-- **`IsMoveLocked`**: Визначає, чи заблоковано переміщення контейнера. Детальніше див. [Chip Runtime Data](Chip.md#runtime-data).
+- **`IsMoveLocked`**: Індикатор заблокованості (спадкується від базового стану). Впливає на логіку опосередковано через активацію ефекту, конфігурація якого згодом поповнює загальний `BlockingState` (див. [Chip Runtime Data](Chip.md#runtime-data)).
 
 **Власні властивості**:
 - **`containers`**: Словник (`Dictionary<ContainerInfo, int>`), що відслідковує поточний прогрес заповнення кожної вимоги.
@@ -33,7 +36,7 @@
 ### 2. `FillContainerLogic.cs` (Logic)
 Керує процесом взаємодії між гравцем, фішкою та контейнером. Детальніше про загальну систему взаємодій див. **[FillContainerLogic](../Interactions/FillContainerLogic.md)**.
 - **Перевірка (`CanInteract`)**:
-  - Перевіряє, чи є цільовий об'єкт контейнером (`ChipContainer`).
+  - Перевіряє, чи є цільовий об'єкт контейнером (`ChipContainer`) і чи не заборонено йому приймати фішки (`BlockingState.CanBeFilled`).
   - Викликає `chipContainer.IsChipCompatible(sourceChip)`, щоб визначити, чи підходить фішка до поточних потреб.
 - **Виконання (`ExecuteInteraction`)**:
   - Викликає `chipContainer.TryAddChip(sourceChip)`.
