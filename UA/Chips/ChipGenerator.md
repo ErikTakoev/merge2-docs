@@ -47,7 +47,17 @@
 3. **Complete**: Коли час вичерпано, відновлюється готовність (`IsCharged`). Якщо це був повний цикл, відновлюється кількість зарядів. Викликається `UpdateVisual()` (якщо чіп не перетягується).
 
 ## Effects and Visualization
-- **[ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-recharge)**: Відображає прогрес перезарядки. Реалізує інтерфейс `IEffectGeneratorCharging`. Активний, коли `IsCharged` = `false`.
-- **ChargedEffect (готовність генератора)**: Реалізує інтерфейс `IEffect`. Активний, коли `IsCharged` = `true` та чіп не перетягується.
+Генератор керує двома ефектами, які зберігаються в `effects` словнику з ключами від `EffectConsts`:
+
+- **`EffectConsts.GeneratorCharging`**: Звертання через `GetEffect<IEffectGeneratorCharging>(EffectConsts.GeneratorCharging)`
+  - Реалізація: [ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-recharge)
+  - Відображає прогрес перезарядки. Активний, коли `IsCharged` = `false`.
+  - Реалізує інтерфейс `IEffectGeneratorCharging`, його метод `OnCharging(float progress)` оновлює маску перезарядки.
+  
+- **`EffectConsts.GeneratorCharged`**: Звертання через `GetEffect(EffectConsts.GeneratorCharged)`
+  - Реалізація: базовий `Effect`
+  - Активний, коли `IsCharged` = `true` та чіп не перетягується.
+  - Зазвичай це cyclic idle-анімація (світіння, пульсація), що показує гравцеві готовність об'єкта.
+
 - **Animator**: Використовує тригери `Generate` (при спавні) та `Recharge` (при завершенні зарядки).
 

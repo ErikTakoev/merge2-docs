@@ -53,27 +53,34 @@
 - При переміщенні бустера (`OnChipChangedCell`) — спочатку знімає всі модифікатори, перепідписується на нові клітинки, заповнює наявний `modifiedEntities` через `GetAllChipsByType<IPowerBoosterModifier>(..., ref modifiedEntities)` (без додаткових алокацій) та повторно застосовує модифікатори.
 - При знищенні (`OnChipDestroy`) — гарантовано знімає всі модифікатори, очищує `modifiedEntities`, після чого викликає базову відписку від `CellObserverManager`.
 
-Детальніше: [Cell Observer Pipeline — Subscribers](../Technical/CellObserverManager.md#subscribers-cellsubscriber).
-
 ## Effect Management
 
-- **`connectorCellsHighlightEffect`**: Посилання на ефект `PowerBoosterConnectorCellsHighlightEffect`, що підсвічує клітинки, за якими спостерігає бустер. Ініціалізується в `InitEffects()`.
-- **`joinEffect`**: Посилання на `IEffectPowerBoosterJoin`, яке візуалізує поточні активні модифікатори лінками між `JoinPoints` бустера і модифікаторів.
+Бустер керує двома ефектами, які зберігаються в `effects` словнику з ключами від `EffectConsts`:
+
+- **`EffectConsts.PBoosterConnectorCells`**: Звертання через `GetEffect(EffectConsts.PBoosterConnectorCells)`
+  - Ефект: `PowerBoosterConnectorCellsHighlightEffect` (див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight))
+  - Підсвічує клітинки, за якими спостерігає бустер. Показує гравцеві зону впливу.
+  - Ініціалізується в `InitEffects()` і деактивується під час руху чіпа.
+
+- **`EffectConsts.PBoosterJoin`**: Звертання через `GetEffect<IEffectPowerBoosterJoin>(EffectConsts.PBoosterJoin)`
+  - Ефект: `PowerBoosterJoinEffect` (реалізує `IEffectPowerBoosterJoin`)
+  - Візуалізує динамічні лінії між бустером та активними модифікаторами.
+  - Викликає `OnJoin(IPowerBoosterModifier)` / `OnLeave(IPowerBoosterModifier)` при apply/remove.
+  - Деактивується при переміщенні чіпа.
+
 - **Visual State**:
-  - `UpdateVisual()` — деактивує `connectorCellsHighlightEffect` під час руху (`IsMoving()`), активує коли бустер стоїть.
-  - `SetMoving(true)` — негайно деактивує і `connectorCellsHighlightEffect`, і `joinEffect` на початку перетягування.
-  - `ApplyPowerBoosterModifier/RemovePowerBoosterModifier` — синхронізують gameplay-модифікатори з join-візуалізацією (`OnJoin`/`OnLeave`).
+  - `UpdateVisual()` — деактивує обидва ефекти під час руху (`IsMoving()`), активує коли бустер стоїть.
+  - `SetMoving(true)` — негайно деактивує обидва ефекти на початку перетягування.
+  - `ApplyPowerBoosterModifier/RemovePowerBoosterModifier` — синхронізують gameplay-модифікатори з join-візуалізацією через `GetEffect<IEffectPowerBoosterJoin>(...)?OnJoin/OnLeave`.
 
 Детальніше: [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight) і [Visual Effects § 8](../Visuals/Effects.md#8-power-booster-join-links).
 
-## Process Flow
-
-1. **Init**: `ChipFactory` створює бустер → `Init(ChipData)` → `InitEffects()` → ініціалізація `connectorCellsHighlightEffect`; `joinEffect` використовується як серіалізоване посилання на компонент, який реагує на `OnJoin/OnLeave`.
+1. **Init**: `ChipFactory` створює бустер → `Init(ChipData)` → `InitEffects()` → ініціалізація ефектів з ключами `EffectConsts.PBoosterConnectorCells` та `EffectConsts.PBoosterJoin` у словнику `effects`.
 2. **Placement**: `FieldGrid.SetChipInCell` → `CellSubscriber.OnChipChangedCell` → `SubscribeToNeighbors` (обчислення bounding box + neighbors).
-3. **Observation**: `CellObserverManager` нотифікує `PowerBoosterCellSubscriber.OnObservedCellChipChanged` → idempotent Apply/Remove модифікаторів + `joinEffect.OnJoin/OnLeave`.
-4. **Move**: `SetMoving(true)` → обидва booster-ефекти деактивуються → після drop: `OnChipChangedCell` → re-subscribe → новий набір модифікаторів і join-лінків.
+3. **Observation**: `CellObserverManager` нотифікує `PowerBoosterCellSubscriber.OnObservedCellChipChanged` → idempotent Apply/Remove модифікаторів + `GetEffect<IEffectPowerBoosterJoin>(...)?OnJoin/OnLeave`.
+4. **Move**: `SetMoving(true)` → обидва booster-ефекти деактивуються через `GetEffect(EffectConsts.PBoosterConnectorCells)?.Deactivate(...)` та `GetEffect(EffectConsts.PBoosterJoin)?.Deactivate(...)` → після drop: `OnChipChangedCell` → re-subscribe → новий набір модифікаторів і join-лінків.
 5. **Destroy**: 
    - Викликається `ChipPowerBooster.Destroy(Cell mainCell)` override.
-   - Спочатку `cellSubscriber.OnChipDestroy(mainCell)` викликає `RemovePowerBoosterModifier()` для **всіх** елементів в `modifiedEntities` та зупиняє пов'язані join-ефекти.
+   - Спочатку `cellSubscriber.OnChipDestroy(mainCell)` викликає `RemovePowerBoosterModifier()` для **всіх** елементів в `modifiedEntities` та зупиняє пов'язані join-ефекти через `GetEffect<IEffectPowerBoosterJoin>(...)?OnLeave`.
    - Потім викликається `base.Destroy(mainCell)`, який очищає occupancy на полі, викликає базовий `ICellSubscriber` cleanup і видаляє об'єкти ефектів.
    - **Результат**: Всі пов'язані генератори отримують очищення модифікаторів перед знищенням бустера, без "завислих" join-лінків або застарілих станів при merge/еволюції.

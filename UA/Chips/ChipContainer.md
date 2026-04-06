@@ -58,6 +58,12 @@
 ### ChipContainerEffect.cs
 Спеціалізований ефект, що реалізує `IEffectContainer` для візуалізації вимог контейнера. Керує Panel над фішкою, в якій відображаються потрібні предмети.
 
+Ефект зберігається в словнику `effects` з ключем `EffectConsts.ContainerRequirements` та доступний через:
+```csharp
+var containerEffect = GetEffect<IEffectContainer>(EffectConsts.ContainerRequirements);
+containerEffect?.UpdateElements(this, containers, false);
+```
+
 Детальний опис реалізації ефекту див. у [Effects.md](../Visuals/Effects.md#4-chip-container).
 
 ## Flow

@@ -32,7 +32,10 @@
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
 - [EffectBlockingSettings](#effectblockingsettings)
+- [EffectConsts](#effectconsts)
 - [EffectContainerRef](#effectcontainerref)
+- [EffectDestroyingRuntimeData](#effectdestroyingruntimedata)
+- [EffectDestroyingSettings](#effectdestroyingsettings)
 - [EffectGeneratorChargingRef](#effectgeneratorchargingref)
 - [EffectPowerBoosterJoinRef](#effectpowerboosterjoinref)
 - [EffectRef](#effectref)
@@ -253,7 +256,7 @@
 - `+- RuntimeData: ChipRuntimeData`
 - `~ animator: Animator`
 - `~ chipChangeNotifier: IChipChangeNotifier`
-- `~ effects: List<IEffect>`
+- `~ effects: Dictionary<int, IEffect>`
 - `~ fieldGrid: IFieldGrid`
 - `~ isDragging: bool`
     - **Purpose**: Tracks whether the chip is currently being dragged by the user
@@ -262,12 +265,6 @@
     - used to distinguish user drag from automated movement
     - **Notes**: Separate from IsMoving which tracks sorting order
     - allows detection of user-initiated drag vs system movement
-- `~ moveLockedEffect: IEffect`
-    - **Purpose**: Visual effect displayed when the chip is locked and cannot be moved
-    - **Usage**: Automatically activated/deactivated by UpdateVisual based on runtimeData.IsMoveLocked state
-    - instantiated in InitEffects if ChipMoveLockedData prefab is provided
-    - **Notes**: Uses IEffect interface with Animator triggers
-    - provides visual feedback to player when chip movement is restricted
 - `~ sorting: SortingGroup`
 #### Methods
 - `+ CanMoving(): bool`
@@ -328,8 +325,7 @@
     - **Purpose**: Provides visual feedback when user attempts to drag a chip that is locked and cannot be moved
     - **Usage**: Called by DraggableChipLogic.OnDragStart when CanMoving() returns false
     - triggers 'MoveLocked' animation on both chip and effect
-    - **Notes**: Requires moveLockedEffect to be initialized
-    - sends 'MoveLocked' trigger to both chip animator and move-locked effect
+    - **Notes**: Retrieves MoveLocked effect from dictionary and sends trigger
     - uses allowRepeat=true to ensure feedback on every attempt
 - `+ OnDragStart(Vector2 position): void`
     - **Purpose**: Called when drag starts on this chip
@@ -348,7 +344,7 @@
     - **Usage**: Called by DraggableChipLogic to update effects that react to being held over a specific cell (e.g., potential interaction targets)
     - **Params**: underCell - The cell currently directly under the chip
     - overCell - The cell above which the chip is currently positioned
-    - **Notes**: Propagates the event to all tracked effects in the 'effects' list
+    - **Notes**: Broadcasts event to all effects in the dictionary
 - `+ OnTap(Vector2 position): void`
     - **Purpose**: Called when the chip is tapped by the user
     - **Usage**: Override in derived classes to implement custom tap behavior
@@ -373,12 +369,32 @@
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the chip based on its runtime data
     - **Usage**: Call after modifying runtimeData (e.g., IsMoveLocked) to synchronize visual effects
-    - **Notes**: Activates or deactivates the moveLockedEffect based on the IsMoveLocked property
-    - handles null check for moveLockedEffect
-- `~ AddEffect(IEffect effect, bool activate): void`
+    - **Notes**: Activates or deactivates the MoveLocked effect based on the IsMoveLocked property
+    - handles null safely
+- `~ AddEffect(IEffect effect, int effectHash, bool activate): void`
+    - **Purpose**: Adds an effect to the effects dictionary and optionally activates it
+    - **Usage**: Call from InitEffects to register effects with their EffectConsts keys
+    - **Params**: effect - The effect instance to add
+    - effectHash - EffectConsts hash value
+    - activate - Whether to immediately activate the effect
+    - **Notes**: Null-safe: effect is only added if not null
+    - handles activation before storing
 - `~ DestroyEffects(): void`
+- `~ GetEffect(int effectHash): IEffect`
+    - **Purpose**: Retrieves an effect from the effects dictionary by its EffectConsts hash key
+    - **Usage**: Call in methods that need to access a specific effect without type casting
+    - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.MoveLocked)
+    - **Returns**: The IEffect instance or null if not found
+    - **Notes**: Use GetEffect<T>() for type-safe access when specialized interfaces are needed
+- `~ GetEffect(int effectHash): T`
+    - **Purpose**: Retrieves and casts an effect from the effects dictionary by its EffectConsts hash key
+    - **Usage**: Call when you need a specialized effect interface (e.g., IEffectGeneratorCharging)
+    - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.GeneratorCharging)
+    - T - Target effect interface type
+    - **Returns**: The effect cast to type T, or null if not found or cannot be cast
+    - **Notes**: Handles null safely with null-conditional operator (?.) at callsite
 - `~ InitEffects(): void`
-    - **Purpose**: Initializes all effects for the chip by instantiating effect prefabs and adding them to the effects list
+    - **Purpose**: Initializes all effects for the chip by instantiating effect prefabs and adding them to the effects dictionary
     - **Usage**: Called from Init
     - override in derived classes to add custom effects while maintaining base effect initialization
     - **Notes**: Creates CellHighlightEffect, ChipMergeAvailableEffect, and MoveLockedEffect if their prefabs are provided via chip data/special data
@@ -428,12 +444,11 @@
 - `~ chipContainerData: ChipContainerData`
 - `- chipFactory: ChipFactory`
 - `- containerEffect: EffectContainerRef`
-    - **Purpose**: Visual effect representing the items inside the container
-    - **Usage**: Serialized as EffectContainerRef (InterfaceRef<IEffectContainer>)
-    - accessed via .Value after checking .Target != null
-    - updated via UpdateElements during Init and TryAddChip
-    - **Notes**: Handles dynamic display of required chips/items
-    - initialized and managed as a specialized chip effect
+    - **Purpose**: Visual effect reference for container item display
+    - obtained from Inspector via InterfaceRef
+    - **Usage**: Used in InitEffects to instantiate and add the effect to the effects dictionary with EffectConsts.ContainerRequirements key
+    - **Notes**: Assigned via inspector
+    - effect is stored in dictionary for lifetime management
 - `~ containerRuntimeData: ChipContainerRuntimeData`
 - `- OnFillContainer: FillContainerDelegate`
 #### Methods
@@ -598,8 +613,8 @@
 - `- chargedEffect: EffectRef`
     - **Purpose**: Visual effect active when the generator is fully charged and ready to generate chips.
     - **Usage**: Assigned via inspector as EffectRef
-    - accessed via .Value
-    - activated when ChargeCount > 0 and charging is complete.
+    - used in InitEffects to add to effects dictionary
+    - accessed via GetEffect(EffectConsts.GeneratorCharged)
     - **Notes**: Optional
     - targets IEffect interface
     - provides visual feedback for readiness.
@@ -627,8 +642,8 @@
 - `- rechargeEffect: EffectGeneratorChargingRef`
     - **Purpose**: Effect component for visual feedback during charging (recharge cycle).
     - **Usage**: Assigned via inspector as EffectGeneratorChargingRef
-    - accessed via .Value
-    - used in Init, Update, and generation logic to show progress.
+    - used in InitEffects to add to effects dictionary
+    - accessed via GetEffect(EffectConsts.GeneratorCharging)
     - **Notes**: Must not be null if charging visualization is required
     - targets IEffectGeneratorCharging interface.
 #### Methods
@@ -665,18 +680,18 @@
 - `+ SetMoving(bool value): void`
     - **Purpose**: Updates dragging state and deactivates charged effect during drag
     - **Usage**: Called when drag starts or ends
-    - deactivates generatorChargedEffect to prevent visual clutter
+    - deactivates charged effect to prevent visual clutter
     - **Params**: value - true if starting drag, false if ending drag
     - **Notes**: Ensures the 'charged' visual doesn't obscure the field while the user is positioning the generator
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the generator, including charge and move-locked effects
     - **Usage**: Overridden to manage generator-specific effects (charging vs. charged)
     - called by base or when charging state changes
-    - **Notes**: Synchronizes activation state of generatorEffect and generatorChargedEffect based on generatorRuntimeData.IsCharged
+    - **Notes**: Synchronizes activation state of charging and charged effects based on generatorRuntimeData.IsCharged
 - `~ InitEffects(): void`
     - **Purpose**: Initializes generator-specific effects including charged and recharge visual feedback
     - **Usage**: Called from Init via InitEffects chain
-    - adds generator-specific effects to the base effects list
+    - adds generator-specific effects to the effects dictionary
     - **Notes**: Calls base.InitEffects() first to ensure standard effects are initialized before adding generator effects
 - `- OnFieldChanged(): void`
     - **Purpose**: Handles field change events for auto-generation mode.
@@ -850,11 +865,13 @@
 - `~ chipPowerBoosterData: ChipPowerBoosterData`
 - `~ connectorCellsHighlightEffect: EffectRef`
     - **Purpose**: Optional effect reference that visualizes currently observed booster coverage cells.
-    - **Usage**: Initialized in InitEffects and toggled by movement/visual updates.
+    - **Usage**: Initialized in InitEffects and toggled by movement/visual updates
+    - accessed via GetEffect(EffectConsts.PBoosterConnectorCells)
     - **Notes**: When missing, booster still functions but no connector cell highlighting is shown.
 - `~ joinEffect: EffectPowerBoosterJoinRef`
     - **Purpose**: Optional effect reference that draws dynamic join links between booster and modified generators.
-    - **Usage**: Receives OnJoin/OnLeave callbacks when modifiers are applied or removed.
+    - **Usage**: Receives OnJoin/OnLeave callbacks when modifiers are applied or removed
+    - accessed via GetEffect<IEffectPowerBoosterJoin>(EffectConsts.PBoosterJoin)
     - **Notes**: Deactivated when booster starts moving to prevent stale visual links.
 #### Methods
 - `+ ApplyPowerBoosterModifier(IPowerBoosterModifier generator): void`
@@ -889,8 +906,7 @@
 - `~ InitEffects(): void`
     - **Purpose**: Initializes optional booster effects in addition to base chip effects.
     - **Usage**: Called from base Init flow.
-    - **Notes**: Only adds connectorCellsHighlightEffect when target exists
-    - effect instance is tracked in shared effects list for lifecycle propagation.
+    - **Notes**: Adds connectorCellsHighlightEffect and joinEffect to effects dictionary via AddEffect with their respective EffectConsts keys.
 ---
 
 ## ChipPowerBoosterData
@@ -907,6 +923,7 @@
 > - **Notes**: Serializable for save/load support
 > - contains only runtime state, not configuration data
 #### Fields
+- `+ EffectDestroyingData: Dictionary<int, EffectDestroyingRuntimeData>`
 - `+ IsMoveLocked: bool`
 ---
 
@@ -1111,11 +1128,35 @@
 - `+- CanBeMoved: bool`
 - `+- CanBeTaped: bool`
 - `+- CanGenerate: bool`
-- `- mergeFlagsMigrated: bool`
+---
+
+## EffectConsts
+#### Fields
+- `+ CellHighlight: int`
+- `+ ContainerRequirements: int`
+- `+ GeneratorCharged: int`
+- `+ GeneratorCharging: int`
+- `+ MergeAvailable: int`
+- `+ MoveLocked: int`
+- `+ PBoosterConnectorCells: int`
+- `+ PBoosterJoin: int`
 ---
 
 ## EffectContainerRef
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
+---
+
+## EffectDestroyingRuntimeData
+#### Fields
+- `+ NeighboringMergeCount: int`
+---
+
+## EffectDestroyingSettings
+**Inherits**: `ScriptableObject`
+#### Fields
+- `+- NeighboringMergeCountToDestroy: float`
+- `+- NeighboringMergeTriggerForEffect: string`
+- `+- Priority: int`
 ---
 
 ## EffectGeneratorChargingRef

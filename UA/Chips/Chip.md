@@ -27,24 +27,60 @@
   - **BlockingState**: (`CombinedBlockingState`) агрегований стан дозволів (наприклад, `CanBeMoved`, `CanBeMergedAsSource`), що визначається активними ефектами.
 - **Others**:
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
-- **Effects**: Керує трьома основними ефектами (Cell Highlight, Merge Available, Move Locked).  
+- **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  
   Для повного каталогу, дизайну та реалізації див. [Visual Effects](../Visuals/Effects.md).
 - **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`).
 
 ## Effect Management
 
-Базовий клас `Chip` автоматично відстежує всі візуальні ефекти, що належать йому, для коректної розсилки подій та очищення при знищенні.
+Базовий клас `Chip` автоматично керує та розсилає сповіщення всім візуальним ефектам через централізовану систему на основі хеш-словника.
+
+### Effect Storage & Access
+- **`effects` (Dictionary<int, IEffect>)**: Словник всіх активних ефектів чіпа. Ключі — це хеш-коди з класу `EffectConsts`, що забезпечують типобезпечний доступ без необхідності пошуку по типу.
+- **`GetEffect(int effectHash)`**: Отримує ефект за його EffectConsts ключем. Повертає `null` якщо не знайдено:
+  ```csharp
+  GetEffect(EffectConsts.MoveLocked)?.SendTrigger("MoveLocked", true);
+  ```
+- **`GetEffect<T>(int effectHash) where T : IEffect`**: Типізований доступ до ефекту з приведенням типу. Часто використовується для спеціалізованих інтерфейсів:
+  ```csharp
+  var containerEffect = GetEffect<IEffectContainer>(EffectConsts.ContainerRequirements);
+  containerEffect?.UpdateElements(this, containers, false);
+  ```
 
 ### Effect Initialization
-- **`InitEffects()`**: Віртуальний метод, який викликається з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація створює та додає стандартні ефекти: `CellHighlight` і `MergeAvailable` з полів `ChipData`, а `MoveLocked` — через `GetSpecialData<ChipMoveLockedData>()`. Цей метод призначений для перекриття в похідних класах, які можуть додавати свої спеціалізовані ефекти. Приклад: `ChipGenerator` перекриває цей метод, щоб додати `ChargedEffect` та `RechargeEffect`.
+- **`InitEffects()`**: Віртуальний метод, викликаний з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація:
+  1. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
+  2. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
+  3. Якщо `GetSpecialData<ChipMoveLockedData>()` є, створює ефект блокування (ключ: `EffectConsts.MoveLocked`)
+  
+  Цей метод призначений для перекриття в похідних класах (наприклад, `ChipGenerator` додає `GeneratorCharging` та `GeneratorCharged`).
 
-### Effect List Management
-- **`effects` (List<Effect>)**: Список усіх активних ефектів чіпа. Використовуєтся для ітерації при зміні стану клітинок або взаємодії.
-- **`InstantiateEffect<T>(GameObject prefab)`**: Допоміжний метод для створення ефектів з префабів. Він автоматично інстанціює об'єкт та викликає `Init(this)`.
+- **`AddEffect(IEffect effect, int effectHash, bool activate)`**: Додає ефект до словника та опціонально активує його:
+  ```csharp
+  var effect = InstantiateEffect<IEffect>(data.CellHighlightPrefab);
+  AddEffect(effect, EffectConsts.CellHighlight, true);
+  ```
+
+### Ефект-константи (EffectConsts)
+Вся система ефектів використовує централізовані хеш-константи, що визначені у [EffectConsts.cs](../../Core/Scripts/Chips/Effects/EffectConsts.cs):
+- **Базові ефекти**: `CellHighlight`, `MergeAvailable`, `MoveLocked`
+- **Контейнер**: `ContainerRequirements`
+- **Генератор**: `GeneratorCharging`, `GeneratorCharged`
+- **Power Booster**: `PBoosterConnectorCells`, `PBoosterJoin`
 
 ### Effect Lifecycle
-- Всі ефекти, додані до списку `effects`, автоматично отримують сповіщення через методи `OnChangedCell`, `OnInteractionOverCellChanged` та `OnInteractionUnderCellChanged`.
-- При виклику `Destroy(Cell)`, базова реалізація спочатку очищає occupancy в `FieldGrid`, потім викликає `ICellSubscriber.OnChipDestroy(mainCell)`, знищує всі ефекти зі списку `effects`, і лише після цього запускає відкладене `Destroy(gameObject, 0.1f)`.
+- Всі ефекти, додані до словника `effects`, автоматично отримують сповіщення через методи `OnChangedCell()`, `OnInteractionOverCellChanged()` та `OnInteractionUnderCellChanged()`.
+- При виклику `Destroy(Cell)`, система:
+  1. Очищує occupancy в `FieldGrid`
+  2. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`
+  3. Знищує всі ефекти зі словника `effects`
+  4. Запускає знищення самого `gameObject` з затримкою 0.1s
+
+### Extensions for Specialized Chips
+Спеціалізовані чіпи розширюють `InitEffects()` для додавання власних ефектів:
+- **`ChipGenerator.InitEffects()`**: Додає `GeneratorCharging` та `GeneratorCharged` ефекти
+- **`ChipContainer.InitEffects()`**: Додає `ContainerRequirements` ефект, реалізує `IEffectContainer`
+- **`ChipPowerBooster.InitEffects()`**: Додає `PBoosterConnectorCells` та `PBoosterJoin` ефекти
 
 ### Movement State Management
 Система розрізняє **стан перетягування користувачем** та **візуальний стан переміщення**:
