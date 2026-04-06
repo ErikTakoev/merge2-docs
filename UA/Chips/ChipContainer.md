@@ -34,13 +34,8 @@
 **Ініціалізація**: Створюється в `ChipContainer.Init()` на основі даних з `ChipContainerData` (через `GetSpecialData<ChipContainerData>()`). Початкові значення лічильників встановлюються в 0.
 
 ### 2. `FillContainerLogic.cs` (Logic)
-Керує процесом взаємодії між гравцем, фішкою та контейнером. Детальніше про загальну систему взаємодій див. **[FillContainerLogic](../Interactions/FillContainerLogic.md)**.
-- **Перевірка (`CanInteract`)**:
-  - Перевіряє, чи є цільовий об'єкт контейнером (`ChipContainer`) і чи не заборонено йому приймати фішки (`BlockingState.CanBeFilled`).
-  - Викликає `chipContainer.IsChipCompatible(sourceChip)`, щоб визначити, чи підходить фішка до поточних потреб.
-- **Виконання (`ExecuteInteraction`)**:
-  - Викликає `chipContainer.TryAddChip(sourceChip)`.
-  - У разі успіху викликає `sourceCell.Chip.Destroy(sourceCell)` для видалення фішки, яку додали.
+Керує процесом додавання фішок до контейнера через механізм `IChipInteractionLogic`.  
+Детальний опис (CanInteract, ExecuteInteraction, цільові об'єкти) див. [FillContainerLogic](../Interactions/FillContainerLogic.md).
 
 ## Key Methods (`ChipContainer.cs`)
 

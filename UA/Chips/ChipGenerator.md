@@ -18,17 +18,9 @@
   - `ChipFactory`: Фабрика для створення нових об'єктів.
 
 ### 2. `ChipGeneratorData.cs` (Configuration)
-Дані містять налаштування та алгоритми вибору. Клас реалізує `IChipSpecialData` і зберігається в `ChipData.specialDatas`.
-- **Властивості**:
-  - `Data`: Ваги ймовірностей для різних типів фішок.
-  - `ChargeCount/ChargingTime`: Параметри балансу.
-  - `GenerationInterval`: Час затримки між генераціями в рамках одного циклу заряду.
-- **Властивості**:
-  - `Data`: Ваги ймовірностей для різних типів фішок.
-  - `ChargeCount/ChargingTime`: Параметри балансу.
-  - `GenerationInterval`: Час затримки між генераціями в рамках одного циклу заряду.
-  - `TotalRecharges`: Ліміт життя генератора.
-- **Логіка (`GenerateChipData`)**: Метод, що виконує зважений випадковий вибір (`Weighted Random`) для визначення наступної фішки.
+Дані з налаштуванням та алгоритмами вибору. Реалізує `IChipSpecialData` та додається до `ChipData.specialDatas`.
+- **Параметри**: `ChargeCount`, `ChargingTime`, `GenerationInterval`, `TotalRecharges`
+- **Вибір фішок**: Використовує механізм **Weighted Random** для обрання типу (див. [MergeableChipLogic](../Interactions/MergeableChipLogic.md#result-calculation-weighted-random))
 
 ### 3. `ChipGeneratorRuntimeData.cs` (Runtime State)
 Розширює базовий `ChipRuntimeData` для зберігання динамічного стану генератора.
