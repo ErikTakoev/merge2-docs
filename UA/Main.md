@@ -40,8 +40,11 @@
 - **[Chip Relocation](Features/ChipRelocation.md)**
   > **Контекст**: Система автоматичного розштовхування сусідніх фішок. Коли гравець переміщує великий об'єкт або відбувається злиття, сусідні фішки намагаються знайти вільне місце, щоб звільнити простір, замість того щоб блокувати дію.
 
-- **[Chip Locking](Features/ChipLocking.md)**
-  > **Контекст**: Механіка блокування переміщення фішок. Заблоковані фішки не можуть бути зміщені гравцем, що додає пазл-елементи в дизайн рівнів. Підтримується візуальна індикація в редакторі та спеціальні ефекти в грі.
+- **[Chip Effect Blockers](Features/ChipEffectBlockers.md)**
+  > **Контекст**: Механіка блокування дій на фішках (переміщення, злиття тощо) та система поступового руйнування ефектів (chains, boxes).
+
+- **[Cell Observer System](Features/CellObserverSystem.md)**
+  > **Контекст**: Докладний опис системи спостереження за змінами клітинок.
 
 ### Interactions
 Розділ описує як фішки взаємодіють одна з одною при перетягуванні.
@@ -72,11 +75,10 @@
   > - **DI (VContainer)**: Як працює ін'єкція залежностей через `Merge2LifetimeScope`.
   > - **Interfaces**: Опис ключових абстракцій (`IFieldGrid`, `IChipMovingLogic`, `IFieldEventHandler` і т.д).
 
-- **[Cell Observer Pipeline](Technical/CellObserverManager.md)**
-  > **Контекст**: Відкладений пайплайн змін клітинок через `DeferredChipChangeNotifier` та менеджер підписок `CellObserverManager` для нотифікації сусідніх клітинок.
+
 
 - **[Testing](Technical/Testing.md)**
-  > **Контекст**: Гайд по написанню тестів. Фокус на **Integration Tests**, які використовують реальний префаб поля (`TestFieldBuilder`) для перевірки ігрових сценаріїв (Spawn -> Move -> Merge -> Validation), включно з pipeline підписок `CellObserverManager` та сценаріями `ChipPowerBooster` для manual+auto генераторів.
+  > **Контекст**: Гайд по написанню тестів. Фокус на **Integration Tests**, які використовують реальний префаб поля (`TestFieldBuilder`) для перевірки ігрових сценаріїв (Spawn -> Move -> Merge -> Validation), включно з pipeline підписок [Cell Observer System](Features/CellObserverSystem.md) та сценаріями `ChipPowerBooster` для manual+auto генераторів.
 
 ### Tools
 Кастомні інструменти для полегшення розробки та налаштування контенту.

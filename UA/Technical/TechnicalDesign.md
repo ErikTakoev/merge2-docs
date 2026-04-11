@@ -27,11 +27,11 @@
 - **`IChipChangeNotifier`** -> `DeferredChipChangeNotifier`
   - **Призначення**: Агрегація змін клітинок протягом кадру та єдиний `Flush` у `LateUpdate`.
   - **Відповідальність**: `FieldGrid` додає події через `Enqueue`, `FieldEventHandler` викликає `Flush`, а підписники отримують консистентний набір `ChipChangedEvent`.
-  - **Деталі**: [CellObserverManager](CellObserverManager.md).
+  - **Деталі**: [Cell Observer System](../Features/CellObserverSystem.md).
 
 - **`ICellSubscriber`** -> `CellSubscriber`, `PowerBoosterCellSubscriber`
   - **Призначення**: Контракт для компонентів, що реагують на зміни в сусідніх клітинках.
-  - **Відповідальність**: `OnChipChangedCell` перев'язує підписки після переміщення, `OnChipDestroy` виконує cleanup перед знищенням чіпа, `OnObservedCellChipChanged` обробляє батч-події з `CellObserverManager`.
+  - **Відповідальність**: `OnChipChangedCell` перев'язує підписки після переміщення, `OnChipDestroy` виконує cleanup перед знищенням чіпа, `OnObservedCellChipChanged` обробляє батч-події через [Cell Observer System](../Features/CellObserverSystem.md).
 
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
@@ -52,7 +52,11 @@
 
 - **`IPowerBoosterModifier`** -> `ChipGenerator` (`partial` у `ChipGenerator.PowerBoosterModifier.cs`)
   - **Призначення**: Контракт для сутностей, що можуть бути посилені `ChipPowerBooster`.
-  - **Відповідальність**: Зберігання набору активних бустерів, реалізація apply/remove модифікаторів, надання `JoinPoints` для join-візуалізації.
+  - **Відповідальність**: Зберігання набору активних бустерів, реалізація apply/remove модифікаторів, надання `JoinPoints` для join-візуалізації, експорт `BlockingState` для перевірки `CanReceiveModifiers`, та `NotifyEffectRemoved(int)` для сповіщення бустерів про зміни блокуючих ефектів.
+
+- **`IChipFinder`** -> `NeighborChipFinder`
+  - **Призначення**: Пошук сусідніх чіпів навколо клітинки з урахуванням розміру чіпа.
+  - **Відповідальність**: Allocation-free ітерація по 4 границях bounding box чіпа, збір унікальних сусідів через `HashSet<Chip>`. Використовується `MergeableChipLogic` для `NotifyNeighborsOfMerge`.
 
 ## Visual Effects System
 Візуальні ефекти для фішок реалізовані через систему інтерфейсів для гнучкості та розділення логіки.
@@ -95,7 +99,7 @@
 - **Контракт**: `IChipSpecialData` — базовий інтерфейс для спеціалізованих конфігурацій.
 - **Merge як SpecialData**: `ChipMergeData` тепер є одним із блоків `IChipSpecialData` і не зберігається окремим полем у `ChipData`.
 - **Доступ**: 
-  - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipMoveLockedData` тощо).
+  - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData` тощо).
   - `CreateSpecialData<T>()` — динамічно створює нову інстанцію спеціальних даних, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
   - `AddSpecialData(IChipSpecialData)` — додає готовий екземпляр спеціальних даних у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Chip Creator).
     ```csharp
@@ -104,17 +108,17 @@
     mergeData.Combinations = new MergeCombination[] { /* ... */ };
     ```
 - **Перевага**: Дозволяє додавати нові типи даних без розширення базового `ChipData` окремими полями.
-- **MoveLocked як SpecialData**: Налаштування lock-ефекту винесені в `ChipMoveLockedData` (`Prefab` + `Settings`), тому `Chip.InitEffects()` отримує lock-ефект через `GetSpecialData<ChipMoveLockedData>()`.
+- **Extra Effects як SpecialData**: Налаштування extra-ефектів винесені в `ChipExtraEffectsData` (масив `ExtraEffectData[]` з `effectName` + `Prefab`), тому `Chip.InitEffects()` отримує конфігурацію через `GetSpecialData<ChipExtraEffectsData>()`.
 - **Runtime доступ до merge**: Під час `Chip.Init` merge-дані кешуються у `Chip.MergeData`; `MergeableChipLogic` використовує саме цей доступ.
 
 ### FieldData & CellData
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
-- **FieldChipData**: Містить дані фішки (**ChipId**) та її стан (наприклад, прапорець **IsMoveLocked**).
+- **FieldChipData**: Містить дані фішки (**ChipId**) та масив активних extra-ефектів (**ExtraEffectIds**, наприклад `EffectConsts.Extra.MoveLockedEffect`).
 - **Позиція**: Координати якоря (top-left).
 - **Розташування в коді**: `FieldData` і `FieldChipData` знаходяться в `Core/Scripts/Field/Data`.
 
 ### Runtime State
-У грі базова інформація про стан (як-от `IsMoveLocked`) зберігається у `ChipRuntimeData`. Цей прапорець використовується як індикатор стану, який активує чи деактивує відповідний ефект через `UpdateVisual()`. А вже сам ефект, маючи `EffectBlockingSettings`, передає конкретні заборони до загального `CombinedBlockingState` чіпа (з яким вже працює ігрова логіка). Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), розмежовуючи візуальні ефекти та логіку блокування.
+У грі інформація про активні extra-ефекти зберігається у `ChipRuntimeData.EffectEnables` (`HashSet<int>`). Цей набір використовується як індикатор стану — `Chip.InitEffects()` та `UpdateVisual()` активують ефекти, чиї ID є в наборі. А вже сам ефект, маючи `EffectBlockingSettings`, передає конкретні заборони до загального `CombinedBlockingState` чіпа (з яким вже працює ігрова логіка). Додатково, `EffectDestroyingData` (`Dictionary<int, EffectDestroyingRuntimeData>`) трекає прогрес руйнування ефектів при сусідніх злиттях. Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), розмежовуючи візуальні ефекти та логіку блокування.
 
 ## Editor Tools
 Ми надаємо спеціалізовані інструменти для полегшення процесу створення та налаштування контенту.

@@ -13,8 +13,10 @@
 - **ModifiedEntities**: Делегує колекцію `HashSet<IPowerBoosterModifier>` до `PowerBoosterCellSubscriber.ModifiedEntities`.
 - **Fail-fast перевірки**: В `Init(ChipData)` перевіряє наявність `PowerBoosterCellSubscriber` і `ChipPowerBoosterData`; при відсутності логіка бустера зупиняється з `Debug.LogError`.
 - **Ефекти**: Підтримує два опційні ефекти: `connectorCellsHighlightEffect` (підсвітка зони, див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight)) і `joinEffect` (`EffectPowerBoosterJoinRef`) для лінків між бустером та модифікаторами (див. [Visual Effects § 8](../Visuals/Effects.md#8-power-booster-join-links)).
-- **Apply/Remove API**: `ApplyPowerBoosterModifier(IPowerBoosterModifier)` і `RemovePowerBoosterModifier(IPowerBoosterModifier)` не лише оновлюють геймплейний модифікатор, а й викликають `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`, якщо ефект призначений. При застосуванні модифікатора також відбувається перевірка `BlockingState.CanAffectOthers` (якщо бустер сам заблокований для впливу на сусідів, дія призупиняється).
-- **Move lifecycle**: `SetMoving(true)` одразу деактивує обидва booster-ефекти (`connectorCellsHighlightEffect` і `joinEffect`), щоб уникати stale-візуалізації під час drag/relocation.
+- **Apply/Remove API**: `ApplyPowerBoosterModifier(IPowerBoosterModifier, bool reapply)` і `RemovePowerBoosterModifier(IPowerBoosterModifier)` оновлюють геймплейний модифікатор та викликають `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`. При застосуванні модифікатора перевіряється `BlockingState.CanApplyModifiers`.
+- **`RemoveEffect(int effectId)`** override: Перевіряє, чи `CanApplyModifiers` змінився після `base.RemoveEffect` — якщо так, викликає `OnChangedCell` для re-subscribe і reapply модифікаторів.
+- **`OnTargetChipEffectRemoved(IPowerBoosterModifier, int effectId)`**: Викликається через `IPowerBoosterModifier.NotifyEffectRemoved`, коли у модифікатора видаляється ефект. Якщо `chipTarget.BlockingState.CanReceiveModifiers` стає `true`, reapply модифікатор і join-ефект.
+- **Move lifecycle**: `SetMoving(true)` одразу деактивує обидва booster-ефекти, щоб уникати stale-візуалізації під час drag/relocation.
 - **Destroy lifecycle**: `Destroy(Cell mainCell)` спочатку викликає `cellSubscriber.OnChipDestroy(mainCell)`, і лише потім делегує у `base.Destroy(...)`, щоб гарантовано зняти всі модифікатори до фінального очищення чіпа.
 
 ### 2. `ChipPowerBoosterData`
@@ -24,17 +26,21 @@
 
 ### 3. `IPowerBoosterModifier` (Interface)
 Інтерфейс для чіпів, які можуть отримувати підсилення від бустера.
-- **`JoinPoints`** (`IReadOnlyList<Transform>`): Якірні точки, які використовує join-візуалізація бустера для побудови лінків.
+- **`JoinPoints`** (`IReadOnlyList<Transform>`): Якірні точки для join-візуалізації бустера.
 - **`PowerBoosterModifiers`** (`HashSet<ChipPowerBooster>`): Колекція активних бустерів.
-- **`ApplyPowerBoosterModifier(ChipPowerBooster)`**: Застосувати підсилення. Повертає `false`, якщо модифікатор вже активний.
+- **`BlockingState`** (`CombinedBlockingState`): Агрегований стан блокувань модифікатора. Перевіряється бустером через `CanReceiveModifiers` перед застосуванням/reapply.
+- **`ApplyPowerBoosterModifier(ChipPowerBooster, bool reapply = false)`**: Застосувати підсилення. Повертає `false`, якщо модифікатор вже активний (без `reapply`). При `reapply = true` перераховує множник з урахуванням поточного `BlockingState`.
 - **`RemovePowerBoosterModifier(ChipPowerBooster)`**: Зняти підсилення.
+- **`NotifyEffectRemoved(int effectId)`**: Сповіщає всі активні бустери про видалення ефекту. Викликається з `RemoveEffect` модифікатора, щоб бустери могли reapply, якщо `CanReceiveModifiers` став `true`.
 
 ### 4. `ChipGenerator.PowerBoosterModifier.cs` (Реалізація)
 Часткова реалізація `IPowerBoosterModifier` у `ChipGenerator` (partial class).
 - **`powerMultiplier`** (`float`): Runtime-множник швидкості зарядки (`Update()` використовує `Time.deltaTime * powerMultiplier`).
-- **`joinPoints`** (`Transform[]`): Серіалізовані точки прив'язки на генераторі, які повертаються через `JoinPoints`.
+- **`joinPoints`** (`Transform[]`): Серіалізовані точки прив'язки на генераторі.
 - **`PowerBoosterModifiers`** (`HashSet<ChipPowerBooster>`): Набір активних бустерів для цього генератора.
-- **Логіка**: При кількох бустерах використовується `Mathf.Max` / `Max(x => x.Power)` — береться найбільше значення `Power`. При видаленні останнього бустера `powerMultiplier` скидається до `1f`.
+- **Логіка**: `RecalculatePowerMultiplier` спочатку перевіряє `BlockingState.CanReceiveModifiers` — якщо `false`, скидає множник до `1f`. При кількох бустерах використовується `Mathf.Max` — береться найбільше значення `Power`. При видаленні останнього бустера `powerMultiplier` скидається до `1f`.
+- **`RemoveEffect(int effectId)`** override: Після `base.RemoveEffect` викликає `NotifyEffectRemoved(effectId)`, щоб усі активні бустери могли reapply модифікатори (якщо `CanReceiveModifiers` змінився).
+- **`NotifyEffectRemoved(int effectId)`**: Ітерує `powerBoosterModifiers` і викликає `booster.OnTargetChipEffectRemoved(this, effectId)` для кожного.
 
 ### 5. `IEffectPowerBoosterJoin` + `PowerBoosterJoinEffect.cs`
 - **`IEffectPowerBoosterJoin`**: Контракт для join-візуалізації (`OnJoin`, `OnLeave`, `Show`) з серіалізованою обгорткою `EffectPowerBoosterJoinRef`.
@@ -44,7 +50,7 @@
 
 ## Subscriber System
 
-Бустер використовує систему [CellSubscriber](../Technical/CellObserverManager.md#subscribers-cellsubscriber) для спостереження за сусідніми клітинками.
+Бустер використовує систему [CellSubscriber](../Features/CellObserverSystem.md#cellsubscriber) для спостереження за сусідніми клітинками.
 
 Спеціалізована реалізація `PowerBoosterCellSubscriber`:
 - Трекає набір `modifiedEntities: HashSet<IPowerBoosterModifier>` — усі сусідні чіпи, що реалізують `IPowerBoosterModifier`.

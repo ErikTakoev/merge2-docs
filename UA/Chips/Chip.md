@@ -19,7 +19,7 @@
   
 - **Special Data**:
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas`.
-  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Типові реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipMoveLockedData`.
+  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`.
 
 - **Runtime**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
@@ -28,7 +28,7 @@
 - **Others**:
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  
-  Для повного каталогу, дизайну та реалізації див. [Visual Effects](../Visuals/Effects.md).
+  Для повного каталогу див. [Visual Effects](../Visuals/Effects.md). Детальніше про логіку блокувань та руйнування див. [Chip Effect Blockers](../Features/ChipEffectBlockers.md).
 - **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`).
 
 ## Effect Management
@@ -49,9 +49,9 @@
 
 ### Effect Initialization
 - **`InitEffects()`**: Віртуальний метод, викликаний з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація:
-  1. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
-  2. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
-  3. Якщо `GetSpecialData<ChipMoveLockedData>()` є, створює ефект блокування (ключ: `EffectConsts.MoveLocked`)
+  1. Ітерує `ChipExtraEffectsData.Blockers` — для кожного елемента, чий `EffectId` є в `runtimeData.EffectEnables`, інстантіює префаб і додає в словник ефектів через `AddEffect`
+  2. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
+  3. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
   
   Цей метод призначений для перекриття в похідних класах (наприклад, `ChipGenerator` додає `GeneratorCharging` та `GeneratorCharged`).
 
@@ -62,14 +62,18 @@
   ```
 
 ### Ефект-константи (EffectConsts)
-Вся система ефектів використовує централізовані хеш-константи, що визначені у [EffectConsts.cs](../../Core/Scripts/Chips/Effects/EffectConsts.cs):
-- **Базові ефекти**: `CellHighlight`, `MergeAvailable`, `MoveLocked`
-- **Контейнер**: `ContainerRequirements`
-- **Генератор**: `GeneratorCharging`, `GeneratorCharged`
-- **Power Booster**: `PBoosterConnectorCells`, `PBoosterJoin`
+Вся система ефектів використовує централізовані цілочисельні константи, що визначені у [EffectConsts.cs](../../Core/Scripts/Chips/Effects/EffectConsts.cs):
+- **Базові ефекти (1-7)**: `MergeAvailable`, `CellHighlight`, `ContainerRequirements`, `GeneratorCharged`, `GeneratorCharging`, `PBoosterConnectorCells`, `PBoosterJoin`
+- **Extra-ефекти (101+)** — `EffectConsts.Extra`: `BoxEffect` (101), `ChainsEffect` (102), `MoveLockedEffect` (103)
+- **Утиліти**: `GetIdByName(string)` — резолв рядкової назви в ID через словник `nameToId`
 
 ### Effect Lifecycle
 - Всі ефекти, додані до словника `effects`, автоматично отримують сповіщення через методи `OnChangedCell()`, `OnInteractionOverCellChanged()` та `OnInteractionUnderCellChanged()`.
+- **Effect Destroying**: Ефекти з `DestroyingSettings` підтримують поступове руйнування при сусідніх злиттях (детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#effect-destroying-system)):
+  - `InitDestroyingEffectsData()` сканує ефекти і створює `EffectDestroyingRuntimeData` записи.
+  - `UpdatePrioritizingDestroyingEffect()` обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying`.
+  - `HandleDestroyingEffects()` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
+  - `RemoveEffect(int effectId)` деактивує ефект, видаляє з словника та `EffectEnables`, прибирає блок з `BlockingState`, обирає наступний пріоритетний ефект, і оновлює візуал.
 - При виклику `Destroy(Cell)`, система:
   1. Очищує occupancy в `FieldGrid`
   2. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`
@@ -94,7 +98,7 @@
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
 ### Other Methods
-- **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Відтворює анімацію `MoveLocked` на чіпі та його ефекті блокування, надаючи візуальний зворотний зв'язок гравцеві. Використовує параметрі `allowRepeat=true` для ефекту, щоб кожна спроба супроводжувалася візуальним відгуком.
+- **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Extra.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
 
 ### Extensions for Specialized Chips
 - **`ChipGeneratorRuntimeData`**: Додає стан зарядки, таймери, лічильники перезарядок.

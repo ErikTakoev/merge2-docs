@@ -6,52 +6,81 @@
 
 ## Base System
 
-### `Effect.cs`
-Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
-# Visual Effects
-
-[← На Головну](../Main.md)
-
-Цей документ описує систему візуальних ефектів, що використовуються для забезпечення зворотного зв'язку (Feedback) гравцеві під час взаємодії з фішками (Chips) на ігровому полі.
-
-## Base System
-
 ### `EffectConsts.cs`
-Централізований реєстр хеш-констант для всіх ефектів у системі. Замість зберігання посилань на окремі поля ефектів (наприклад, `moveLockedEffect`, `chargedEffect`), система використовує словник `Dictionary<int, IEffect>` з хеш-ключами.
+Централізований реєстр цілочисельних констант-ідентифікаторів для всіх ефектів у системі. Замість зберігання посилань на окремі поля ефектів, система використовує словник `Dictionary<int, IEffect>` з ключами-константами.
 
-**Визначені константи**:
-- **Базові ефекти**: 
-  - `CellHighlight`: Підсвітка клітин під фішкою (за замовчуванням у всіх чіпах)
-  - `MergeAvailable`: Активується коли фішка придатна для злиття
-  - `MoveLocked`: Показує що фішка заблокована від переміщення
-- **ChipContainer-специфічні**:
-  - `ContainerRequirements`: Відображає іконки предметів, що потрібні контейнеру
-- **ChipGenerator-специфічні**:
-  - `GeneratorCharging`: Показує прогрес зарядки генератора
-  - `GeneratorCharged`: Активується коли генератор повністю зарядився
-- **ChipPowerBooster-специфічні**:
-  - `PBoosterConnectorCells`: Підсвіткує сусідні чіпи, які модифікуються бустером
-  - `PBoosterJoin`: Динамічні лінії між бустером і модифікованими генераторами
+**Базові ефекти (1–7)**:
+
+| Константа | ID | Опис |
+|---|---|---|
+| `MergeAvailable` | 1 | Активується коли фішка придатна для злиття |
+| `CellHighlight` | 2 | Підсвітка клітин під фішкою |
+| `ContainerRequirements` | 3 | Відображає іконки предметів, що потрібні контейнеру |
+| `GeneratorCharged` | 4 | Активується коли генератор повністю зарядився |
+| `GeneratorCharging` | 5 | Показує прогрес зарядки генератора |
+| `PBoosterConnectorCells` | 6 | Підсвіткує сусідні чіпи, які модифікуються бустером |
+| `PBoosterJoin` | 7 | Динамічні лінії між бустером і модифікованими генераторами |
+
+**Extra-ефекти (101+)** — вкладений клас `EffectConsts.Extra`:
+
+| Константа | ID | Опис |
+|---|---|---|
+| `BoxEffect` | 101 | Ефект коробки |
+| `ChainsEffect` | 102 | Ефект ланцюгів |
+| `MoveLockedEffect` | 103 | Ефект блокування переміщення |
+
+**Утиліти**:
+- **`nameToId`** (`Dictionary<string, int>`): Словник для резолвінгу рядкових імен ефектів у цілочисельні ID. Використовується `ExtraEffectData.EffectId` та `EffectBlockingSettings.UpdateHideEffectIds`.
+- **`GetIdByName(string name)`**: Повертає ID ефекту за його ім'ям або `-1`, якщо ім'я не знайдено.
 
 Доступ до ефектів відбувається через методи `GetEffect(hash)` та `GetEffect<T>(hash)` у базовому класі `Chip`.
 
+### `IEffect`
+Основний контракт для всіх ефектів:
+- **`GetId()`**: Повертає унікальний ID ефекту (з `EffectConsts`).
+- **`Init(Chip chip, int effectId)`**: Ініціалізація з посиланням на чіп та ідентифікатором ефекту.
+- **`Activate(Chip chip) → bool`**: Активація ефекту. Повертає `false`, якщо `effectId` міститься в `chip.BlockingState.HideEffectIds` (ефект приховано іншим блокуючим ефектом). При успішній активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
+- **`Deactivate(Chip chip, bool force)`**: Деактивація ефекту.
+- **`SendTrigger(string triggerName, bool allowRepeat)`**: Відправка довільного тригеру в Animator.
+- **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин.
+- **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Перевіряє, чи досяг ефект порогу руйнування.
+- **`BlockingSettings`** (`EffectBlockingSettings`): Конфігурація блокувань чіпа при активації ефекту. Детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocking-system).
+- **`DestroyingSettings`** (`EffectDestroyingSettings`): Конфігурація руйнування ефекту при сусідніх злиттях. Детальніше: [Effect Destroying System](../Features/ChipEffectBlockers.md#effect-destroying-system).
+
+### 
+Докладніше про систему блокувань (Blocking Settings, Combined Blocking State) див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md)**.
+
+---
+
 ### `Effect.cs`
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
-- **`Init(Chip chip)`**: Ініціалізує ефект, налаштовує позицію залежно від розміру чіпа, деактивує за замовчуванням.
-- **`Activate(Chip chip)`**: Вмикає об'єкт ефекту.
-- **`Deactivate(Chip chip)`**: Вимикає об'єкт ефекту.
+- **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
+- **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
+- **`Deactivate(Chip chip, bool force)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play`.
+- **`GetId()`**: Повертає збережений `effectId`.
 - **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Викликається при переміщенні фішки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин під час Drag-and-Drop.
+- **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Якщо `NeighboringMergeCount` менше порогу, відправляє прогресивний тригер (наприклад, `"Hit_1"`, `"Hit_2"`); якщо досяг порогу — деактивує ефект і повертає `true`.
 
-**Інтерфейси**:
-- **`IEffect`**: Основний контракт для всіх ефектів (`Activate`, `Deactivate`, `Init` тощо). Додатково містить властивість `BlockingSettings` (типу `IEffectBlockingSettings`) для інтеграції з системою блокувань чіпа. При активації ефекти передають цю конфігурацію до `CombinedBlockingState` чіпа.
-- **`IEffectContainer`**: Розширює `IEffect` для візуалізації специфіки контейнерів.
-- **`IEffectGeneratorCharging`**: Розширює `IEffect` для візуалізації прогресу зарядки.
+**AutoSizeType** (enum):
+- `None`: Без автомасштабування.
+- `ScaleByChipSize`: `localScale = (chipSize.x, chipSize.y, 1)`.
+- `ScaleByMaxChipSize`: `localScale = (max, max, 1)`.
+- `ScaleByMinChipSize`: `localScale = (min, min, 1)`.
+- `ScaleByAverageValue`: `localScale = (avg, avg, 1)`.
+- `ScaleByAverageValueOnlyMinValue`: Масштабує тільки менший вимір до середнього значення.
 
 **Додаткові можливості**:
 - **Animator Integration**: Якщо налаштовано `sendAnimatorTrigger`, методи `Activate` та `Deactivate` автоматично відправляють тригери `"Activate"` та `"Deactivate"` в компонент `Animator`, а також скидають протилежні тригери для запобігання анімаційним артефактам.
 - **`SendTrigger(string triggerName, bool allowRepeat = false)`**: Дозволяє відправити довільний тригер в `Animator` ефекту. Використовується для спеціальних взаємодій, таких як анімація при спробі перетягнути заблокований чіп (`MoveLocked`). Параметр `allowRepeat` дозволяє ігнорувати налаштування `dontRepeatTrigger` для конкретних викликів.
 - **`ResetTrigger(string triggerName)`**: Скидає вказаний анімаційний тригер в `Animator` ефекту. Викликається при переключенні анімаційних станів, щоб запобігти конфліктам між протилежними тригерами (наприклад, скидає `"Deactivate"` перед надсиланням `"Activate"`). Безпечно обробляє випадок, коли `Animator` значення `null`.
+
+---
+
+## Effect Destroying System
+
+Система руйнування ефектів дозволяє ефектам поступово руйнуватися при сусідніх злиттях. 
+Докладніше див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#effect-destroying-system)**.
 
 ---
 
@@ -79,9 +108,9 @@
 
 Активується на фішці, яка знаходиться "знизу", коли гравець заносить над нею іншу фішку, з якою можливе злиття.
 - **Особливості**:
-  - `autoSize`: Автоматично масштабує ефект під розмір фішки.
   - `autoPosition`: Центрує ефект відносно фішки.
   - Використовує `Animator` з тригерами `Activate` та `Deactivate`.
+  - Масштабування визначається через `AutoSizeType` у базовому `Effect`.
 
 ### 3. Chip Generator Recharge
 **Клас**: `ChipGeneratorRechargeEffect.cs`
@@ -120,26 +149,10 @@
 - **Деактивація**: Після успішної генерації фішки або під час процесу перезарядки.
 - **Тип**: Використовує базовий клас `Effect`. Зазвичай це cyclic idle-анімація (світіння, пульсація), що показує гравцеві готовність об'єкта до взаємодії.
 
-### 6. Move Locked
-**Клас**: `Effect` (базовий)
-**Використовується в**: [Chip](../Chips/Chip.md)
+### 6. Extra Effects (Move Locked, Chains, Box)
+Extra-ефекти — це набір опціональних візуальних ефектів, що конфігуруються через `ChipExtraEffectsData` (реалізує `IChipSpecialData`). Вони часто використовуються для блокування дій на фішках.
 
-Візуальний ефект, що відображається на чіпі, коли його переміщення заблоковано.
-- **Активація**: 
-  - Коли `ChipRuntimeData.IsMoveLocked` встановлено в `true` через метод `UpdateVisual()`.
-  - Автоматично обробляється в `Chip.UpdateVisual()`.
-- **Деактивація**: 
-  - Коли `IsMoveLocked` стає `false`.
-  - Автоматично обробляється в `Chip.UpdateVisual()`.
-- **Поведінка**:
-  - Використовує базовий клас `Effect` з підтримкою Animator triggers (`Activate`/`Deactivate`).
-  - Зазвичай реалізовано як іконка замка або інший візуальний індикатор.
-  - При активації ефект передає свої заборони (через `EffectBlockingSettings`) до спільного `CombinedBlockingState` чіпа.
-  - Перевірка можливості переміщення виконується через метод `Chip.CanMoving()` (який звертається до агрегованого `BlockingState`), що використовується в `DraggableChipLogic`.
-  - **Інтерактивний зворотний зв'язок**: При спробі перетягнути заблокований чіп викликається `Chip.OnDraggingChipWithMoveLocked()`, який відтворює спеціальну анімацію `MoveLocked` через метод `Effect.SendTrigger()`. Це дозволяє показати гравцеві, що чіп заблокований, навіть якщо він намагається його перемістити.
-- **Налаштування**:
-  - Префаб ефекту задається в `ChipData.specialDatas` через `ChipMoveLockedData.Prefab`.
-  - Створюється автоматично в `Chip.InitEffects()`, якщо `GetSpecialData<ChipMoveLockedData>()` повертає дані з валідним `Prefab`.
+Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.
 
 ### 7. Power Booster Connector Highlight
 **Клас**: `PowerBoosterConnectorCellsHighlightEffect.cs` (наслідує `CellHighlightEffect`)
@@ -152,7 +165,7 @@
   - `waitTimeBeforePowerEffect`: Час очікування перед першим запуском анімації Power Effect.
 - **Power Effect**: Корутіна `StartPowerEffect` після `waitTimeBeforePowerEffect` секунд відправляє анімаційний тригер `"PowerBooster"` на чіп та ефект, потім перезапускається з подвоєним інтервалом.
 - **CreateHighlights()**: Перевизначає базовий метод — створює хайлайти за позиціями `connectorCellPositions` (зміщення відносно `originCellPosition` бустера), а не за сіткою `chipSize`.
-- **OnChangedCell**: Перевизначає базовий — оновлює `originCellPosition` та `connectorCellPositions` з `ChipPowerBooster.CellSubscriber.ObservedCellPositions`, потім перестворює хайлайти.
+- **OnChangedCell**: Перевизначає базовий — оновлює `originCellPosition` та `connectorCellPositions` з `CellSubscriber.ObservedCellPositions`, потім перестворює хайлайти.
 - **Deactivate**: Зупиняє корутіну Power Effect та скидає `globalAlpha` до 0.
 - **Update**: Кожен кадр оновлює шейдерні параметри `_Alpha` та `_DistractionAmount` на `sharedMaterial`.
 
