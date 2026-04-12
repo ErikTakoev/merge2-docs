@@ -18,8 +18,8 @@
 | [`ContainerRequirements`](#3-container-requirements) | 3 | Відображає іконки предметів, що потрібні контейнеру |
 | [`GeneratorCharged`](#4-generator-charged) | 4 | Активується коли генератор повністю зарядився |
 | [`GeneratorCharging`](#5-generator-charging) | 5 | Показує прогрес зарядки генератора |
-| [`PBoosterConnectorCells`](#6-power-booster-connector-highlight) | 6 | Підсвіткує сусідні чіпи, які модифікуються бустером |
-| [`PBoosterJoin`](#7-power-booster-join-links) | 7 | Динамічні лінії між бустером і модифікованими генераторами |
+| [`PBoosterConnectorCells`](#6-power-booster-connector-highlight) | 6 | Підсвічує сусідні чіпи, які посилюються бустером |
+| [`PBoosterJoin`](#7-power-booster-join-links) | 7 | Динамічні лінії між бустером і цілями підсилення |
 | [`ShadowEffect`](#8-shadow-effect) | 8 | Постійна тінь під фішкою, що реагує на рух |
 
 **Extra-ефекти (101+)** — вкладений клас `EffectConsts.Extra`:
@@ -180,9 +180,9 @@
 **Клас**: `PowerBoosterJoinEffect.cs` (наслідує `Effect`, реалізує `IEffectPowerBoosterJoin`)
 **Використовується в**: [ChipPowerBooster](../Chips/ChipPowerBooster.md)
 
-Відповідає за динамічні particle-лінки між бустером і кожним активним `IPowerBoosterModifier`.
-- **Join API**: `ChipPowerBooster` викликає `OnJoin`/`OnLeave` через контракт `IEffectPowerBoosterJoin` (`EffectPowerBoosterJoinRef`) під час apply/remove модифікаторів.
-- **JoinPoints**: Ефект використовує `JoinPoints` бустера та модифікатора, обирає найближчі кандидати, а далі періодично перебіндовує активні лінки через корутіну `ChangeJoinPointsCoroutine` (`changeJoinPointsTime`).
+Відповідає за динамічні particle-лінки між бустером і кожною активною ціллю `IPowerBoosterTarget`.
+- **Join API**: `ChipPowerBooster` викликає `OnJoin`/`OnLeave` через контракт `IEffectPowerBoosterJoin` (`EffectPowerBoosterJoinRef`) під час додавання/зняття підсилення.
+- **JoinPoints**: Ефект використовує `JoinPoints` бустера та цілі, обирає найближчі кандидати, а далі періодично перебіндовує активні лінки через корутіну `ChangeJoinPointsCoroutine` (`changeJoinPointsTime`).
 - **Cleanup**: `OnLeave` і `Deactivate` зупиняють particle systems, планують `Destroy` по `startLifetime` і очищують runtime-словник лінків; `SetMoving(true)` у бустері також викликає `joinEffect.Deactivate(...)`.
 
 ### 8. Shadow Effect

@@ -67,7 +67,7 @@
 - [IFieldGrid](#ifieldgrid)
 - [IFieldInitializeCommand](#ifieldinitializecommand)
 - [IFreeCellFinder](#ifreecellfinder)
-- [IPowerBoosterModifier](#ipowerboostermodifier)
+- [IPowerBoosterTarget](#ipowerboostertarget)
 - [Merge2Initializer](#merge2initializer)
 - [Merge2LifetimeScope](#merge2lifetimescope)
 - [MergeableChipLogic](#mergeablechiplogic)
@@ -426,7 +426,6 @@
     - override in derived classes to add custom effects while maintaining base effect initialization
     - **Notes**: First iterates ChipExtraEffectsData.Blockers and instantiates only effects whose EffectId is present in runtimeData.EffectEnables
     - then specifically looks for ShadowEffect in blockersData.BlockersDict and instantiates it if found
-    - finally creates CellHighlightEffect and ChipMergeAvailableEffect from ChipData prefabs
     - designed for virtual extension pattern
 - `~ InstantiateEffect(GameObject prefab): T`
     - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
@@ -582,8 +581,6 @@
 **Inherits**: `ScriptableObject`
 #### Fields
 - `++ Size: Vector2Int`
-- `+ CellHighlightPrefab: GameObject`
-- `+ MergeAvailableEffectPrefab: GameObject`
 - `+ PrefabLink: GameObject`
 - `+ Type: string`
 - `- specialDatas: List<IChipSpecialData>`
@@ -925,11 +922,11 @@
 ## ChipPowerBooster
 **Inherits**: `Chip`
 
-> - **Purpose**: Chip that boosts nearby IPowerBoosterModifier entities and controls linked booster-specific effects.
+> - **Purpose**: Chip that boosts nearby IPowerBoosterTarget entities and controls linked booster-specific effects.
 > - **Usage**: Attach to booster chip prefabs together with PowerBoosterCellSubscriber to auto-apply/remove modifiers as neighbor composition changes.
 > - **Notes**: Coordinates numeric power boost state and optional join/highlight effects for movement and destruction lifecycles.
 #### Fields
-- `+- ModifiedEntities: HashSet<IPowerBoosterModifier>`
+- `+- ModifiedEntities: HashSet<IPowerBoosterTarget>`
 - `+- Power: float`
 - `~ cellSubscriber: PowerBoosterCellSubscriber`
 - `~ chipPowerBoosterData: ChipPowerBoosterData`
@@ -942,7 +939,7 @@
     - **Usage**: Receives OnJoin/OnLeave callbacks when modifiers are applied or removed
     - **Notes**: Deactivated when booster starts moving to prevent stale visual links.
 #### Methods
-- `+ ApplyPowerBoosterModifier(IPowerBoosterModifier generator, bool reapply): void`
+- `+ ApplyPowerBoosterModifier(IPowerBoosterTarget generator, bool reapply): void`
     - **Purpose**: Applies booster influence to a modifier target and notifies join effect.
     - **Usage**: Called by PowerBoosterCellSubscriber when a matching modifier enters observed cells.
     - **Params**: generator - modifier-capable chip/entity receiving this booster
@@ -958,14 +955,14 @@
     - **Params**: data - chip data expected to contain ChipPowerBoosterData
     - **Notes**: Caches PowerBoosterCellSubscriber and ChipPowerBoosterData
     - logs errors and exits early when required components/data are missing.
-- `+ OnTargetChipEffectRemoved(IPowerBoosterModifier chipTarget, int effectId): void`
+- `+ OnTargetChipEffectRemoved(IPowerBoosterTarget chipTarget, int effectId): void`
     - **Purpose**: Reapplies booster influence when a target modifier's blocking state changes due to effect removal
-    - **Usage**: Called by IPowerBoosterModifier.NotifyEffectRemoved on each active booster when a modifier effect is removed
+    - **Usage**: Called by IPowerBoosterTarget.NotifyEffectRemoved on each active booster when a modifier effect is removed
     - **Params**: chipTarget - modifier entity whose effect was removed
     - effectId - ID of the removed effect
     - **Notes**: Only reapplies if the target now has CanReceiveModifiers true
     - triggers joinEffect.OnJoin if reapply succeeds
-- `+ RemovePowerBoosterModifier(IPowerBoosterModifier generator): void`
+- `+ RemovePowerBoosterModifier(IPowerBoosterTarget generator): void`
     - **Purpose**: Removes booster influence from a modifier target and notifies join effect.
     - **Usage**: Called by PowerBoosterCellSubscriber when a matching modifier leaves observed cells or gets removed.
     - **Params**: generator - modifier-capable chip/entity losing this booster
@@ -1816,11 +1813,11 @@
 > - **Purpose**: Effect contract for visualizing dynamic join links between a power booster and modifier-capable targets.
 > - **Usage**: Implemented by effects that react to booster OnJoin/OnLeave lifecycle and follow IEffect activation rules.
 #### Methods
-- `+ OnJoin(IPowerBoosterModifier powerBoosterModifier): void`
+- `+ OnJoin(IPowerBoosterTarget powerBoosterModifier): void`
     - **Purpose**: Registers a modifier target and creates/updates visual links for it.
     - **Usage**: Called when a booster starts affecting the provided modifier.
     - **Params**: powerBoosterModifier - target receiving booster influence
-- `+ OnLeave(IPowerBoosterModifier powerBoosterModifier): void`
+- `+ OnLeave(IPowerBoosterTarget powerBoosterModifier): void`
     - **Purpose**: Removes visual links associated with the provided modifier target.
     - **Usage**: Called when a booster stops affecting the modifier or the modifier is removed.
     - **Params**: powerBoosterModifier - target losing booster influence
@@ -1904,7 +1901,7 @@
     - **Returns**: The nearest free Cell or null if none found.
 ---
 
-## IPowerBoosterModifier
+## IPowerBoosterTarget
 
 > - **Purpose**: Contract for entities that can be modified by ChipPowerBooster instances.
 > - **Usage**: Implemented by chips (for example ChipGenerator) that expose join points and manage active booster modifiers.
@@ -2063,12 +2060,12 @@
 ## PowerBoosterCellSubscriber
 **Inherits**: `CellSubscriber`
 
-> - **Purpose**: Cell subscriber that maintains power booster modifier links to nearby IPowerBoosterModifier entities.
+> - **Purpose**: Cell subscriber that maintains power booster modifier links to nearby IPowerBoosterTarget entities.
 > - **Usage**: Attached to ChipPowerBooster
 > - reacts to observed chip changes and chip movement to keep modifier application and removal consistent.
 > - **Notes**: Tracks unique modifier targets in modifiedEntities to prevent duplicate apply/remove calls.
 #### Fields
-- `+- ModifiedEntities: HashSet<IPowerBoosterModifier>`
+- `+- ModifiedEntities: HashSet<IPowerBoosterTarget>`
 - `~ chipPowerBooster: ChipPowerBooster`
 #### Methods
 - `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
@@ -2126,7 +2123,7 @@
 - `- changeJoinPointsCoroutine: Coroutine`
 - `- changeJoinPointsTime: float`
 - `- effectPowerDistance: float`
-- `~ effects: Dictionary<IPowerBoosterModifier, List<JoinEffectData>>`
+- `~ effects: Dictionary<IPowerBoosterTarget, List<JoinEffectData>>`
 - `~ joinEffectPrefab: ParticleSystem`
 - `~ joinPoints: Transform[]`
 - `- minMaxEffectsForOneModifier: Vector2Int`
@@ -2137,12 +2134,12 @@
     - **Params**: chip - owning chip passed by effect lifecycle
     - force - optional force flag from IEffect contract
     - **Notes**: Stops coroutine, stops particles, schedules particle GameObject destruction using each particle lifetime, then clears state dictionary.
-- `+ OnJoin(IPowerBoosterModifier powerBoosterModifier): void`
+- `+ OnJoin(IPowerBoosterTarget powerBoosterModifier): void`
     - **Purpose**: Registers a new modifier target and creates one or more visual join effects for it.
     - **Usage**: Called when a booster starts affecting a modifier target.
     - **Params**: powerBoosterModifier - modifier target that should receive join visuals
     - **Notes**: Starts the join-point reshuffle coroutine on first active modifier.
-- `+ OnLeave(IPowerBoosterModifier powerBoosterModifier): void`
+- `+ OnLeave(IPowerBoosterTarget powerBoosterModifier): void`
     - **Purpose**: Removes and schedules cleanup of all join effects associated with a modifier target.
     - **Usage**: Called when booster influence on a modifier ends.
     - **Params**: powerBoosterModifier - modifier target to remove
@@ -2175,7 +2172,7 @@
     - **Returns**: List containing the N closest source transforms (or fewer when sources are limited).
     - **Notes**: Uses a reusable distance list to reduce temporary allocations during repeated effect updates.
 - `- Merge2.IEffect.get_gameObject(): GameObject`
-- `- ShowEffect(IPowerBoosterModifier powerBoosterModifier, JoinEffectData joinEffectData): JoinEffectData`
+- `- ShowEffect(IPowerBoosterTarget powerBoosterModifier, JoinEffectData joinEffectData): JoinEffectData`
     - **Purpose**: Creates or rebinds a single join particle effect between booster and modifier join points.
     - **Usage**: Called for initial spawn and periodic endpoint reshuffles.
     - **Params**: powerBoosterModifier - modifier target for this link

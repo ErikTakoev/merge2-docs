@@ -50,9 +50,9 @@
   - **Призначення**: Комплексна логіка переміщення.
   - **Відповідальність**: Валідація переміщень, обробка колізій та розрахунок ланцюгових переміщень (relocation) інших чіпів, щоб звільнити місце.
 
-- **`IPowerBoosterModifier`** -> `ChipGenerator` (`partial` у `ChipGenerator.PowerBoosterModifier.cs`)
+- **`IPowerBoosterTarget`** -> `ChipGenerator` (`partial` у `ChipGenerator.PowerBoosterTarget.cs`)
   - **Призначення**: Контракт для сутностей, що можуть бути посилені `ChipPowerBooster`.
-  - **Відповідальність**: Зберігання набору активних бустерів, реалізація apply/remove модифікаторів, надання `JoinPoints` для join-візуалізації, експорт `BlockingState` для перевірки `CanReceiveModifiers`, та `NotifyEffectRemoved(int)` для сповіщення бустерів про зміни блокуючих ефектів.
+  - **Відповідальність**: Зберігання набору активних бустерів, реалізація apply/remove впливу, надання `JoinPoints` для join-візуалізації, експорт `BlockingState` для перевірки `CanReceiveModifiers`, та `NotifyEffectRemoved(int)` для сповіщення бустерів про зміни блокуючих ефектів.
 
 - **`IChipFinder`** -> `NeighborChipFinder`
   - **Призначення**: Пошук сусідніх чіпів навколо клітинки з урахуванням розміру чіпа.
@@ -63,7 +63,7 @@
 - **`IEffect`**: Базовий інтерфейс для всіх ефектів фішок (активація, тригери, зміна комірок).
 - **`IEffectContainer`**: Спеціалізований інтерфейс для візуалізації `ChipContainer`, розширює `IEffect` методом `UpdateElements`.
 - **`IEffectGeneratorCharging`**: Спеціалізований інтерфейс для візуалізації зарядки `ChipGenerator`, розширює `IEffect` методом `OnCharging`.
-- **`IEffectPowerBoosterJoin`**: Спеціалізований інтерфейс для join-візуалізації бустера (`OnJoin`, `OnLeave`, `Show`) між `ChipPowerBooster` та `IPowerBoosterModifier`.
+- **`IEffectPowerBoosterJoin`**: Спеціалізований інтерфейс для join-візуалізації бустера (`OnJoin`, `OnLeave`, `Show`) між `ChipPowerBooster` та `IPowerBoosterTarget`.
 - **`IChipSortingLayer`**: Контракт для управління шарами сортування (Sorting Layers) декількох рендерерів фішки. Дозволяє автоматично коригувати `sortingOrder` під час переміщення (drag), щоб фішка візуально знаходилася над полем.
 - **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerRef`, `EffectPowerBoosterJoinRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
 
