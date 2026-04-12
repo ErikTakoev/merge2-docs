@@ -82,25 +82,29 @@ public class MyGameLifetimeScope : LifetimeScope
     protected override void Configure(IContainerBuilder builder)
     {
         // --- Скопійовано з Merge2LifetimeScope ---
-        builder.RegisterInstance(fieldData);
-        builder.RegisterInstance(fieldData.ChipDataCollection);
+        _ = builder.RegisterInstance(fieldData);
+        _ = builder.RegisterInstance(fieldData.ChipDataCollection);
 
-        builder.RegisterComponentInHierarchy<FieldEventHandler>().As<IFieldEventHandler>();
-        builder.RegisterComponentInHierarchy<FieldGrid>().As<IFieldGrid>();
-        builder.RegisterComponentInHierarchy<FieldInitializeCommand>().As<IFieldInitializeCommand>();
-        builder.RegisterComponentInHierarchy<InputManager>().AsSelf();
+        _ = builder.RegisterComponentInHierarchy<FieldEventHandler>().As<IFieldEventHandler>().AsSelf();
+        _ = builder.RegisterComponentInHierarchy<FieldGrid>().As<IFieldGrid>().AsSelf();
+        _ = builder.RegisterComponentInHierarchy<FieldInitializeCommand>().As<IFieldInitializeCommand>().AsSelf();
+        _ = builder.RegisterComponentInHierarchy<InputManager>().AsSelf();
+        
+        _ = builder.Register<DeferredChipChangeNotifier>(Lifetime.Singleton).As<IChipChangeNotifier>();
+        _ = builder.RegisterComponentInHierarchy<CellObserverManager>().AsSelf();
 
-        builder.Register<ChipFactory>(Lifetime.Singleton);
-        builder.Register<FreeCellFinder>(Lifetime.Singleton).As<IFreeCellFinder>();
-        builder.Register<ChipFlyAnimation>(Lifetime.Transient).As<IChipFlyAnimation>();
+        _ = builder.Register<ChipFactory>(Lifetime.Singleton);
+        _ = builder.Register<FreeCellFinder>(Lifetime.Singleton).As<IFreeCellFinder>();
+        _ = builder.Register<ChipFlyAnimation>(Lifetime.Transient).As<IChipFlyAnimation>();
+        _ = builder.Register<NeighborChipFinder>(Lifetime.Singleton).As<IChipFinder>();
 
-        builder.RegisterEntryPoint<Merge2Initializer>();
+        _ = builder.RegisterEntryPoint<Merge2Initializer>();
 
         // --- Замінена реалізація ---
-        builder.Register<MyChipMovingLogic>(Lifetime.Singleton).As<IChipMovingLogic>();
+        _ = builder.Register<MyChipMovingLogic>(Lifetime.Singleton).As<IChipMovingLogic>();
 
         // --- Додані нові сервіси ---
-        builder.Register<MyNewService>(Lifetime.Singleton).As<IMyNewService>();
+        _ = builder.Register<MyNewService>(Lifetime.Singleton).As<IMyNewService>();
     }
 }
 ```
@@ -218,9 +222,9 @@ public class MyChip : Chip
 ### Крок 2 — Перекрити `Init` для ініціалізації
 
 ```csharp
-public override void Init(ChipData data)
+public override void Init(ChipData data, ChipRuntimeData runtimeData)
 {
-    base.Init(data); // Важливо! Ініціалізує базові ефекти та runtimeData
+    base.Init(data, runtimeData); // Важливо! Ініціалізує базові ефекти та runtimeData
     
     // Власна логіка ініціалізації
     // Наприклад, читання додаткових даних з specialDatas
@@ -236,14 +240,14 @@ public override void Init(ChipData data)
 ```csharp
 protected override void InitEffects()
 {
-    base.InitEffects(); // Ініціалізує стандартні ефекти (Highlight, MergeAvailable, MoveLocked)
+    base.InitEffects(); // Ініціалізує стандартні ефекти та ефекти з ChipExtraEffectsData
     
-    // Додати специфічні ефекти
+    // Додати специфічні ефекти програмно
     var myEffect = InstantiateEffect<IEffect>(myEffectPrefab);
-    if (myEffect != null)
-    {
-        effects.Add(myEffect); // Додати до загального списку для автоматичної розсилки подій
-    }
+    AddEffect(myEffect, MyEffectId, true);
+
+
+
 }
 ```
 
@@ -258,11 +262,14 @@ public class MyChipRuntimeData : ChipRuntimeData
     public int CustomProperty;
 }
 
-// 2. Ініціалізувати у Init
-public override void Init(ChipData data)
+// 2. Ініціалізувати через InitRuntimeData
+public override void InitRuntimeData(ChipData data, ref ChipRuntimeData runtimeData)
 {
-    runtimeData = new MyChipRuntimeData(); // До виклику base!
-    base.Init(data);
+    if (runtimeData == null)
+    {
+        runtimeData = new MyChipRuntimeData();
+    }
+    base.InitRuntimeData(data, ref runtimeData);
 }
 ```
 
@@ -270,12 +277,16 @@ public override void Init(ChipData data)
 
 | Метод | Коли використовувати |
 |---|---|
-| `Init(ChipData)` | Ініціалізація. Завжди викликайте `base.Init(data)`. |
-| `InitEffects()` | Додавання специфічних ефектів. Завжди викликайте `base.InitEffects()`. |
+| `Init(ChipData, ChipRuntimeData)` | Ініціалізація. Завжди викликайте `base.Init(data, runtimeData)`. |
+| `InitRuntimeData(ChipData, ref ChipRuntimeData)` | Створення та ініціалізація об'єкта `RuntimeData`. |
+| `InitEffects()` | Створення об'єктів ефектів. Завжди викликайте `base.InitEffects()`. |
+| `PostInitEffects()` | Налаштування після ініціалізації всіх ефектів (наприклад, для систем знищення). |
 | `OnTap(Vector2)` | Реакція на тап (наприклад, ручна генерація у `ChipGenerator`). |
 | `OnDragStart/OnDrag/OnDragEnd` | Кастомна поведінка при перетягуванні. |
-| `UpdateVisual()` | Синхронізація візуального стану з `RuntimeData`. |
-| `SetMoving(bool)` | Зміна sorting order під час руху. |
+| `UpdateVisual()` | Синхронізація візуального стану ефектів з `RuntimeData`. |
+| `SetMoving(bool)` | Зміна sorting order та сповіщення ефектів про початок/кінець руху. |
+| `OnNeighborsChipOfMerged()` | Реакція на те, що сусідній чіп був змерджений (використовується для систем знищення ефектів). |
+| `OnDraggingChipWithMoveLocked()` | Візуальна реакція на спробу перемістити заблокований чіп. |
 | `Destroy(Cell)` | Очищення при знищенні. |
 | `CanMoving()` | Чи може фішка бути переміщена. |
 
@@ -290,7 +301,13 @@ public override void Init(ChipData data)
 
 ### Варіант A — Наслідування від `Effect` (рекомендований)
 
-Базовий клас `Effect` надає вбудовану підтримку Animator, тригерів та `effectForCell`.
+Базовий клас `Effect` — це потужна система, яка автоматизує більшість типових задач для візуальних ефектів:
+- **Автоматичне масштабування (`AutoSize`)**: Ефект може автоматично змінювати свій `localScale` під розмір чіпа (1x1, 2x2 тощо), використовуючи різні стратегії (`ScaleByChipSize`, `ScaleByMaxChipSize`).
+- **Керування ієрархією**: Підтримка різних типів прив'язки (`ParentChip`, `ParentCell`, `ParentChipAnimationNode`).
+- **Життєвий цикл та стан**: Автоматичне приховування під час руху (`DeactivateOnMove`) та відновлення стану після завершення переміщення.
+- **Інтеграція з Animator**: Вбудована підтримка тригерів `Activate` та `Deactivate`, а також система `dontRepeatTrigger`.
+- **Позиціонування**: Можливість автоматичного зміщення центру ефекту залежно від розмірності чіпа.
+- **Система блокування та знищення**: Вбудована підтримка `EffectBlockingSettings` та прогресивного знищення через `TryDestroyEffect`.
 
 ```csharp
 public class MyCustomEffect : Effect
@@ -325,13 +342,20 @@ public class MyCustomEffect : Effect
 ```csharp
 public class MyPureEffect : MonoBehaviour, IEffect
 {
-    public void Init(Chip chip) { }
-    public void Activate(Chip chip) { }
+    public int GetId() => 0;
+    public GameObject gameObject => gameObject;
+    public EffectBlockingSettings BlockingSettings => null;
+    public EffectDestroyingSettings DestroyingSettings => null;
+
+    public void Init(Chip chip, int effectHash) { }
+    public bool Activate(Chip chip) => true;
     public void Deactivate(Chip chip, bool force = false) { }
     public void SendTrigger(string triggerName, bool allowRepeat = false) { }
     public void OnChangedCell(Cell sourceCell, Cell targetCell) { }
     public void OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell underCell) { }
     public void OnInteractionUnderCellChanged(Cell underCell, Cell overCell) { }
+    public void OnMovingStateChanged(Chip chip, bool isMoving) { }
+    public bool TryDestroyEffect(Chip chip, EffectDestroyingSettings settings, EffectDestroyingRuntimeData destroyingData) => false;
 }
 ```
 
@@ -343,6 +367,8 @@ public class MyPureEffect : MonoBehaviour, IEffect
 |---|---|---|
 | `IEffectContainer` | `UpdateElements(...)` | Візуалізація вмісту контейнерів |
 | `IEffectGeneratorCharging` | `OnCharging(float progress)` | Відображення прогресу зарядки |
+| `IEffectPowerBoosterJoin` | `OnPowerBoosterJoin(...)` | Відображення зв'язку з бустером |
+
 
 Щоб створити новий спеціалізований ефект:
 1. Створіть інтерфейс, що наслідує `IEffect`.
@@ -355,20 +381,26 @@ public class MyPureEffect : MonoBehaviour, IEffect
 
 ### Підключення ефекту до чіпа
 
-1. **Через ChipData**: Задайте префаби базових ефектів у полях `ChipData` (наприклад, `CellHighlightPrefab`, `MergeAvailableEffectPrefab`).
-2. **Через ChipData.specialDatas**: Для lock-ефекту додайте `ChipMoveLockedData` і заповніть `Prefab` (за потреби також `Settings`).
-3. **Через InitEffects**: У похідному класі `Chip` створіть ефект через `InstantiateEffect<T>(prefab)` та додайте до `effects`.
+1. **Через ChipData.specialDatas**: Для blocker-ефектів або інших додаткових ефектів додайте дані `ChipExtraEffectsData` у `specialDatas` і заповніть список `Blockers` або `OtherEffects`.
+2. **Через InitEffects**: У похідному класі `Chip` створіть ефект через `InstantiateEffect<T>(prefab)` та додайте його за допомогою `AddEffect`.
 
-Ефекти, додані до `effects`, автоматично отримують сповіщення про:
-- Зміну комірки (`OnChangedCell`)
-- Зміну позиції під час drag (`OnInteractionOverCellChanged`, `OnInteractionUnderCellChanged`)
-- Знищення чіпа (ефекти також знищуються)
+### Сповіщення ефектів
+
+Ефекти, додані до `effects`, автоматично отримують сповіщення через наступні методи `IEffect`:
+
+| Подія | Метод(и) | Призначення |
+|---|---|---|
+| Зміна комірки | `OnChangedCell` | Викликається при фактичній зміні батьківської комірки чіпа. |
+| Рух під час drag | `OnInteractionOverCellChanged`, `OnInteractionUnderCellChanged` | Оновлення візуалу ефектів (наприклад, підсвічування цілі) під час перетягування. |
+| Зміна стану руху | `OnMovingStateChanged` | Початок або кінець візуального переміщення (drag або relocation). |
+| Вимога на самознищення | `TryDestroyEffect` | Обробка вхідних подій (наприклад, мердж сусідів) для систем знищення ефектів. |
+| Знищення чіпа | — | Ефекти автоматично знищуються разом із Game-об'єктом чіпа. |
 
 ---
 
 ## 5. Рекомендації по створенню нової механіки
 
-Коли ви хочете додати нову логіку (наприклад, чіп, що прискорює сусідні генератори), рекомендується дотримуватися наступного алгоритму:
+Коли ви хочете додати новий тип чіпу (наприклад, чіп, що прискорює сусідні генератори), рекомендується дотримуватися наступного алгоритму:
 
 ### Крок 1 — Налаштування ChipData
 
@@ -379,7 +411,7 @@ public class MyPureEffect : MonoBehaviour, IEffect
 
 ```csharp
 [Serializable]
-public class ExtensionChipData : IChipSpecialData
+public class ChipExtensionData : IChipSpecialData
 {
     public float Power = 1.2f;
 }
