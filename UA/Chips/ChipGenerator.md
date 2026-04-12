@@ -50,7 +50,7 @@
 Генератор керує двома ефектами, які зберігаються в `effects` словнику з ключами від `EffectConsts`:
 
 - **`EffectConsts.GeneratorCharging`**: Звертання через `GetEffect<IEffectGeneratorCharging>(EffectConsts.GeneratorCharging)`
-  - Реалізація: [ChipGeneratorRechargeEffect](../Visuals/Effects.md#3-chip-generator-recharge)
+  - Реалізація: [ChipGeneratorRechargeEffect](../Visuals/Effects.md#5-generator-charging)
   - Відображає прогрес перезарядки. Активний, коли `IsCharged` = `false`.
   - Реалізує інтерфейс `IEffectGeneratorCharging`, його метод `OnCharging(float progress)` оновлює маску перезарядки.
   

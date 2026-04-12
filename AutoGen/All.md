@@ -26,6 +26,7 @@
 - [ChipPowerBooster](#chippowerbooster)
 - [ChipPowerBoosterData](#chippowerboosterdata)
 - [ChipRuntimeData](#chipruntimedata)
+- [ChipSortingLayer](#chipsortinglayer)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ContainerInfo](#containerinfo)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
@@ -41,6 +42,7 @@
 - [EffectRef](#effectref)
 - [ExtraChip](#extrachip)
 - [ExtraEffectData](#extraeffectdata)
+- [ExtraEffectDataEx](#extraeffectdataex)
 - [FieldChipData](#fieldchipdata)
 - [FieldData](#fielddata)
 - [FieldEventHandler](#fieldeventhandler)
@@ -54,6 +56,7 @@
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
 - [IChipMovingLogic](#ichipmovinglogic)
+- [IChipSortingLayer](#ichipsortinglayer)
 - [IChipSpecialData](#ichipspecialdata)
 - [IEffect](#ieffect)
 - [IEffectBlockingSettings](#ieffectblockingsettings)
@@ -74,6 +77,8 @@
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
+- [ShadowEffect](#shadoweffect)
+- [SortingLayerData](#sortinglayerdata)
 - [IInputManager](#iinputmanager)
 - [InputManager](#inputmanager)
 - [Merge2Input](#merge2input)
@@ -257,21 +262,26 @@
 - `+- Data: ChipData`
 - `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
+- `+- SortingLayer: IChipSortingLayer`
 - `~ animator: Animator`
-- `~ blockersData: ChipExtraEffectsData`
 - `~ chipChangeNotifier: IChipChangeNotifier`
 - `~ effectOfPrioritizingDestroying: IEffect`
 - `~ effects: Dictionary<int, IEffect>`
+- `~ extraEffectsData: ChipExtraEffectsData`
 - `~ fieldGrid: IFieldGrid`
 - `~ isDragging: bool`
     - **Purpose**: Tracks whether the chip is currently being dragged by the user
     - **Usage**: Set via SetDragging
     - queried via IsDragging
     - used to distinguish user drag from automated movement
-    - **Notes**: Separate from IsMoving which tracks sorting order
+    - **Notes**: Separate from IsMoving which tracks visual/sorting state
     - allows detection of user-initiated drag vs system movement
+- `~ isMoving: bool`
+    - **Purpose**: Tracks whether the chip is currently in a visual movement state (e.g., being dragged or relocated)
+    - **Usage**: Set via SetMoving
+    - used to adjust sorting layers and notify effects that visual position is changing
+    - **Notes**: When true, sortingLayer.SetMoving(true) is called to lift the chip visually
 - `- lastTrigger: string`
-- `~ sorting: SortingGroup`
 #### Methods
 - `+ CanMoving(): bool`
     - **Purpose**: Checks whether the chip can currently be moved by the player
@@ -382,7 +392,7 @@
     - **Usage**: Call after modifying runtimeData.EffectEnables to synchronize visual effects
     - **Notes**: Iterates blockersData.Blockers and activates effects whose EffectId is in EffectEnables
     - also activates CellHighlight unless hidden by BlockingState.HideEffectIds
-- `~ AddEffect(IEffect effect, int effectHash, bool activate): void`
+- `~ AddEffect(IEffect effect, int effectHash, bool activate, bool deactivate): void`
     - **Purpose**: Adds an effect to the effects dictionary and optionally activates it
     - **Usage**: Call from InitEffects to register effects with their EffectConsts keys
     - **Params**: effect - The effect instance to add
@@ -415,7 +425,8 @@
     - **Usage**: Called from Init
     - override in derived classes to add custom effects while maintaining base effect initialization
     - **Notes**: First iterates ChipExtraEffectsData.Blockers and instantiates only effects whose EffectId is present in runtimeData.EffectEnables
-    - then creates CellHighlightEffect and ChipMergeAvailableEffect from ChipData prefabs
+    - then specifically looks for ShadowEffect in blockersData.BlockersDict and instantiates it if found
+    - finally creates CellHighlightEffect and ChipMergeAvailableEffect from ChipData prefabs
     - designed for virtual extension pattern
 - `~ InstantiateEffect(GameObject prefab): T`
     - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
@@ -427,10 +438,15 @@
     - return value can be added to the effects list
     - T must be a class and implement IEffect
 - `~ NotifyEffectsOnChangedCell(Cell sourceCell, Cell targetCell): void`
+- `~ NotifyEffectsOnMovingStateChanged(bool isMoving): void`
+    - **Purpose**: Broadcasts movement state changes to all attached effects
+    - **Usage**: Called from SetMoving when a chip starts or ends visual movement
+    - **Params**: isMoving - true if movement started, false if it ended
 - `~ PostInitEffects(): void`
 - `~ RemoveEffect(int effectId): void`
     - **Purpose**: Removes a destroying effect from the chip after it reaches destruction threshold
     - **Usage**: Called from HandleDestroyingEffects when TryDestroyEffect returns true
+    - **Params**: effectId - The unique hash/ID of the effect to remove
     - **Notes**: Deactivates the effect, removes it from dictionary, and updates the priority selection
 - `- UpdatePrioritizingDestroyingEffect(): void`
     - **Purpose**: Selects the effect with the highest DestroyingSettings.Priority as the active destroying target
@@ -456,17 +472,18 @@
 ## ChipContainer
 **Inherits**: `Chip`
 
-> - **Purpose**: Represents a chip that can contain other chips, managing their addition and triggering effects when filled.
+> - **Purpose**: Represents a chip that can contain other chips, managing their addition and triggering effects when filled
 > - **Usage**: Use as a base class for chips that act as containers for other chips
 > - Call Init with ChipData to initialize
-> - Use TryAddChip to attempt to add a chip.
+> - Use TryAddChip to attempt to add a chip
 > - **Params**: data - ChipData for initialization
-> - chip - Chip to check or add.
-> - **Returns**: IsChipCompatible and TryAddChip return true if the chip can be added or is compatible, false otherwise.
+> - chip - Chip to check or add
+> - containers - runtime state of container requirements
+> - **Returns**: IsChipCompatible and TryAddChip return true if the chip can be added or is compatible, false otherwise
 > - **Notes**: Handles container fill logic and triggers effects when full
 > - Removes itself and spawns a new chip if all containers are filled
 > - Uses event OnFillContainer for notification
-> - Requires proper ChipData with ChipContainerData.
+> - Requires proper ChipData with ChipContainerData
 #### Fields
 - `~ chipContainerData: ChipContainerData`
 - `- chipFactory: ChipFactory`
@@ -490,6 +507,10 @@
     - **Notes**: Does not modify the container's state
     - only performs a check against current requirements
 - `+ SetMoving(bool value): void`
+    - **Purpose**: Updates sorting order and visual state during movement
+    - **Usage**: Called from SetMoving(true/false) when movement starts or ends
+    - **Params**: value - true if starting movement, false if ending
+    - **Notes**: Delegates to base.SetMoving then refreshes visuals when stopping
 - `+ TryAddChip(Chip chip): bool`
     - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic.
     - **Usage**: Called by interaction logic when a chip is dropped onto the container.
@@ -521,6 +542,7 @@
 > - **Notes**: Instantiates and positions element prefabs based on ContainerInfo
 > - Handles activation/deactivation animations
 #### Fields
+- `- elementSortingOrder: int`
 - `- layoutConfigs: LayoutConfig[]`
 - `- layoutForElements: Transform`
 - `- panelSpriteRenderer: SpriteRenderer`
@@ -594,10 +616,12 @@
 #### Fields
 - `+- Blockers: ExtraEffectData[]`
 - `+- BlockersDict: Dictionary<int, ExtraEffectData>`
+- `+- OtherEffects: ExtraEffectDataEx[]`
+- `+- OtherEffectsDict: Dictionary<int, ExtraEffectDataEx>`
 #### Methods
 - `+ OnAfterDeserialize(): void`
 - `+ OnBeforeSerialize(): void`
-- `- UpdateBlockersDict(): void`
+- `- UpdateDict(): void`
 ---
 
 ## ChipFactory
@@ -996,6 +1020,28 @@
 - `+ OnBeforeSerialize(): void`
 ---
 
+## ChipSortingLayer
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Implements movement-based sorting order adjustments for chip renderers
+> - **Usage**: Attach to chip prefab
+> - initialized by Chip.Init
+> - handles visual depth changes during dragging
+> - **Notes**: Supports multiple renderers, ensuring each one maintains its relative depth while moving
+#### Fields
+- `+- SortingLayers: SortingLayerData[]`
+#### Methods
+- `+ Init(): void`
+    - **Purpose**: Caches the initial sorting orders of all renderers
+    - **Usage**: Called from Chip.Init before any movement occurs
+    - **Notes**: Required for restoring correct sorting order after movement ends
+- `+ SetMoving(bool value): void`
+    - **Purpose**: Adjusts sorting orders of all renderers based on movement state
+    - **Usage**: Called from Chip.SetMoving(true/false) when movement starts or ends
+    - **Params**: value - true if starting movement (increases order), false if stopping (restores order)
+    - **Notes**: Uses AdditionallyWhenMoving offset defined in inspector for each renderer
+---
+
 ## CombinedBlockingState
 
 > - **Purpose**: Runtime aggregate of all active effect blocking settings on a chip
@@ -1146,12 +1192,14 @@
 - `+- DestroyingSettings: EffectDestroyingSettings`
 - `~ animator: Animator`
 - `~ autoSize: AutoSizeType`
+- `~ deactivateOnMove: bool`
 - `~ dontRepeatTrigger: bool`
 - `~ durationMovePositionDependingOnSize: Vector2`
-- `~ effectForCell: bool`
 - `~ effectId: int`
 - `~ lastTriggerName: string`
 - `~ movePositionDependingOnSize: Transform`
+- `~ parentType: EffectParentType`
+- `~ restoreStateAfterMove: bool`
 - `~ sendAnimatorTrigger: bool`
 #### Methods
 - `+ Activate(Chip chip): bool`
@@ -1168,6 +1216,7 @@
     - **Usage**: Call when the chip is deactivated or disabled
     - trigger 'Deactivate' animation if configured
     - **Params**: chip - the chip this effect belongs to
+    - force - if true, forces immediate animation state change
 - `+ GetId(): int`
     - **Purpose**: Returns the unique hash/ID of this effect for identification in the chip's effects dictionary
     - **Usage**: Called by external code to retrieve the effect's ID for lookup or removal
@@ -1199,6 +1248,13 @@
     - **Usage**: Override to handle logic when the chip moves over a different cell without changing parent
     - **Params**: underCell - the new cell under the chip
     - overCell - the previous cell under the chip
+- `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
+    - **Purpose**: Called when the chip's movement state changes (e.g., starting or ending a drag, or system-initiated movement)
+    - **Usage**: Override in derived classes to react to movement (e.g., stopping animations, hiding visuals)
+    - **Params**: chip - the owner chip
+    - isMoving - true if the chip started moving, false if it stopped
+    - **Notes**: Supports automatic hiding of effects during drag/move to prevent visual noise
+    - uses deactivateOnMove and restoreStateAfterMove flags
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
     - **Purpose**: Sends a custom animation trigger to the effect's animator
     - **Usage**: Call to trigger custom animations on the effect
@@ -1271,6 +1327,7 @@
 - `+ MergeAvailable: int`
 - `+ PBoosterConnectorCells: int`
 - `+ PBoosterJoin: int`
+- `+ ShadowEffect: int`
 - `- nameToId: Dictionary<string, int>`
 #### Methods
 - `+ GetIdByName(string name): int`
@@ -1328,6 +1385,17 @@
 - `+- EffectId: int`
 - `+- EffectName: string`
 - `+- Prefab: GameObject`
+---
+
+## ExtraEffectDataEx
+**Inherits**: `ExtraEffectData`
+
+> - **Purpose**: Extended effect data include activation/deactivation triggers
+> - **Usage**: Used in OtherEffects list for chips that need effects with specific lifecycle control
+> - **Notes**: Supports custom activation/deactivation logic during chip initialization
+#### Fields
+- `+- ActivateOnStart: bool`
+- `+- DeactivateOnStart: bool`
 ---
 
 ## FieldChipData
@@ -1666,6 +1734,19 @@
     - plannedRelocations - list of calculated moves
 ---
 
+## IChipSortingLayer
+
+> - **Purpose**: Defines the contract for managing chip sorting layers and movement-based sorting adjustments
+> - **Usage**: Implemented by ChipSortingLayer
+> - used by Chip to adjust visual depth during drag/movement
+> - **Notes**: Supports multiple renderers per chip
+#### Fields
+- `+- SortingLayers: SortingLayerData[]`
+#### Methods
+- `+ Init(): void`
+- `+ SetMoving(bool value): void`
+---
+
 ## IChipSpecialData
 ---
 
@@ -1686,6 +1767,7 @@
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
 - `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell underCell): void`
 - `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+- `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
 - `+ TryDestroyEffect(Chip chip, EffectDestroyingSettings settings, EffectDestroyingRuntimeData destroyingData): bool`
 ---
@@ -2099,6 +2181,43 @@
     - **Params**: powerBoosterModifier - modifier target for this link
     - joinEffectData - existing effect data to update (null creates a new record)
     - **Returns**: Effect data instance containing selected endpoints and the particle system instance.
+---
+
+## ShadowEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: Provides a persistent shadow effect for chips that reacts to movement states
+> - **Usage**: Instantiated by Chip.InitEffects
+> - sends 'Move' and 'Stop' triggers to its animator when the chip starts or stops moving
+> - **Notes**: Does not deactivate on move to ensure the shadow remains visible during dragging
+#### Fields
+- `- additionallyWhenMoving: int`
+- `- autoScale: bool`
+- `- autoShadowSprite: bool`
+- `- autoSortingLayer: bool`
+- `- cashedLayerOrder: int`
+- `- shadowRenderer: SpriteRenderer`
+#### Methods
+- `+ Activate(Chip chip): bool`
+- `+ Deactivate(Chip chip, bool force): void`
+- `+ Init(Chip chip, int effectId): void`
+- `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
+    - **Purpose**: Reacts to chip movement by sending appropriate animator triggers
+    - **Usage**: Called by Chip.NotifyEffectsOnMovingStateChanged
+    - sends 'Move' when isMoving is true, and 'Stop' otherwise
+    - **Params**: chip - owner chip
+    - isMoving - current movement state
+---
+
+## SortingLayerData
+
+> - **Purpose**: Stores data for a single renderer's sorting layer configuration
+> - **Usage**: Used by IChipSortingLayer to manage multiple renderers within a chip
+> - **Notes**: CachedOrder is populated during Init and restored when movement ends
+#### Fields
+- `+ AdditionallyWhenMoving: int`
+- `+ CachedOrder: int`
+- `+ Renderer: Renderer`
 ---
 
 ## IInputManager

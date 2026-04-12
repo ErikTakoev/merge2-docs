@@ -17,7 +17,7 @@
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
   - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
 - **Ефекти**:
-  - **[ChipContainerEffect](../Visuals/Effects.md#4-chip-container)**: Спеціальний ефект, що реалізує `IEffectContainer` та візуалізує необхідні предмети ("бабли") над контейнером. Призначається через `EffectContainerRef` (InterfaceRef).
+  - **[ChipContainerEffect](../Visuals/Effects.md#3-container-requirements)**: Спеціальний ефект, що реалізує `IEffectContainer` та візуалізує необхідні предмети ("бабли") над контейнером. Призначається через `EffectContainerRef` (InterfaceRef).
 
 ### 1.1. `ChipContainerRuntimeData.cs` (Runtime State)
 Розширює базовий `ChipRuntimeData` для зберігання динамічного стану контейнера.
@@ -64,7 +64,7 @@ var containerEffect = GetEffect<IEffectContainer>(EffectConsts.ContainerRequirem
 containerEffect?.UpdateElements(this, containers, false);
 ```
 
-Детальний опис реалізації ефекту див. у [Effects.md](../Visuals/Effects.md#4-chip-container).
+Детальний опис реалізації ефекту див. у [Effects.md](../Visuals/Effects.md#3-container-requirements).
 
 ## Flow
 

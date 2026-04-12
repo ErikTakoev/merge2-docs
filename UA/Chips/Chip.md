@@ -25,6 +25,8 @@
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
   - **RuntimeData**: Поточний стан (див. нижче).
   - **BlockingState**: (`CombinedBlockingState`) агрегований стан дозволів (наприклад, `CanBeMoved`, `CanBeMergedAsSource`), що визначається активними ефектами.
+- **Visual Management**:
+  - **SortingLayer** (`IChipSortingLayer`): Керує шарами сортування декількох рендерерів чіпа, забезпечуючи коректне відображення під час руху.
 - **Others**:
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  
@@ -52,6 +54,7 @@
   1. Ітерує `ChipExtraEffectsData.Blockers` — для кожного елемента, чий `EffectId` є в `runtimeData.EffectEnables`, інстантіює префаб і додає в словник ефектів через `AddEffect`
   2. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
   3. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
+  4. Якщо вказано `ShadowEffectPrefab`, створює та додає `ShadowEffect` (ключ: `EffectConsts.ShadowEffect`)
   
   Цей метод призначений для перекриття в похідних класах (наприклад, `ChipGenerator` додає `GeneratorCharging` та `GeneratorCharged`).
 
@@ -94,7 +97,10 @@
 - **`IsDragging()`**: Перевіряє, чи перетягується чіп користувачем. Відстежує саме взаємодію з користувачем, а не лише візуальне переміщення.
 
 #### Visual Movement State
-- **`SetMoving(bool)`**: Керує візуальним станом переміщення (змінює `sortingOrder`). Викликається як при перетягуванні користувачем, так і при автоматичному переміщенні системою. На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
+- **`SetMoving(bool)`**: Керує візуальним станом переміщення.
+  - Оновлює стан `IChipSortingLayer` для коригування шарів сортування рендерерів.
+  - Сповіщає всі ефекти через метод `OnMovingStateChanged(chip, isMoving)`.
+  - На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
 ### Other Methods

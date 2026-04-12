@@ -13,21 +13,22 @@
 
 | Константа | ID | Опис |
 |---|---|---|
-| `MergeAvailable` | 1 | Активується коли фішка придатна для злиття |
-| `CellHighlight` | 2 | Підсвітка клітин під фішкою |
-| `ContainerRequirements` | 3 | Відображає іконки предметів, що потрібні контейнеру |
-| `GeneratorCharged` | 4 | Активується коли генератор повністю зарядився |
-| `GeneratorCharging` | 5 | Показує прогрес зарядки генератора |
-| `PBoosterConnectorCells` | 6 | Підсвіткує сусідні чіпи, які модифікуються бустером |
-| `PBoosterJoin` | 7 | Динамічні лінії між бустером і модифікованими генераторами |
+| [`MergeAvailable`](#1-merge-available) | 1 | Активується коли фішка придатна для злиття |
+| [`CellHighlight`](#2-cell-highlight) | 2 | Підсвітка клітин під фішкою |
+| [`ContainerRequirements`](#3-container-requirements) | 3 | Відображає іконки предметів, що потрібні контейнеру |
+| [`GeneratorCharged`](#4-generator-charged) | 4 | Активується коли генератор повністю зарядився |
+| [`GeneratorCharging`](#5-generator-charging) | 5 | Показує прогрес зарядки генератора |
+| [`PBoosterConnectorCells`](#6-power-booster-connector-highlight) | 6 | Підсвіткує сусідні чіпи, які модифікуються бустером |
+| [`PBoosterJoin`](#7-power-booster-join-links) | 7 | Динамічні лінії між бустером і модифікованими генераторами |
+| [`ShadowEffect`](#8-shadow-effect) | 8 | Постійна тінь під фішкою, що реагує на рух |
 
 **Extra-ефекти (101+)** — вкладений клас `EffectConsts.Extra`:
 
 | Константа | ID | Опис |
 |---|---|---|
-| `BoxEffect` | 101 | Ефект коробки |
-| `ChainsEffect` | 102 | Ефект ланцюгів |
-| `MoveLockedEffect` | 103 | Ефект блокування переміщення |
+| [`BoxEffect`](#101-box-effect) | 101 | Ефект коробки |
+| [`ChainsEffect`](#102-chains-effect) | 102 | Ефект ланцюгів |
+| [`MoveLockedEffect`](#103-move-locked-effect) | 103 | Ефект блокування переміщення |
 
 **Утиліти**:
 - **`nameToId`** (`Dictionary<string, int>`): Словник для резолвінгу рядкових імен ефектів у цілочисельні ID. Використовується `ExtraEffectData.EffectId` та `EffectBlockingSettings.UpdateHideEffectIds`.
@@ -43,6 +44,7 @@
 - **`Deactivate(Chip chip, bool force)`**: Деактивація ефекту.
 - **`SendTrigger(string triggerName, bool allowRepeat)`**: Відправка довільного тригеру в Animator.
 - **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин.
+- **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Обробка зміни стану руху (початок перетягування або системне переміщення).
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Перевіряє, чи досяг ефект порогу руйнування.
 - **`BlockingSettings`** (`EffectBlockingSettings`): Конфігурація блокувань чіпа при активації ефекту. Детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocking-system).
 - **`DestroyingSettings`** (`EffectDestroyingSettings`): Конфігурація руйнування ефекту при сусідніх злиттях. Детальніше: [Effect Destroying System](../Features/ChipEffectBlockers.md#effect-destroying-system).
@@ -58,9 +60,19 @@
 - **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
 - **`Deactivate(Chip chip, bool force)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play`.
 - **`GetId()`**: Повертає збережений `effectId`.
-- **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Викликається при переміщенні фішки.
+- **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин під час Drag-and-Drop.
+- **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Автоматично приховує ефект при початку руху, якщо встановлено `deactivateOnMove = true`, та відновлює стан при зупинці.
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Якщо `NeighboringMergeCount` менше порогу, відправляє прогресивний тригер (наприклад, `"Hit_1"`, `"Hit_2"`); якщо досяг порогу — деактивує ефект і повертає `true`.
+
+**EffectParentType** (enum):
+- `ParentChip`: Ефект прикріплений до трансформу фішки.
+- `ParentChipAnimationNode`: Ефект прикріплений до дочірнього об'єкта `AnimationNode` (використовується для анімацій вильоту).
+- `ParentCell`: Ефект прикріплений до трансформу клітинки (слідує за клітинкою, а не фішкою).
+
+**Налаштування руху**:
+- `deactivateOnMove`: Якщо `true`, ефект автоматично деактивується під час перетягування фішки, щоб зменшити візуальний шум.
+- `restoreStateAfterMove`: Внутрішній прапорець для відновлення стану після завершення руху.
 
 **AutoSizeType** (enum):
 - `None`: Без автомасштабування.
@@ -86,23 +98,7 @@
 
 ## Implemented Effects
 
-### 1. Cell Highlight
-**Клас**: `CellHighlightEffect.cs`
-**Використовується в**: [Chip](../Chips/Chip.md)
-
-Динамічно створює та відображає підсвітку під фішкою. Підтримує багатокоміркові фішки, створюючи сітку хайлайтів відповідно до розміру (`Size`) фішки.
-- **Параметри**:
-  - `highlightPrefab`: Префаб візуального елемента підсвітки.
-  - `color`: Колір підсвітки.
-  - `order`: Зсув по осі Z для правильного рендерингу над полем.
-- **Shared Material**: Перший створений хайлайт генерує `Material` (через `SpriteRenderer.material`), всі наступні використовують `sharedMaterial` для спільного кольору.
-- **Extensibility**: Клас спроектований для наслідування та перевизначення:
-  - `CreateHighlights()`: Віртуальний — базова реалізація створює сітку за `chipSize`. Може бути перевизначений для іншої геометрії (наприклад, [§ 7 Power Booster Connector Highlight](#7-power-booster-connector-highlight)).
-  - `DestroyHighlights()`: Віртуальний — очищує `highlights` список та `sharedMaterial`.
-  - `CreateHighlight(Vector3)`: Віртуальний — створює один елемент підсвітки з префабу.
-  - `OnChangedCell(Cell, Cell)`: Віртуальний — реагує на зміну клітинки (активація/деактивація `gameObject`).
-
-### 2. Merge Available
+### 1. Merge Available
 **Клас**: `ChipMergeAvailableEffect.cs`
 **Використовується в**: [Chip](../Chips/Chip.md)
 
@@ -112,15 +108,23 @@
   - Використовує `Animator` з тригерами `Activate` та `Deactivate`.
   - Масштабування визначається через `AutoSizeType` у базовому `Effect`.
 
-### 3. Chip Generator Recharge
-**Клас**: `ChipGeneratorRechargeEffect.cs`
-**Реалізує**: `IEffectGeneratorCharging`
-**Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
+### 2. Cell Highlight
+**Клас**: `CellHighlightEffect.cs`
+**Використовується в**: [Chip](../Chips/Chip.md)
 
-Візуалізує процес перезарядки генератора. Зазвичай реалізовано через зміну локальної позиції маски (`maskRectTransform`), що створює ефект заповнення іконки знизу вгору.
-- **Метод `OnCharging(float progress)`**: Отримує значення від 0 до 1 та оновлює візуалізацію.
+Динамічно створює та відображає підсвітку под фішкою. Підтримує багатокоміркові фішки, створюючи сітку хайлайтів відповідно до розміру (`Size`) фішки.
+- **Параметри**:
+  - `highlightPrefab`: Префаб візуального елемента підсвітки.
+  - `color`: Колір підсвітки.
+  - `order`: Зсув по осі Z для правильного рендерингу над полем.
+- **Shared Material**: Перший створений хайлайт генерує `Material` (через `SpriteRenderer.material`), всі наступні використовують `sharedMaterial` для спільного кольору.
+- **Extensibility**: Клас спроектований для наслідування та перевизначення:
+  - `CreateHighlights()`: Віртуальний — базова реалізація створює сітку за `chipSize`. Може бути перевизначений для іншої геометрії (наприклад, [§ 6 Power Booster Connector Highlight](#6-power-booster-connector-highlight)).
+  - `DestroyHighlights()`: Віртуальний — очищує `highlights` список та `sharedMaterial`.
+  - `CreateHighlight(Vector3)`: Віртуальний — створює один елемент підсвітки з префабу.
+  - `OnChangedCell(Cell, Cell)`: Віртуальний — реагує на зміну клітинки (активація/деактивація `gameObject`).
 
-### 4. Chip Container
+### 3. Container Requirements
 **Клас**: `ChipContainerEffect.cs`
 **Реалізує**: `IEffectContainer`
 **Використовується в**: [ChipContainer](../Chips/ChipContainer.md)
@@ -141,7 +145,7 @@
   4. Очищає старі елементи та створює нові префаби (`ContainerElementPrefab`) для кожної вимоги.
   5. Якщо контейнер заповнений (`isFull`), викликає `ClearElements` та деактивує ефект.
 
-### 5. Generator Charged
+### 4. Generator Charged
 **Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
 
 Візуальний ефект, що активується, коли генератор повністю зарядився і готовий до створення нової фішки.
@@ -149,12 +153,15 @@
 - **Деактивація**: Після успішної генерації фішки або під час процесу перезарядки.
 - **Тип**: Використовує базовий клас `Effect`. Зазвичай це cyclic idle-анімація (світіння, пульсація), що показує гравцеві готовність об'єкта до взаємодії.
 
-### 6. Extra Effects (Move Locked, Chains, Box)
-Extra-ефекти — це набір опціональних візуальних ефектів, що конфігуруються через `ChipExtraEffectsData` (реалізує `IChipSpecialData`). Вони часто використовуються для блокування дій на фішках.
+### 5. Generator Charging
+**Клас**: `ChipGeneratorRechargeEffect.cs`
+**Реалізує**: `IEffectGeneratorCharging`
+**Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
 
-Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.
+Візуалізує процес перезарядки генератора. Зазвичай реалізовано через зміну локальної позиції маски (`maskRectTransform`), що створює ефект заповнення іконки знизу вгору.
+- **Метод `OnCharging(float progress)`**: Отримує значення від 0 до 1 та оновлює візуалізацію.
 
-### 7. Power Booster Connector Highlight
+### 6. Power Booster Connector Highlight
 **Клас**: `PowerBoosterConnectorCellsHighlightEffect.cs` (наслідує `CellHighlightEffect`)
 **Використовується в**: [ChipPowerBooster](../Chips/ChipPowerBooster.md)
 
@@ -169,7 +176,7 @@ Extra-ефекти — це набір опціональних візуальн
 - **Deactivate**: Зупиняє корутіну Power Effect та скидає `globalAlpha` до 0.
 - **Update**: Кожен кадр оновлює шейдерні параметри `_Alpha` та `_DistractionAmount` на `sharedMaterial`.
 
-### 8. Power Booster Join Links
+### 7. Power Booster Join Links
 **Клас**: `PowerBoosterJoinEffect.cs` (наслідує `Effect`, реалізує `IEffectPowerBoosterJoin`)
 **Використовується в**: [ChipPowerBooster](../Chips/ChipPowerBooster.md)
 
@@ -177,3 +184,24 @@ Extra-ефекти — це набір опціональних візуальн
 - **Join API**: `ChipPowerBooster` викликає `OnJoin`/`OnLeave` через контракт `IEffectPowerBoosterJoin` (`EffectPowerBoosterJoinRef`) під час apply/remove модифікаторів.
 - **JoinPoints**: Ефект використовує `JoinPoints` бустера та модифікатора, обирає найближчі кандидати, а далі періодично перебіндовує активні лінки через корутіну `ChangeJoinPointsCoroutine` (`changeJoinPointsTime`).
 - **Cleanup**: `OnLeave` і `Deactivate` зупиняють particle systems, планують `Destroy` по `startLifetime` і очищують runtime-словник лінків; `SetMoving(true)` у бустері також викликає `joinEffect.Deactivate(...)`.
+
+### 8. Shadow Effect
+**Клас**: `ShadowEffect.cs`
+**Використовується в**: [Chip](../Chips/Chip.md)
+
+Забезпечує постійну тінь під фішкою, яка динамічно реагує на стан руху.
+- **Особливості**:
+  - `autoShadowSprite`: Автоматично копіює спрайт з основного рендерера фішки (якщо він один).
+  - `autoScale`: Адаптує масштаб тіні під масштаб основного рендерера.
+  - `autoSortingLayer`: Використовує налаштування `AdditionallyWhenMoving` для підняття тіні в шарах сортування під час руху.
+- **Movement Reaction**: На відміну від звичайних ефектів, тінь не деактивується при русі. Замість цього вона відправляє тригери `Activate` (при початку руху) та `Deactivate` (при зупинці) у свій `Animator` для плавного візуального переходу (наприклад, збільшення зміщення тіні).
+- **Сортування**: Під час руху тінь збільшує свій `sortingOrder`, щоб залишатися візуально синхронізованою з "піднятою" фішкою.
+
+### 101. Box Effect
+Ефект коробки. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.
+
+### 102. Chains Effect
+Ефект ланцюгів. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.
+
+### 103. Move Locked Effect
+Ефект блокування переміщення. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.

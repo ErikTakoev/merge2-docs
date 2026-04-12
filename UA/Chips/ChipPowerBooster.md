@@ -12,7 +12,7 @@
 - **Підписки**: Вимагає компонент `PowerBoosterCellSubscriber` (`[RequireComponent]`), який відстежує сусідні клітинки та збирає активні модифікатори.
 - **ModifiedEntities**: Делегує колекцію `HashSet<IPowerBoosterModifier>` до `PowerBoosterCellSubscriber.ModifiedEntities`.
 - **Fail-fast перевірки**: В `Init(ChipData)` перевіряє наявність `PowerBoosterCellSubscriber` і `ChipPowerBoosterData`; при відсутності логіка бустера зупиняється з `Debug.LogError`.
-- **Ефекти**: Підтримує два опційні ефекти: `connectorCellsHighlightEffect` (підсвітка зони, див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight)) і `joinEffect` (`EffectPowerBoosterJoinRef`) для лінків між бустером та модифікаторами (див. [Visual Effects § 8](../Visuals/Effects.md#8-power-booster-join-links)).
+- **Ефекти**: Підтримує два опційні ефекти: `connectorCellsHighlightEffect` (підсвітка зони, див. [Visual Effects § 6](../Visuals/Effects.md#6-power-booster-connector-highlight)) і `joinEffect` (`EffectPowerBoosterJoinRef`) для лінків між бустером та модифікаторами (див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-join-links)).
 - **Apply/Remove API**: `ApplyPowerBoosterModifier(IPowerBoosterModifier, bool reapply)` і `RemovePowerBoosterModifier(IPowerBoosterModifier)` оновлюють геймплейний модифікатор та викликають `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`. При застосуванні модифікатора перевіряється `BlockingState.CanApplyModifiers`.
 - **`RemoveEffect(int effectId)`** override: Перевіряє, чи `CanApplyModifiers` змінився після `base.RemoveEffect` — якщо так, викликає `OnChangedCell` для re-subscribe і reapply модифікаторів.
 - **`OnTargetChipEffectRemoved(IPowerBoosterModifier, int effectId)`**: Викликається через `IPowerBoosterModifier.NotifyEffectRemoved`, коли у модифікатора видаляється ефект. Якщо `chipTarget.BlockingState.CanReceiveModifiers` стає `true`, reapply модифікатор і join-ефект.
@@ -64,7 +64,7 @@
 Бустер керує двома ефектами, які зберігаються в `effects` словнику з ключами від `EffectConsts`:
 
 - **`EffectConsts.PBoosterConnectorCells`**: Звертання через `GetEffect(EffectConsts.PBoosterConnectorCells)`
-  - Ефект: `PowerBoosterConnectorCellsHighlightEffect` (див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight))
+  - Ефект: `PowerBoosterConnectorCellsHighlightEffect` (див. [Visual Effects § 6](../Visuals/Effects.md#6-power-booster-connector-highlight))
   - Підсвічує клітинки, за якими спостерігає бустер. Показує гравцеві зону впливу.
   - Ініціалізується в `InitEffects()` і деактивується під час руху чіпа.
 
@@ -79,7 +79,7 @@
   - `SetMoving(true)` — негайно деактивує обидва ефекти на початку перетягування.
   - `ApplyPowerBoosterModifier/RemovePowerBoosterModifier` — синхронізують gameplay-модифікатори з join-візуалізацією через `GetEffect<IEffectPowerBoosterJoin>(...)?OnJoin/OnLeave`.
 
-Детальніше: [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-connector-highlight) і [Visual Effects § 8](../Visuals/Effects.md#8-power-booster-join-links).
+Детальніше: [Visual Effects § 6](../Visuals/Effects.md#6-power-booster-connector-highlight) і [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-join-links).
 
 1. **Init**: `ChipFactory` створює бустер → `Init(ChipData)` → `InitEffects()` → ініціалізація ефектів з ключами `EffectConsts.PBoosterConnectorCells` та `EffectConsts.PBoosterJoin` у словнику `effects`.
 2. **Placement**: `FieldGrid.SetChipInCell` → `CellSubscriber.OnChipChangedCell` → `SubscribeToNeighbors` (обчислення bounding box + neighbors).

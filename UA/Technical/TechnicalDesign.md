@@ -64,6 +64,7 @@
 - **`IEffectContainer`**: Спеціалізований інтерфейс для візуалізації `ChipContainer`, розширює `IEffect` методом `UpdateElements`.
 - **`IEffectGeneratorCharging`**: Спеціалізований інтерфейс для візуалізації зарядки `ChipGenerator`, розширює `IEffect` методом `OnCharging`.
 - **`IEffectPowerBoosterJoin`**: Спеціалізований інтерфейс для join-візуалізації бустера (`OnJoin`, `OnLeave`, `Show`) між `ChipPowerBooster` та `IPowerBoosterModifier`.
+- **`IChipSortingLayer`**: Контракт для управління шарами сортування (Sorting Layers) декількох рендерерів фішки. Дозволяє автоматично коригувати `sortingOrder` під час переміщення (drag), щоб фішка візуально знаходилася над полем.
 - **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerRef`, `EffectPowerBoosterJoinRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
 
 ## Interaction Strategies
