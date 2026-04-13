@@ -1887,9 +1887,6 @@
     - **Purpose**: Removes visual links associated with the provided target.
     - **Usage**: Called when a booster stops affecting the target or the target is removed.
     - **Params**: target - entity losing booster influence
-- `+ Show(): void`
-    - **Purpose**: Starts standalone display logic for this join effect implementation.
-    - **Usage**: Optional explicit trigger for implementations that expose manual show behavior.
 ---
 
 ## IFieldEventHandler
@@ -2211,9 +2208,6 @@
     - **Usage**: Called when booster influence on a target ends.
     - **Params**: target - target entity to remove
     - **Notes**: Stops reshuffle coroutine when no targets remain.
-- `+ Show(): void`
-    - **Purpose**: Optional explicit show entrypoint for IEffectPowerBoosterJoin contract.
-    - **Usage**: Currently unused in this implementation.
 - `- CalcRotation(Transform joinPoint, Transform entityTransformJoinPoint): Quaternion`
     - **Purpose**: Calculates particle orientation so link visuals point from booster join point toward modifier join point.
     - **Usage**: Called when (re)binding an effect to selected endpoints.
