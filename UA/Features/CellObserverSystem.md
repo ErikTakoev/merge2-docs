@@ -8,7 +8,7 @@
 
 Система складається з трьох ключових сутностей:
 
-### 1. [ChipChangedEvent](../../Core/Scripts/Field/CellObserver/ChipChangedEvent.cs)
+### 1. [ChipChangedEvent](../../../Core/Scripts/Field/CellObserver/ChipChangedEvent.cs)
 Легка структура (struct), що описує одиничну зміну в конкретній клітинці сітки.
 
 - **Властивості**:
@@ -20,14 +20,14 @@
     - `ChipRemoved`: true, якщо чіп був видалений або переміщений з клітинки.
     - `ChipReplaced`: true, якщо один чіп був замінений іншим в межах однієї клітинки.
 
-### 2. [DeferredChipChangeNotifier](../../Core/Scripts/Field/CellObserver/DeferredChipChangeNotifier.cs)
+### 2. [DeferredChipChangeNotifier](../../../Core/Scripts/Field/CellObserver/DeferredChipChangeNotifier.cs)
 Агрегатор подій, який накопичує всі зміни протягом поточного кадру (frame).
 
 - **Відкладена обробка**: Замість негайної розсилки подій при кожній зміні (що може призвести до десятків викликів під час складних переміщень/злиттів), події збираються у чергу `pending`.
 - **Злиття подій (Collapse)**: Якщо одна і та сама клітинка змінюється кілька разів за один кадр, система автоматично зливає ці зміни в одну подію, зберігаючи найперший `OldChip` та фінальний `NewChip`.
 - **Flush**: Викликається один раз наприкінці кадру (зазвичай у `LateUpdate`), публікуючи весь пакет подій за один раз.
 
-### 3. [CellObserverManager](../../Core/Scripts/Field/CellObserver/CellObserverManager.cs)
+### 3. [CellObserverManager](../../../Core/Scripts/Field/CellObserver/CellObserverManager.cs)
 Центральний менеджер, який керує підписками `ICellSubscriber` та відповідає за точну доставку подій.
 
 - **Двостороннє індексування**:

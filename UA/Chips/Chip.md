@@ -65,9 +65,9 @@
   ```
 
 ### Ефект-константи (EffectConsts)
-Вся система ефектів використовує централізовані цілочисельні константи, що визначені у [EffectConsts.cs](../../Core/Scripts/Chips/Effects/EffectConsts.cs):
+Вся система ефектів використовує централізовані цілочисельні константи, що визначені у [EffectConsts.cs](../../../Core/Scripts/Chips/Effects/EffectConsts.cs):
 - **Базові ефекти (1-7)**: `MergeAvailable`, `CellHighlight`, `ContainerRequirements`, `GeneratorCharged`, `GeneratorCharging`, `PBoosterConnectorCells`, `PBoosterJoin`
-- **Extra-ефекти (101+)** — `EffectConsts.Extra`: `BoxEffect` (101), `ChainsEffect` (102), `MoveLockedEffect` (103)
+- **Blocker-ефекти (101+)** — `EffectConsts.Blockers`: `BoxEffect` (101), `ChainsEffect` (102), `MoveLockedEffect` (103)
 - **Утиліти**: `GetIdByName(string)` — резолв рядкової назви в ID через словник `nameToId`
 
 ### Effect Lifecycle
@@ -104,7 +104,7 @@
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
 ### Other Methods
-- **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Extra.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
+- **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
 
 ### Extensions for Specialized Chips
 - **`ChipGeneratorRuntimeData`**: Додає стан зарядки, таймери, лічильники перезарядок.

@@ -22,7 +22,7 @@
 | [`PBoosterJoin`](#7-power-booster-join-links) | 7 | Динамічні лінії між бустером і цілями підсилення |
 | [`ShadowEffect`](#8-shadow-effect) | 8 | Постійна тінь під фішкою, що реагує на рух |
 
-**Extra-ефекти (101+)** — вкладений клас `EffectConsts.Extra`:
+**Blocker-ефекти (101+)** — вкладений клас `EffectConsts.Blockers`:
 
 | Константа | ID | Опис |
 |---|---|---|
@@ -198,10 +198,10 @@
 - **Сортування**: Під час руху тінь збільшує свій `sortingOrder`, щоб залишатися візуально синхронізованою з "піднятою" фішкою.
 
 ### 101. Box Effect
-Ефект коробки. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.
+Ефект коробки. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-chains-box)**.
 
 ### 102. Chains Effect
-Ефект ланцюгів. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.
+Ефект ланцюгів. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-chains-box)**.
 
 ### 103. Move Locked Effect
-Ефект блокування переміщення. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#extra-effects-move-locked-chains-box)**.
+Ефект блокування переміщення. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-chains-box)**.

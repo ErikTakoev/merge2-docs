@@ -25,7 +25,7 @@
 - **`HideEffectIds`** (`HashSet<int>`): Набір ID ефектів, які повинні бути приховані при активному блокуванні.
 
 **Реалізації**:
-- **`EffectBlockingSettings`** (`ScriptableObject`): Серіалізована конфігурація, що налаштовується в Inspector. Поле `hideEffectNames` (string[]) резолвиться в `HideEffectIds` через `EffectConsts.GetIdByName`.
+- **`EffectBlockingSettings`** (`ScriptableObject`): Серіалізована конфігурація, що налаштовується в Inspector. Поле `hideEffectIds` (int[]) напряму конфігурується через атрибут `[EffectSelector]` і кешується у `HideEffectIds`.
 - **`CombinedBlockingState`**: Runtime-агрегат усіх активних `IEffectBlockingSettings` на чіпі. `ApplyBlock` використовує AND-логіку для bool-прапорців та OR для `IsLittleChip`. `RemoveBlock` тригерить повний `Recalculate` з усіх залишених блоків. `HideEffectIds` — union усіх активних.
 
 ---
@@ -52,7 +52,7 @@
 
 ---
 
-## Extra Effects (Move Locked, Chains, Box)
+## Blocker Effects (Move Locked, Chains, Box)
 
 Extra-ефекти — це набір опціональних візуальних ефектів, що конфігуруються через `ChipExtraEffectsData` (реалізує `IChipSpecialData`).
 
@@ -77,8 +77,10 @@ Extra-ефекти — це набір опціональних візуальн
 ```csharp
 public struct FieldChipData
 {
+    [ChipSelector]
     public string ChipId;
-    public int[] ExtraEffectIds; // Містить IDs ефектів (наприклад, EffectConsts.Extra.MoveLockedEffect = 103)
+    [EffectBlockerSelector]
+    public int[] BlockerEffectIds; // Містить IDs ефектів (наприклад, EffectConsts.Blockers.MoveLockedEffect = 103)
 }
 ```
 
@@ -86,15 +88,15 @@ public struct FieldChipData
 
 ### Runtime (Chip)
 Клас `Chip` містить `ChipRuntimeData`, який синхронізується з даними рівня:
-- **`runtimeData.EffectEnables`**: Набір активних extra-ефектів.
+- **`runtimeData.EffectEnables`**: Набір активних blocker-ефектів.
 - **`CombinedBlockingState`**: Агрегований стан блокувань, перевіряється через `BlockingState.CanBeMoved`.
-- **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод для зворотного зв'язку при спробі перетягнути заблоковану фішку. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying`; якщо його немає — у ефект з ключем `EffectConsts.Extra.MoveLockedEffect`.
+- **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод для зворотного зв'язку при спробі перетягнути заблоковану фішку. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying`; якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`.
 
 ### Level Editor
 Система блокувань повністю інтегрована у візуальний редактор рівнів:
-1. **Контекстне меню**: Правий клік по фішці на сітці відкриває меню з переліком усіх доступних extra-ефектів (наприклад, "MoveLocked", "Box"). Активні на цей момент ефекти позначаються галочкою «✓».
+1. **Контекстне меню**: Правий клік по фішці на сітці відкриває меню з переліком усіх доступних blocker-ефектів. Імена ефектів отримуються через `EffectConsts.GetNameByIdEditorOnly`. Активні на цей момент ефекти позначаються галочкою «✓».
 2. **Візуальна індикація**: У режимі редактора активні ефекти відображаються у вигляді іконок (прев'ю префабів відповідних ефектів) у нижньому правому куті клітинки. Це дозволяє одразу бачити всі накладені блоки.
-3. **Збереження**: Стан зберігається через масив `ExtraEffectIds` в `FieldChipData` при збереженні ассету рівня.
+3. **Збереження**: Стан зберігається через масив `BlockerEffectIds` в `FieldChipData` при збереженні ассету рівня.
 
 ### Use in Gameplay
 Блокування через `EffectBlockingSettings` напряму впливає на ігрові механіки:

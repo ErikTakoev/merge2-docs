@@ -299,6 +299,33 @@ public override void InitRuntimeData(ChipData data, ref ChipRuntimeData runtimeD
 > [!TIP]
 > Немає жорсткої прив'язки до конкретних реалізацій ефектів. Чіп прив'язується до **інтерфейсу** ефекту, а не до його реалізації. Усі вбудовані ефекти (Highlight, MergeAvailable, MoveLocked тощо) підключаються через **префаби**, тому їх можна легко **замінити** власною реалізацією або **розширити**, створивши похідний клас. Достатньо створити новий префаб з вашим компонентом, що реалізує `IEffect`, `IEffectContainer`, `IEffectGeneratorCharging` або власний інтерфейс, що наслідує `IEffect`.
 
+### Кастомні ID Ефектів та Інтеграція в Інспектор
+
+Щоб визначити власні кастомні ефекти без зміни базового файлу `EffectConsts.cs`, настійно рекомендується створити окремий файл з константами у вашому проєкті.
+
+Щоб уникнути конфліктів ID з базовими ефектами під час майбутніх оновлень рушія, **починайте власні ID з 1000**.
+
+Використовуйте атрибут `[EffectDefinition]` над вашими константами. Система автоматично збере їх під час запуску через Reflection та інтегрує до загального реєстру.
+
+```csharp
+public static class MyEffectConsts
+{
+    // Починайте з 1000, щоб уникнути конфліктів з базовими ID!
+    [EffectDefinition("FrostEffect")]
+    public const int FrostEffect = 1000;
+    
+    [EffectDefinition("PoisonEffect")]
+    public const int PoisonEffect = 1001;
+}
+```
+
+Якщо у ваших скриптах потрібен випадаючий список (комбобокс) в інспекторі для вибору одного з доступних ефектів (як базових, так і кастомних), використовуйте атрибут `[EffectSelector]` над серіалізованим `int` полем:
+
+```csharp
+[EffectSelector]
+[SerializeField] private int mySelectedEffectId;
+```
+
 ### Варіант A — Наслідування від `Effect` (рекомендований)
 
 Базовий клас `Effect` — це потужна система, яка автоматизує більшість типових задач для візуальних ефектів:
@@ -367,7 +394,7 @@ public class MyPureEffect : MonoBehaviour, IEffect
 |---|---|---|
 | `IEffectContainer` | `UpdateElements(...)` | Візуалізація вмісту контейнерів |
 | `IEffectGeneratorCharging` | `OnCharging(float progress)` | Відображення прогресу зарядки |
-| `IEffectPowerBoosterJoin` | `OnPowerBoosterJoin(...)` | Відображення зв'язку з бустером |
+| `IEffectPowerBoosterJoin` | `OnJoin(IPowerBoosterTarget)` / `OnLeave(IPowerBoosterTarget)` | Відображення зв'язку з бустером |
 
 
 Щоб створити новий спеціалізований ефект:

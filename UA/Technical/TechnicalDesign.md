@@ -109,12 +109,12 @@
     mergeData.Combinations = new MergeCombination[] { /* ... */ };
     ```
 - **Перевага**: Дозволяє додавати нові типи даних без розширення базового `ChipData` окремими полями.
-- **Extra Effects як SpecialData**: Налаштування extra-ефектів винесені в `ChipExtraEffectsData` (масив `ExtraEffectData[]` з `effectName` + `Prefab`), тому `Chip.InitEffects()` отримує конфігурацію через `GetSpecialData<ChipExtraEffectsData>()`.
+- **Blocker Effects як SpecialData**: Налаштування blocker-ефектів винесені в `ChipExtraEffectsData` (масив `ExtraEffectData[]` з `effectName` + `Prefab`), тому `Chip.InitEffects()` отримує конфігурацію через `GetSpecialData<ChipExtraEffectsData>()`.
 - **Runtime доступ до merge**: Під час `Chip.Init` merge-дані кешуються у `Chip.MergeData`; `MergeableChipLogic` використовує саме цей доступ.
 
 ### FieldData & CellData
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
-- **FieldChipData**: Містить дані фішки (**ChipId**) та масив активних extra-ефектів (**ExtraEffectIds**, наприклад `EffectConsts.Extra.MoveLockedEffect`).
+- **FieldChipData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
 - **Позиція**: Координати якоря (top-left).
 - **Розташування в коді**: `FieldData` і `FieldChipData` знаходяться в `Core/Scripts/Field/Data`.
 
@@ -124,6 +124,7 @@
 ## Editor Tools
 Ми надаємо спеціалізовані інструменти для полегшення процесу створення та налаштування контенту.
 - **Level Editor**: Візуальний редактор рівнів, що дозволяє дизайнерам налаштовувати сітку та розміщувати фішки.
+- **Property Drawers**: Спеціалізовані атрибути `[ChipSelector]` та `[EffectBlockerSelector]` інтегровані в `FieldChipData` для зручного вибору ID фішок та ефектів прямо в інспекторі.
 - **Chip Creator**: Редактор `ChipData`, який підтримує редагування `specialDatas` (включно з поліморфними типами `IChipSpecialData`).
 - **Undo/Redo (Command Pattern)**: Всі дії в редакторі інкапсульовані в об'єкти команд (`IEditorCommand`). Це дозволяє реалізувати надійну систему скасування та повторення дій, запобігаючи втраті прогресу при помилках редагування.
 - **Validation**: Система автоматичної перевірки цілісності даних рівня перед збереженням.
