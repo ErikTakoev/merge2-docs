@@ -89,11 +89,5 @@ Custom tools to simplify development and content setup.
 ### Auto-generated API Reference
 Automatically generated API reference for Merge Toolkit. Useful for quickly finding classes, interfaces, and methods.
 
-- **[All](../AutoGen/All.md)**
-  > **Context**: Full aggregated overview of all discovered entities (classes, interfaces, fields, methods) in one file.
-
-- **[Merge2](../AutoGen/Merge2.md)**
-  > **Context**: Generated structure and API for namespace `Merge2` split by key module systems.
-
-- **[Merge2_Input](../AutoGen/Merge2_Input.md)**
-  > **Context**: Generated documentation for namespace `Merge2.Input` (tap/drag handling, input system, test input simulations).
+- **[API Reference](../AutoGen/Expecto_MergeBase.md)**
+  > **Context**: Full aggregated overview of all discovered entities (classes, interfaces, fields, methods) within the Expecto.MergeBase namespace.

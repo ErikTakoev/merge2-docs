@@ -16,6 +16,7 @@
 - **Apply/Remove API**: `ApplyPowerBooster(IPowerBoosterTarget, bool reapply)` і `RemovePowerBooster(IPowerBoosterTarget)` оновлюють геймплейний вплив та викликають `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`. При застосуванні перевіряється `BlockingState.CanApplyModifiers`.
 - **`RemoveEffect(int effectId)`** override: Перевіряє, чи `CanApplyModifiers` змінився після `base.RemoveEffect` — якщо так, викликає `OnChangedCell` для re-subscribe і reapply бустерів до сусідів.
 - **`OnTargetChipEffectRemoved(IPowerBoosterTarget, int effectId)`**: Викликається через `IPowerBoosterTarget.NotifyEffectRemoved`, коли у цілі видаляється ефект. Якщо `chipTarget.BlockingState.CanReceiveModifiers` стає `true`, reapply бустер і join-ефект.
+- **`OnTargetChipMoved(IPowerBoosterTarget, bool value)`**: Реле-callback від цілей, розсилає рух-нотифікацію в `joinEffect.Value.OnTargetChipMoved(...)`. Дозволяє join-візуалізації приховуватись під час переміщення цілі.
 - **Move lifecycle**: `SetMoving(true)` одразу деактивує обидва booster-ефекти, щоб уникати stale-візуалізації під час drag/relocation.
 - **Destroy lifecycle**: `Destroy(Cell mainCell)` спочатку викликає `cellSubscriber.OnChipDestroy(mainCell)`, і лише потім делегує у `base.Destroy(...)`, щоб гарантовано зняти всі бустери до фінального очищення чіпа.
 
@@ -43,9 +44,12 @@
 - **`NotifyEffectRemoved(int effectId)`**: Ітерує `appliedBoosters` і викликає `booster.OnTargetChipEffectRemoved(this, effectId)` для кожного.
 
 ### 5. `IEffectPowerBoosterJoin` + `PowerBoosterJoinEffect.cs`
-- **`IEffectPowerBoosterJoin`**: Контракт для join-візуалізації (`OnJoin`, `OnLeave`, `Show`) з серіалізованою обгорткою `EffectPowerBoosterJoinRef`.
+- **`IEffectPowerBoosterJoin`**: Контракт для join-візуалізації (`OnJoin`, `OnLeave`, `OnTargetChipMoved`) з серіалізованою обгорткою `EffectPowerBoosterJoinRef`.
 - **`PowerBoosterJoinEffect`**: Реалізація, яка спавнить particle-лінки між бустером і кожним активним `IPowerBoosterTarget`.
-- **Вибір точок**: Ефект працює з `JoinPoints` обох сторін (booster/target), обирає найближчі кандидати та періодично перебіндовує активні лінки через корутіну (`changeJoinPointsTime`).
+- **Відкладений spawn**: `OnJoin` не спавнить ефекти одразу — запускає корутіну `WaitStopMovingAndShowEffects`, яка чекає зупинки руху бустера **і** цілі. Якщо `OnLeave` викликається раніше, корутіна скасовується через `pendingWaitCoroutines` — race condition виключений.
+- **`pendingWaitCoroutines`**: Словник `Dictionary<IPowerBoosterTarget, Coroutine>` — захист від дублювання та від `OnLeave`-скасування in-flight spawn-coroutine. Null-запис (coroutine завершилась синхронно або ще не збережена ref) безпечно обробляється.
+- **`OnTargetChipMoved`**: Вмикає/вимикає loop particle systems для конкретної цілі під час її руху — прибирає візуальний «дребезг».
+- **Вибір точок**: `GetTopClosest` фільтрує N найближчих anchor-точок з обох сторін; `ShowEffect` або спавнить нову `ParticleSystem`, або переприв'язує існуючу до нового join point.
 - **Cleanup**: `OnLeave` і `Deactivate` зупиняють particle systems, планують їх знищення по lifetime і очищують внутрішній словник активних лінків.
 
 ## Subscriber System

@@ -40,10 +40,10 @@ Merge Toolkit має три залежності:
 
 ### Крок 1 — Відкрийте Chip Viewer
 
-У меню Unity: **Window → Merge2 → Chip Viewer**
+У меню Unity: **Window → Expecto → MergeBase → Chip Viewer**
 
 ### Крок 2. Створення нового папки гри
-Відкрийте `Window > Merge2 > Chip Viewer`.
+Відкрийте `Window → Expecto → MergeBase → Chip Viewer`.
 1. У вкладці **Settings** натисніть кнопку **New Game Folder**.
 2. Виберіть шлях для нової гри (всередині `Assets/`).
 

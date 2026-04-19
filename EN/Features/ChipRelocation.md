@@ -24,6 +24,7 @@ The process of checking movement possibility and planning relocation works as fo
 
 2. **Conflict Detection**:
    - `GetOccupiedCellsInArea` method finds all chips currently occupying cells in the area where new chip wants to be.
+   - For each conflicting chip, **`chip.CanMoving()`** is checked — if the chip is MoveLocked (e.g., has a `MoveLockedEffect` blocking effect), the entire process is immediately cancelled (`return false`): neither movement nor relocation occurs.
    - A unique list of chips for potential movement is created (`chipsToPotentiallyMove`).
 
 3. **Priority Sorting**:

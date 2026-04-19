@@ -118,6 +118,17 @@ Tests of chip booster functionality ([ChipPowerBooster](../Chips/ChipPowerBooste
 - **Goal**: Verifies modifier is removed when generator is moved away from booster.
 - **Scenario**: Creates uncharged generator near booster (`BoostedTargets.Count == 1`) with parameters through `GetSpecialData<ChipGeneratorData>()`. Moves generator far away. Waits `ChargingTime / Power - timeToMove`. Verifies generator did **not** charge (boost was removed).
 
+#### CheckGeneratorReturnsToBoosterRangeAfterLockedMove
+- **Goal**: Verifies that generator and booster return to their boost range after a failed move onto a `MoveLocked` chip (snap-back).
+- **Scenario**:
+  1. Places generator at (0, 0) and booster at (4, 0) — generator is in booster range (`AppliedBoosters.Count == 1`).
+  2. Creates `Fire_1` chip at (8, 0) with `EffectConsts.Blockers.MoveLockedEffect` in `EffectEnables`.
+  3. Simulates dragging **generator** onto `Fire_1` — movement is blocked, generator snaps back to (0, 0).
+  4. **Key check**: After snap-back — `AppliedBoosters.Count == 1` and `BoostedTargets.Contains(generatorChip)` — boost correctly restored.
+  5. Simulates dragging **booster** onto `Fire_1` — movement is blocked, booster snaps back to (4, 0).
+  6. **Key check**: After snap-back — `AppliedBoosters.Count == 1` and `BoostedTargets.Contains(generatorChip)` — boost not lost.
+- **Importance**: Guarantees that `DraggableChipLogic` correctly reapplies boosters on snap-back via `OnChangedCell` after a failed move onto a `MoveLocked` target.
+
 #### CheckBoosterPower_Evolution
 - **Goal**: Verifies correct boost cleanup during booster evolution (merge), which affects behavior of neighboring generators.
 - **Scenario**:
@@ -135,7 +146,7 @@ Tests of chip booster functionality ([ChipPowerBooster](../Chips/ChipPowerBooste
 Class configuration for test settings.
 - **Purpose**: Stores path to test scene prefab and debug flags.
 - **Updates**: 
-  - Added menu item `Window/Merge2/Tests/Enable Debug Mode` for quick debug mode enabling.
+  - Added menu item `Window/Expecto/MergeBase/Tests/Enable Debug Mode` for quick debug mode enabling.
   - Added reference to `ChipCreatorSettings` for automatic path setup for data and prefabs during test runs.
 
 ### Automated Scaffolding

@@ -1,4 +1,4 @@
-# Namespace: Merge2
+# Namespace: Expecto.MergeBase
 
 ## Table of Contents
 - [Cell](#cell)
@@ -262,13 +262,14 @@
 #### Fields
 - `++ CellPosition: Vector2Int`
 - `++ LogEnable: bool`
+- `+- Animator: Animator`
 - `+- BlockingState: CombinedBlockingState`
 - `+- CellSubscriber: ICellSubscriber`
 - `+- Data: ChipData`
+- `+- IsMoving: bool`
 - `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
 - `+- SortingLayer: IChipSortingLayer`
-- `~ animator: Animator`
 - `~ chipChangeNotifier: IChipChangeNotifier`
 - `~ effectOfPrioritizingDestroying: IEffect`
 - `~ effects: Dictionary<int, IEffect>`
@@ -281,11 +282,6 @@
     - used to distinguish user drag from automated movement
     - **Notes**: Separate from IsMoving which tracks visual/sorting state
     - allows detection of user-initiated drag vs system movement
-- `~ isMoving: bool`
-    - **Purpose**: Tracks whether the chip is currently in a visual movement state (e.g., being dragged or relocated)
-    - **Usage**: Set via SetMoving
-    - used to adjust sorting layers and notify effects that visual position is changing
-    - **Notes**: When true, sortingLayer.SetMoving(true) is called to lift the chip visually
 - `- lastTrigger: string`
 #### Methods
 - `+ CanMoving(): bool`
@@ -316,12 +312,6 @@
     - **Returns**: True if the chip is being dragged by user input
     - **Notes**: Separate from IsMoving
     - tracks user drag state specifically, not just visual movement
-- `+ IsMoving(): bool`
-    - **Purpose**: Checks if the chip is currently in a moving state based on its sorting order
-    - **Usage**: Use to determine if the chip is visually moving (either by user drag or system relocation)
-    - **Returns**: True if the chip's sorting order indicates it is moving
-    - **Notes**: Depends on sorting order being set to 2 in SetMoving
-    - returns true for both user drag and automated movement
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
     - **Purpose**: Called when the chip is moved to a new cell
     - updates all attached effects accordingly
@@ -378,6 +368,10 @@
     - **Params**: position - the world position where the chip was tapped
 - `+ SendTrigger(AnimatorTrigger trigger): void`
 - `+ SendTrigger(string trigger): void`
+    - **Purpose**: Sends a trigger to the animator and synchronizes the 'Little' state.
+    - **Usage**: Called when a chip state change requires an animation trigger (e.g., Generate, Recharge).
+    - **Params**: trigger - the animator trigger name to fire
+    - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state.
 - `+ SetDragging(bool value): void`
     - **Purpose**: Sets the drag state of the chip and ensures visual consistency
     - **Usage**: Called by DraggableChipLogic when user drag starts (true) or ends (false)
@@ -560,7 +554,7 @@
     - isFull - true if all requirements are met.
     - **Notes**: Dynamically instantiates UI elements (bubbles) and resizes the background panel. Deactivates effect if isFull is true.
 - `- ClearElements(): void`
-- `- Merge2.IEffect.get_gameObject(): GameObject`
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
 
 ## ChipContainerRuntimeData
@@ -737,6 +731,10 @@
     - **Notes**: Handles event subscriptions, effect activation, and runtime state setup.
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData& runtimeData): void`
 - `+ NotifyEffectRemoved(int effectId): void`
+    - **Purpose**: Notifies all active boosters that an effect has been removed from this generator.
+    - **Usage**: Called from RemoveEffect
+    - allows boosters to re-evaluate their influence if they were previously blocked.
+    - **Params**: effectId - the ID of the effect that was removed
 - `+ OnTap(Vector2 position): void`
     - **Purpose**: Handles tap input for manual chip generation.
     - **Usage**: Call when the player taps the generator in manual mode.
@@ -749,11 +747,10 @@
     - **Notes**: Resets multiplier to 1f when no boosters remain
     - logs warning if removal is requested for a non-registered booster.
 - `+ SetMoving(bool value): void`
-    - **Purpose**: Updates dragging state and deactivates charged effect during drag
-    - **Usage**: Called when drag starts or ends
-    - deactivates charged effect to prevent visual clutter
-    - **Params**: value - true if starting drag, false if ending drag
-    - **Notes**: Ensures the 'charged' visual doesn't obscure the field while the user is positioning the generator
+    - **Purpose**: Updates movement state and notifies all active boosters of the movement change.
+    - **Usage**: Called by the movement system when the generator starts or stops moving.
+    - **Params**: value - true if starting movement, false if stopping
+    - **Notes**: Ensures boosters can update their visual links during generator relocation.
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the generator, including charge and move-locked effects
     - **Usage**: Overridden to manage generator-specific effects (charging vs. charged)
@@ -829,7 +826,7 @@
     - **Purpose**: Updates the visual state of charging based on progress
     - **Usage**: Called via event from ChipGenerator during update loop
     - **Params**: progress - value between 0 and 1 indicating charge percentage
-- `- Merge2.IEffect.get_gameObject(): GameObject`
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
 
 ## ChipGeneratorRuntimeData
@@ -967,6 +964,12 @@
     - effectId - ID of the removed effect
     - **Notes**: Only reapplies if the target now has CanReceiveModifiers true
     - triggers joinEffect.OnJoin if reapply succeeds
+- `+ OnTargetChipMoved(IPowerBoosterTarget chipTarget, bool value): void`
+    - **Purpose**: Relays target movement notifications to the active join effect.
+    - **Usage**: Called by target entities when they start or stop moving.
+    - **Params**: chipTarget - the moving target
+    - value - true if move began, false if it ended
+    - **Notes**: Allows join link visuals to stay synchronized or hide during target relocation.
 - `+ RemovePowerBooster(IPowerBoosterTarget target): void`
     - **Purpose**: Removes booster influence from a target entity and notifies join effect.
     - **Usage**: Called by PowerBoosterCellSubscriber when a matching target leaves observed cells or gets removed.
@@ -1294,8 +1297,8 @@
     - **Usage**: Called internally during Init
     - scales the effect proportionally or non-proportionally
     - **Params**: chipSize - the grid dimensions of the chip (e.g., Data.Size)
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 - `~ HasTrigger(string name): bool`
-- `- Merge2.IEffect.get_gameObject(): GameObject`
 - `~ ResetTrigger(string triggerName): void`
     - **Purpose**: Resets an animation trigger on the effect's animator
     - **Usage**: Internal helper to clear opposing triggers when switching states
@@ -1887,6 +1890,10 @@
     - **Purpose**: Removes visual links associated with the provided target.
     - **Usage**: Called when a booster stops affecting the target or the target is removed.
     - **Params**: target - entity losing booster influence
+- `+ OnTargetChipMoved(IPowerBoosterTarget chipTarget, bool value): void`
+    - **Purpose**: Notifies that a target chip has started or stopped moving.
+    - **Usage**: Called by ChipPowerBooster when a target chip's IsMoving state changes.
+    - **Params**: chipTarget - the target chip that moved, value - true if chip started moving, false if it stopped
 ---
 
 ## IFieldEventHandler
@@ -1971,6 +1978,7 @@
 #### Fields
 - `+- AppliedBoosters: HashSet<ChipPowerBooster>`
 - `+- BlockingState: CombinedBlockingState`
+- `+- IsMoving: bool`
 - `+- JoinPoints: IReadOnlyList<Transform>`
 #### Methods
 - `+ ApplyPowerBooster(ChipPowerBooster chipPowerBooster, bool reapply): bool`
@@ -2133,26 +2141,32 @@
 - `~ chipPowerBooster: ChipPowerBooster`
 #### Methods
 - `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
-    - **Purpose**: Recomputes booster links after the booster itself changes cell.
-    - **Usage**: Called during owner chip relocation
-    - removes all existing links, re-subscribes via base logic, then rebuilds links from newly observed cells.
-    - **Params**: sourceCell - previous booster main cell
-    - targetCell - new booster main cell
+    - **Purpose**: Re-evaluates all booster links after the booster itself is relocated.
+    - **Usage**: Called when the owner booster chip changes its grid position.
+    - **Params**: sourceCell - original cell
+    - targetCell - result cell
+    - **Notes**: Clears all previous links, re-subscribes to new neighbors, and rebuilds links from the new location.
 - `+ OnChipDestroy(Cell mainCell): void`
-    - **Purpose**: Removes all active booster links before subscriber teardown.
-    - **Usage**: Called during booster destruction to guarantee counterpart effects are reverted.
-    - **Params**: mainCell - booster main cell at destruction time
+    - **Purpose**: Cleans up all active booster links before the chip is destroyed.
+    - **Usage**: Called during the booster's teardown lifecycle.
+    - **Params**: mainCell - the booster's current cell
+    - **Notes**: Ensures all targets are notified of booster removal to prevent stale visual links or modifiers.
 - `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
-    - **Purpose**: Applies/removes boosters when observed neighboring chips change.
-    - **Usage**: Invoked by CellObserverManager flush events
-    - idempotent membership checks avoid duplicate callbacks.
-    - **Params**: evt - neighbor chip change payload with old/new chip references
+    - **Purpose**: Updates booster links when neighboring chips change, ensuring consistent application/removal.
+    - **Usage**: Invoked by CellObserverManager
+    - uses boostedTargets set for idempotency.
+    - **Params**: evt - event containing old/new chips on the observed cell
 - `~ Awake(): void`
 - `- ClearAllTargets(): void`
 ---
 
 ## PowerBoosterConnectorCellsHighlightEffect
 **Inherits**: `CellHighlightEffect`
+
+> - **Purpose**: Visualizes the booster's observation range by highlighting neighbor cells and periodically triggering booster animations.
+> - **Usage**: Used by ChipPowerBooster to show coverage
+> - activated when the booster cell subscriber is updated.
+> - **Notes**: Uses powerEffectCoroutine to repeat a secondary animation trigger while active.
 #### Fields
 - `+ distractionAmount: float`
 - `+ globalAlpha: float`
@@ -2164,15 +2178,24 @@
 - `~ waitTimeBeforePowerEffect: float`
 #### Methods
 - `+ Activate(Chip chip): bool`
+    - **Purpose**: Starts the highlight effect and initiates the periodic animation coroutine.
+    - **Usage**: Called by Chip when activating effects
+    - triggers the recurring PowerBooster animation via StartPowerEffect.
+    - **Returns**: True if the effect was successfully activated.
+    - **Notes**: Restarts powerEffectCoroutine to ensure periodic visual feedback begins immediately.
 - `+ Deactivate(Chip chip, bool force): void`
+    - **Purpose**: Stops the highlight effect and cleans up the animation coroutine.
+    - **Usage**: Called when deactivating effects
+    - stops the repetitive powerEffectCoroutine.
+    - **Notes**: Ensures the coroutine is stopped and the animator state is reset to prevent stuck animations.
 - `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
     - **Purpose**: Reacts to cell changes by triggering the PowerBooster animation
     - **Usage**: Called automatically via CellHighlightEffect when the chip is moved
     - **Params**: sourceCell - original cell
     - targetCell - result cell
 - `+ OnInteractionOverCellChanged(Cell sourceCell, Cell targetCell, Cell interactableCell): void`
+- `- <Activate>g__StartPowerEffect|8_0(Chip chip, float waitTime): IEnumerator`
 - `~ CreateHighlights(): void`
-- `- StartPowerEffect(Chip chip, float waitTime): IEnumerator`
 - `- Update(): void`
 ---
 
@@ -2186,11 +2209,13 @@
 #### Fields
 - `- changeJoinPointsCoroutine: Coroutine`
 - `- changeJoinPointsTime: float`
+- `- chipPowerBooster: Chip`
 - `- effectPowerDistance: float`
 - `~ effects: Dictionary<IPowerBoosterTarget, List<JoinEffectData>>`
 - `~ joinEffectPrefab: ParticleSystem`
 - `~ joinPoints: Transform[]`
 - `- minMaxEffectsForOneModifier: Vector2Int`
+- `- pendingWaitCoroutines: Dictionary<IPowerBoosterTarget, Coroutine>`
 #### Methods
 - `+ Deactivate(Chip chip, bool force): void`
     - **Purpose**: Stops all running join visuals and clears tracked modifier links.
@@ -2198,6 +2223,7 @@
     - **Params**: chip - owning chip passed by effect lifecycle
     - force - optional force flag from IEffect contract
     - **Notes**: Stops coroutine, stops particles, schedules particle GameObject destruction using each particle lifetime, then clears state dictionary.
+- `+ Init(Chip chip, int effectId): void`
 - `+ OnJoin(IPowerBoosterTarget target): void`
     - **Purpose**: Registers a new target and creates one or more visual join effects for it.
     - **Usage**: Called when a booster starts affecting a target.
@@ -2208,6 +2234,13 @@
     - **Usage**: Called when booster influence on a target ends.
     - **Params**: target - target entity to remove
     - **Notes**: Stops reshuffle coroutine when no targets remain.
+- `+ OnTargetChipMoved(IPowerBoosterTarget chipTarget, bool value): void`
+    - **Purpose**: Toggles the looping state of join effects based on target movement.
+    - **Usage**: Called when a target chip's movement state changes
+    - stops effects while moving to avoid visual jitter.
+    - **Params**: chipTarget - the affected target
+    - value - true if move started, false if stopped
+    - **Notes**: Uses dictionary lookup to find and modify all particle systems related to the target.
 - `- CalcRotation(Transform joinPoint, Transform entityTransformJoinPoint): Quaternion`
     - **Purpose**: Calculates particle orientation so link visuals point from booster join point toward modifier join point.
     - **Usage**: Called when (re)binding an effect to selected endpoints.
@@ -2223,6 +2256,7 @@
     - **Usage**: Called after endpoint selection or reassignment.
     - **Params**: particleSystem - effect instance to update
     - distance - world-space endpoint distance used for lifetime scaling
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 - `- GetTopClosest(IReadOnlyList<Transform> sources, IReadOnlyList<Transform> targets, int n, List`1& distances): List<Transform>`
     - **Purpose**: Selects up to N source transforms that are closest to any target transform.
     - **Usage**: Used to prefilter candidate join points on both booster and modifier sides.
@@ -2232,13 +2266,13 @@
     - distances - reusable scratch list for distance calculations
     - **Returns**: List containing the N closest source transforms (or fewer when sources are limited).
     - **Notes**: Uses a reusable distance list to reduce temporary allocations during repeated effect updates.
-- `- Merge2.IEffect.get_gameObject(): GameObject`
-- `- ShowEffect(IPowerBoosterTarget target, JoinEffectData joinEffectData): JoinEffectData`
+- `- ShowEffect(IPowerBoosterTarget target, JoinEffectData& joinEffectData): void`
     - **Purpose**: Creates or rebinds a single join particle effect between booster and target join points.
     - **Usage**: Called for initial spawn and periodic endpoint reshuffles.
     - **Params**: target - target entity for this link
     - joinEffectData - existing effect data to update (null creates a new record)
     - **Returns**: Effect data instance containing selected endpoints and the particle system instance.
+- `- WaitStopMovingAndShowEffects(IPowerBoosterTarget target): IEnumerator`
 ---
 
 ## ShadowEffect

@@ -11,7 +11,7 @@
 Перед розширенням рекомендується створити чисту структуру проєкту. Детальна інструкція знаходиться у [Quick Start → Create New Merge Game (Clean Project)](Quick_Start.md#create-new-merge-game-clean-project).
 
 **Коротко:**
-1. Відкрийте **Window → Merge2 → Chip Viewer**.
+1. Відкрийте **Window → Expecto → MergeBase → Chip Viewer**.
 2. У вкладці **Settings** натисніть **New Game Folder**.
 3. Інструмент автоматично створить повну структуру папок, сцену, `Merge2LifetimeScope`, `ChipCreatorSettings`, тести та всі необхідні ассети.
 

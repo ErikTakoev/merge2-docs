@@ -11,7 +11,7 @@ This document describes how to extend Merge Toolkit project: from creating a new
 Before extending, it is recommended to create a clean project structure. Detailed instructions are in [Quick Start -> Create New Merge Game (Clean Project)](Quick_Start.md#create-new-merge-game-clean-project).
 
 **In short:**
-1. Open **Window -> Merge2 -> Chip Viewer**.
+1. Open **Window -> Expecto -> MergeBase -> Chip Viewer**.
 2. In **Settings** tab click **New Game Folder**.
 3. Tool will automatically create full folder structure, scene, `Merge2LifetimeScope`, `ChipCreatorSettings`, tests, and all required assets.
 

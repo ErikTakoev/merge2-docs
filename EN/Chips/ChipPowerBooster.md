@@ -16,6 +16,7 @@ Inherits `Chip`. Main booster class.
 - **Apply/Remove API**: `ApplyPowerBooster(IPowerBoosterTarget, bool reapply)` and `RemovePowerBooster(IPowerBoosterTarget)` update gameplay impact and call `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`. During application, `BlockingState.CanApplyModifiers` is checked.
 - **`RemoveEffect(int effectId)`** override: Checks whether `CanApplyModifiers` changed after `base.RemoveEffect` — if yes, calls `OnChangedCell` for re-subscribe and booster reapply to neighbors.
 - **`OnTargetChipEffectRemoved(IPowerBoosterTarget, int effectId)`**: Called via `IPowerBoosterTarget.NotifyEffectRemoved` when an effect is removed from target. If `chipTarget.BlockingState.CanReceiveModifiers` becomes `true`, reapply booster and join effect.
+- **`OnTargetChipMoved(IPowerBoosterTarget, bool value)`**: Relay callback from targets; forwards the movement notification to `joinEffect.Value.OnTargetChipMoved(...)`. Allows join visuals to hide while a target is being relocated.
 - **Move lifecycle**: `SetMoving(true)` immediately deactivates both booster effects to avoid stale visualization during drag/relocation.
 - **Destroy lifecycle**: `Destroy(Cell mainCell)` first calls `cellSubscriber.OnChipDestroy(mainCell)`, and only then delegates to `base.Destroy(...)` to guarantee all boosters are removed before final chip cleanup.
 
@@ -43,9 +44,12 @@ Partial implementation of `IPowerBoosterTarget` in `ChipGenerator` (partial clas
 - **`NotifyEffectRemoved(int effectId)`**: Iterates `appliedBoosters` and calls `booster.OnTargetChipEffectRemoved(this, effectId)` for each.
 
 ### 5. `IEffectPowerBoosterJoin` + `PowerBoosterJoinEffect.cs`
-- **`IEffectPowerBoosterJoin`**: Contract for join visualization (`OnJoin`, `OnLeave`, `Show`) with serialized wrapper `EffectPowerBoosterJoinRef`.
+- **`IEffectPowerBoosterJoin`**: Contract for join visualization (`OnJoin`, `OnLeave`, `OnTargetChipMoved`) with serialized wrapper `EffectPowerBoosterJoinRef`.
 - **`PowerBoosterJoinEffect`**: Implementation that spawns particle links between booster and each active `IPowerBoosterTarget`.
-- **Point selection**: Effect works with both sides' `JoinPoints` (booster/target), selects nearest candidates, and periodically rebinds active links through coroutine (`changeJoinPointsTime`).
+- **Deferred spawn**: `OnJoin` does not spawn effects immediately — launches `WaitStopMovingAndShowEffects` coroutine that waits until both booster **and** target stop moving. If `OnLeave` is called first, the coroutine is cancelled via `pendingWaitCoroutines` — race condition eliminated.
+- **`pendingWaitCoroutines`**: `Dictionary<IPowerBoosterTarget, Coroutine>` — guards against duplicate spawning and `OnLeave`-cancellation of in-flight coroutines. Null entries (synchronously completed or not yet stored ref) are handled safely.
+- **`OnTargetChipMoved`**: Enables/disables loop state of particle systems for the specific target while it moves — eliminates visual jitter.
+- **Point selection**: `GetTopClosest` filters N closest anchor transforms from both sides; `ShowEffect` either spawns a new `ParticleSystem` or reparents the existing one to a new join point.
 - **Cleanup**: `OnLeave` and `Deactivate` stop particle systems, schedule their destruction by lifetime, and clear internal active links dictionary.
 
 ## Subscriber System

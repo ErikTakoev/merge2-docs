@@ -40,10 +40,10 @@ This section explains how to create a new merge game from scratch using the buil
 
 ### Step 1 - Open Chip Viewer
 
-In the Unity menu: **Window -> Merge2 -> Chip Viewer**
+In the Unity menu: **Window -> Expecto -> MergeBase -> Chip Viewer**
 
 ### Step 2. Create a new game folder
-Open `Window > Merge2 > Chip Viewer`.
+Open `Window -> Expecto -> MergeBase -> Chip Viewer`.
 1. In the **Settings** tab, click the **New Game Folder** button.
 2. Choose a path for the new game (inside `Assets/`).
 
