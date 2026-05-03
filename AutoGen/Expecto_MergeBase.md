@@ -1,6 +1,7 @@
 # Namespace: Expecto.MergeBase
 
 ## Table of Contents
+- [BlockedCell](#blockedcell)
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
 - [CellObserverManager](#cellobservermanager)
@@ -58,6 +59,7 @@
 - [FieldInitializeCommand](#fieldinitializecommand)
 - [FillContainerLogic](#fillcontainerlogic)
 - [FreeCellFinder](#freecellfinder)
+- [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
 - [IChipChangeNotifier](#ichipchangenotifier)
 - [IChipFinder](#ichipfinder)
@@ -90,6 +92,23 @@
 
 ---
 
+## BlockedCell
+#### Fields
+- `++ Chip: Chip`
+- `++ MainCell: ICell`
+- `+- CellPosition: Vector2Int`
+- `+- IsBlocked: bool`
+- `+- Transform: Transform`
+#### Methods
+- `+ GetColorForLevelEditor(): Nullable<Color>`
+- `+ GetLocalPositionForChip(): Vector3`
+- `+ Init(Vector2Int cellPos): void`
+- `+ OnDrag(Vector2 position, bool isValidPosition): void`
+- `+ OnDragEnd(Vector2 position): void`
+- `+ OnDragStart(Vector2 position): void`
+- `+ OnTap(Vector2 position): void`
+---
+
 ## Cell
 **Inherits**: `MonoBehaviour`
 
@@ -99,12 +118,14 @@
 > - **Notes**: Acts as a container for a chip and handles chip movement/interaction logic.
 #### Fields
 - `++ Chip: Chip`
-- `+ MainCell: Cell`
+- `++ MainCell: ICell`
 - `+- CellPosition: Vector2Int`
-- `- field: IFieldEventHandler`
-- `- flyAnimation: IChipFlyAnimation`
-- `- logEnable: bool`
-- `- movingTime: float`
+- `+- IsBlocked: bool`
+- `+- Transform: Transform`
+- `~ field: IFieldEventHandler`
+- `~ flyAnimation: IChipFlyAnimation`
+- `~ logEnable: bool`
+- `~ movingTime: float`
 #### Methods
 - `+ GetLocalPositionForChip(): Vector3`
     - **Purpose**: Gets the center position of the chip in this cell.
@@ -132,6 +153,7 @@
     - **Usage**: Call when the user taps on this cell
     - delegates to the chip if present.
     - **Params**: position - screen or world position of the tap.
+- `- Expecto.MergeBase.ICell.GetColorForLevelEditor(): Nullable<Color>`
 - `- Update(): void`
 ---
 
@@ -146,6 +168,7 @@
 #### Fields
 - `~ chipSize: Vector2Int`
 - `~ color: Color`
+- `~ fieldGrid: IFieldGrid`
 - `~ highlightPrefab: GameObject`
 - `~ highlights: List<GameObject>`
 - `~ order: float`
@@ -153,11 +176,12 @@
 #### Methods
 - `+ Activate(Chip chip): bool`
 - `+ Deactivate(Chip chip, bool force): void`
-- `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
-- `+ OnInteractionOverCellChanged(Cell sourceCell, Cell targetCell, Cell interactableCell): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnInteractionOverCellChanged(ICell sourceCell, ICell targetCell, ICell interactableCell): void`
 - `~ CreateHighlight(Vector3 localPosition): GameObject`
 - `~ CreateHighlights(): void`
 - `~ DestroyHighlights(): void`
+- `- SetHighlightsVisible(bool value): void`
 ---
 
 ## CellObserverManager
@@ -167,7 +191,7 @@
 > - **Usage**: Subscribers are stored per physical cell. On flush, notifications are expanded by old/new chip footprint so secondary-cell observers are notified without fold/promote state.
 > - **Notes**: Optimized for low churn: no topology migration, O(1) subscribe/unsubscribe operations, and reusable snapshot list for callback-safe iteration.
 #### Fields
-- `- cellToSubscribers: Dictionary<Cell, HashSet<ICellSubscriber>>`
+- `- cellToSubscribers: Dictionary<ICell, HashSet<ICellSubscriber>>`
     - **Purpose**: Primary forward index: physical cell to subscribers.
     - **Usage**: Used by event-area notification for O(1) lookup of observers per cell.
     - **Notes**: HashSet prevents duplicate subscriptions for the same subscriber-cell pair.
@@ -180,7 +204,7 @@
 - `- subscriberSnapshot: List<ICellSubscriber>`
     - **Purpose**: Reusable snapshot list for safe callback iteration.
     - **Usage**: Copies current subscriber set before callbacks to avoid collection-modified issues when unsubscribe happens during callback.
-- `- subscriberToCells: Dictionary<ICellSubscriber, HashSet<Cell>>`
+- `- subscriberToCells: Dictionary<ICellSubscriber, HashSet<ICell>>`
     - **Purpose**: Reverse index: subscriber to all watched physical cells.
     - **Usage**: Used for O(k) unsubscribe and API data extraction without scanning all cells.
 #### Methods
@@ -190,7 +214,7 @@
 - `+ LogSubscriptions(): void`
 - `+ Subscribe(ICellSubscriber subscriber, List<Vector2Int> cellPositions): void`
 - `+ Unsubscribe(ICellSubscriber subscriber): void`
-- `- AddSubscription(ICellSubscriber subscriber, Cell cell): void`
+- `- AddSubscription(ICellSubscriber subscriber, ICell cell): void`
     - **Purpose**: Adds a subscriber-cell relation to both forward and reverse indexes.
     - **Usage**: Used by Subscribe and internal resubscription flows.
     - **Notes**: Duplicate relations are ignored by HashSet.Add to avoid redundant reverse-index writes.
@@ -219,14 +243,14 @@
 - `~ chip: Chip`
 - `~ fieldGrid: IFieldGrid`
 #### Methods
-- `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChipChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Re-subscribes to neighbors whenever the chip is placed or moved to a new cell.
     - **Usage**: Called by Cell.Chip setter
     - sourceCell == null means initial placement.
     - **Params**: sourceCell - previous cell (null on initial placement)
     - targetCell - new cell with correct CellPosition
     - **Notes**: Unsubscribes from old neighbors first to avoid stale subscriptions after a move.
-- `+ OnChipDestroy(Cell mainCell): void`
+- `+ OnChipDestroy(ICell mainCell): void`
     - **Purpose**: Unsubscribes from CellObserverManager and cleans up before the chip is removed.
     - **Usage**: Called by the base Destroy path or directly when the chip is cleared from the field.
     - **Params**: mainCell - the cell this chip occupies
@@ -283,6 +307,7 @@
     - **Notes**: Separate from IsMoving which tracks visual/sorting state
     - allows detection of user-initiated drag vs system movement
 - `- lastTrigger: string`
+- `~ resolver: IObjectResolver`
 #### Methods
 - `+ CanMoving(): bool`
     - **Purpose**: Checks whether the chip can currently be moved by the player
@@ -292,7 +317,7 @@
     - false if movement is locked
     - **Notes**: Based on runtimeData.IsMoveLocked
     - prevents drag-and-drop when locked
-- `+ Destroy(Cell mainCell): void`
+- `+ Destroy(ICell mainCell): void`
     - **Purpose**: Destroys the chip and all its attached effects
     - **Usage**: Call to remove the chip from the field and scene
     - override in derived classes for custom teardown before or after base destruction
@@ -312,14 +337,14 @@
     - **Returns**: True if the chip is being dragged by user input
     - **Notes**: Separate from IsMoving
     - tracks user drag state specifically, not just visual movement
-- `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Called when the chip is moved to a new cell
     - updates all attached effects accordingly
     - **Usage**: Call after the chip's parent cell has changed
     - propagates cell change to all effects
     - **Params**: sourceCell - the cell the chip was previously in
     - targetCell - the cell the chip is moved to
-- `+ OnDrag(Vector2 position, Cell anchorCell): void`
+- `+ OnDrag(Vector2 position, ICell anchorCell): void`
     - **Purpose**: Called during dragging to update chip's highlight or position
     - **Usage**: Override in derived classes to implement custom drag behavior
     - called continuously during drag
@@ -343,14 +368,14 @@
     - **Usage**: Override in derived classes to implement custom drag start behavior
     - receives drag start position in world coordinates
     - **Params**: position - the world position where the drag started
-- `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell underCell): void`
+- `+ OnInteractionOverCellChanged(ICell prevCell, ICell currentCell, ICell underCell): void`
     - **Purpose**: Notifies all chip effects when the dragged chip moves between cells
     - **Usage**: Called by DraggableChipLogic when chip position changes during drag to update visual effects
     - **Params**: prevCell - previous cell position
     - currentCell - new cell position
     - underCell - cell currently under the chip
     - **Notes**: Propagates cell change event to all attached effects like highlights, merge indicators, etc.
-- `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+- `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
     - **Purpose**: Notifies all chip effects when the cell under the dragged chip changes
     - **Usage**: Called by DraggableChipLogic to update effects that react to being held over a specific cell (e.g., potential interaction targets)
     - **Params**: underCell - The cell currently directly under the chip
@@ -435,7 +460,7 @@
     - **Notes**: Automatically calls Init(this) on the instantiated effect
     - return value can be added to the effects list
     - T must be a class and implement IEffect
-- `~ NotifyEffectsOnChangedCell(Cell sourceCell, Cell targetCell): void`
+- `~ NotifyEffectsOnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `~ NotifyEffectsOnMovingStateChanged(bool isMoving): void`
     - **Purpose**: Broadcasts movement state changes to all attached effects
     - **Usage**: Called from SetMoving when a chip starts or ends visual movement
@@ -457,7 +482,7 @@
 > - **Purpose**: Describes a chip change on a single cell.
 > - **Usage**: Produced by FieldGrid.SetChipInCell and delivered once per frame via DeferredChipChangeNotifier.
 #### Fields
-- `+- Cell: Cell`
+- `+- Cell: ICell`
 - `+- ChipAdded: bool`
 - `+- ChipRemoved: bool`
 - `+- ChipReplaced: bool`
@@ -630,7 +655,7 @@
 - `~ fieldGrid: IFieldGrid`
 - `~ resolver: IObjectResolver`
 #### Methods
-- `+ CreateChip(Cell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer): Chip`
+- `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer): Chip`
 - `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer): Chip`
 - `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid): void`
 ---
@@ -718,7 +743,7 @@
     - **Returns**: True when the booster was newly added
     - false when it was already present.
     - **Notes**: Multiplier becomes the maximum power among active boosters to prevent stacking by sum.
-- `+ Destroy(Cell mainCell): void`
+- `+ Destroy(ICell mainCell): void`
     - **Purpose**: Cleans up generator-owned callbacks and subscriptions before the base chip destruction flow runs.
     - **Usage**: Call when removing a ChipGenerator from the field
     - this override must execute before base.Destroy so auto-mode callbacks cannot fire against a chip that is already being removed.
@@ -860,7 +885,7 @@
 #### Methods
 - `+ Activate(Chip chip): bool`
 - `+ Deactivate(Chip chip, bool force): void`
-- `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+- `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
 ---
 
 ## ChipMergeData
@@ -893,7 +918,7 @@
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
 #### Methods
-- `+ CanChipMoving(Cell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations): bool`
+- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations): bool`
     - **Purpose**: Checks if a chip can move to a target and if conflicting chips can be relocated
     - **Usage**: Internal check before performing actual relocation
     - also used by merge logic for growing chips
@@ -903,14 +928,14 @@
     - plannedRelocations - output list of moves to perform
     - **Returns**: True if a valid state is possible for all chips involved
     - **Notes**: Sorted relocation: larger chips are relocated first to minimize fragmentation
-- `+ ChipMoving(Cell overCell, Cell leftTopCell, Cell sourceCell): void`
+- `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell): void`
     - **Purpose**: Orchestrates the move of a chip to a new position, potentially relocating others
     - **Usage**: Call when a drag operation ends at a specific cell
     - **Params**: overCell - the cell the mouse is over
     - leftTopCell - the target top-left cell for the chip
     - sourceCell - the original cell of the chip
     - **Notes**: If relocation is impossible, the chip snaps back to its source position
-- `+ ChipsRelocate(Cell leftTopCell, Cell sourceCell, List<ChipMoveAction> plannedRelocations): void`
+- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations): void`
     - **Purpose**: Executes the planned relocations of chips on the field
     - **Usage**: Final step of the relocation process
     - performs atomic field updates
@@ -918,7 +943,7 @@
     - sourceCell - original spot of the primary chip
     - plannedRelocations - list of pre-calculated chip moves
     - **Notes**: Temporarily sets dragging state during relocation for visual consistency
-- `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<Cell>`
+- `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<ICell>`
 ---
 
 ## ChipPowerBooster
@@ -945,7 +970,7 @@
     - **Purpose**: Applies booster influence to a target entity and notifies join effect.
     - **Usage**: Called by PowerBoosterCellSubscriber when a matching target enters observed cells.
     - **Params**: target - chip/entity receiving this booster
-- `+ Destroy(Cell mainCell): void`
+- `+ Destroy(ICell mainCell): void`
     - **Purpose**: Ensures booster subscriptions/modifiers are cleared before base chip destruction.
     - **Usage**: Called by chip lifecycle when booster is removed from field.
     - **Params**: mainCell - booster main grid cell at destruction time
@@ -1106,11 +1131,11 @@
 - `- pending: List<ChipChangedEvent>`
     - **Purpose**: Stores pending per-frame chip change events in insertion order.
     - **Usage**: Read by Flush and then cleared.
-- `- pendingIndexByCell: Dictionary<Cell, int>`
+- `- pendingIndexByCell: Dictionary<ICell, int>`
     - **Purpose**: Maps changed cell to its index in pending list.
     - **Usage**: Allows O(1) collapse of repeated updates for the same cell within one frame.
 #### Methods
-- `+ Enqueue(Cell cell, Chip oldChip, Chip newChip): void`
+- `+ Enqueue(ICell cell, Chip oldChip, Chip newChip): void`
     - **Purpose**: Enqueues or merges chip change for a cell.
     - **Usage**: If the same cell changed earlier in the frame, keeps the first OldChip and updates only NewChip.
     - **Notes**: Uses pendingIndexByCell for O(1) merge instead of linear scan.
@@ -1133,7 +1158,7 @@
     - **Notes**: Populated in Awake from attached components
     - used to check and execute interactions like merge or container fill
 - `- chipMovingLogic: IChipMovingLogic`
-- `- currentMergableCell: Cell`
+- `- currentMergableCell: ICell`
 - `- currentMergableLogic: IChipInteractionLogic`
 - `- draggableChip: Chip`
 - `- draggableTransform: Transform`
@@ -1142,8 +1167,8 @@
     - cached for performance during drag operations
     - **Notes**: Set in OnDragStart for performance optimization during drag
 - `- fieldGrid: IFieldGrid`
-- `- prevCell: Cell`
-- `- sourceCell: Cell`
+- `- prevCell: ICell`
+- `- sourceCell: ICell`
     - **Purpose**: Stores the cell from which the chip was originally dragged
     - **Usage**: Internal field
     - automatically set in OnDragStart and used throughout drag operations
@@ -1161,32 +1186,32 @@
     - **Usage**: Call to get the correct anchor for multi-cell chips.
     - **Params**: originalPosition - initial position of the chip
     - **Returns**: Adjusted anchor position for the chip.
-- `+ OnDrag(Vector3 worldPosition, Cell anchorCell): void`
+- `+ OnDrag(Vector3 worldPosition, ICell anchorCell): void`
     - **Purpose**: Handles chip movement and merge effect during drag.
     - **Usage**: Call continuously while dragging, passing current mouse/cell info.
     - **Params**: worldPosition - mouse position
     - anchorCell - cell under chip
     - **Notes**: Activates/deactivates merge effect on target chips
     - chip position is constrained to field boundaries.
-- `+ OnDragEnd(Cell overCell, Cell leftTopCell): void`
+- `+ OnDragEnd(ICell overCell, ICell leftTopCell): void`
     - **Purpose**: Handles logic when drag ends, including merge, swap, and cleanup.
     - **Usage**: Call when drag operation finishes, passing the cell under the chip and the anchor cell.
     - **Params**: overCell - cell under chip on drop
     - leftTopCell - anchor cell for placement
     - **Notes**: Cleans up visual interaction indicators
     - invokes merge handlers, performs swap if not handled, resets state.
-- `+ OnDragStart(Cell sourceCell, Vector3 worldPosition): void`
+- `+ OnDragStart(ICell sourceCell, Vector3 worldPosition): void`
     - **Purpose**: Initializes drag state for a chip.
     - **Usage**: Call when drag starts, passing the source cell and mouse position.
     - **Params**: sourceCell - cell chip is dragged from
     - worldPosition - mouse position in world space
     - **Notes**: Sets up internal references and marks chip as dragging.
 - `- Awake(): void`
-- `- GetFilterCells(Cell targetCell): List<Cell>`
+- `- GetFilterCells(ICell targetCell): List<ICell>`
 - `- MoveToWorldPosition(Vector3 worldPosition): void`
 - `- ResetCurrentMergable(): void`
 - `- ResetDragState(): void`
-- `- UpdateInteractionState(Cell sourceCell, Cell targetCell): void`
+- `- UpdateInteractionState(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Checks if merge or container fill is allowed between two cells.
     - **Usage**: Call before attempting merge or placement.
     - **Params**: sourceCell - cell chip is dragged from
@@ -1245,7 +1270,7 @@
     - **Usage**: Called from Chip.AddEffect after instantiation to set up the effect's runtime state
     - **Params**: chip - the chip this effect belongs to
     - effectId - unique hash for identifying this effect
-- `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Handles logic when a chip is moved from one cell to another
     - **Usage**: Called after the chip's parent cell has changed
     - updates the effect's transform to match the new cell if effectForCell is true
@@ -1254,7 +1279,7 @@
     - targetCell - the cell the chip is moved to
     - **Notes**: Restores local position and scale after changing parent transform
     - only applies if effectForCell is true
-- `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell underCell): void`
+- `+ OnInteractionOverCellChanged(ICell prevCell, ICell currentCell, ICell underCell): void`
     - **Purpose**: Called when the chip's cell changes during drag
     - **Usage**: Handle logic when a chip is dragged from one cell to another during drag-and-drop
     - Override in derived classes for custom behavior
@@ -1262,7 +1287,7 @@
     - currentCell - the cell the chip is currently over during drag
     - **Notes**: Should only be called as part of drag operations
     - no default implementation in base class
-- `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+- `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
     - **Purpose**: Called when the cell under the chip changes
     - **Usage**: Override to handle logic when the chip moves over a different cell without changing parent
     - **Params**: underCell - the new cell under the chip
@@ -1482,9 +1507,11 @@
 ## FieldData
 **Inherits**: `ScriptableObject`
 #### Fields
+- `+- CellPrefabs: CellPrefabCollection`
 - `+- Cells: CellData[]`
 - `+- ChipDataCollection: ChipDataCollection`
 - `+- FieldSize: Vector2Int`
+- `- cellPrefabCollection: CellPrefabCollection`
 #### Methods
 - `+ SetCells(CellData[] newCells): void`
     - **Purpose**: Editor-only setter for cells array
@@ -1552,23 +1579,31 @@
 > - **Notes**: Implements IFieldGrid interface
 > - central component for grid-based operations.
 #### Fields
-- `+- Cells: Cell[]`
+- `+- Cells: ICell[]`
 - `+- FieldSize: Vector2Int`
 - `- chipChangeNotifier: IChipChangeNotifier`
 - `- resolver: IObjectResolver`
 #### Methods
-- `+ CreateCells(Vector2Int fieldSize): void`
+- `+ CreateCells(FieldData fieldData): void`
     - **Purpose**: Creates and initializes the grid of cells based on field size.
     - **Usage**: Call during field initialization to create all cells.
-    - **Params**: fieldSize - dimensions of the field (width, height).
+    - **Params**: fieldData - configuration for the field including size and cell data.
     - **Notes**: Centers cells around origin
     - creates Cell GameObjects with RectTransform.
-- `+ GetCells(Vector2Int cellPos, Vector2Int size): List<Cell>`
+- `+ GetCells(Vector2Int cellPos, Vector2Int size): List<ICell>`
     - **Purpose**: Retrieves all cells in a rectangular area.
     - **Usage**: Call to get cells occupied by a multi-cell chip.
     - **Params**: cellPos - top-left position
     - size - area dimensions (width, height).
     - **Returns**: List of all cells in the specified area.
+- `+ HasBlockedCells(Vector2Int cellPos, Vector2Int size): bool`
+    - **Purpose**: Checks whether a rectangular grid area contains cells that cannot receive chips
+    - **Usage**: Use before movement, relocation, and drag highlight display for multi-cell chips
+    - **Params**: cellPos - top-left position of the area
+    - size - area dimensions
+    - **Returns**: True if the area is outside the field or any covered cell is blocked
+    - otherwise false
+    - **Notes**: Runs the bounds check first to avoid invalid Cells indexing
 - `+ IsValidCellPos(Vector2Int cellPos): bool`
     - **Purpose**: Validates if a single cell position is within field boundaries.
     - **Usage**: Call to check if coordinates are valid before accessing cells array.
@@ -1590,14 +1625,14 @@
     - size - chip size (width, height).
     - **Returns**: True if the area is fully within field bounds
     - otherwise false.
-- `+ SetChipInCell(Cell cell, Chip chip): void`
+- `+ SetChipInCell(ICell cell, Chip chip): void`
     - **Purpose**: Places a chip into a target cell and updates observer-visible state for placement/removal.
     - **Usage**: Call to place, move, or remove a chip in grid coordinates while keeping chip-change notifications and multi-cell occupancy metadata in sync.
     - **Params**: cell - target main cell for placement or clearing
     - chip - chip instance to place (null means clear).
     - **Notes**: When placing, CellPosition is assigned before chipChangeNotifier.Enqueue so observers handling the event read the chip at its new logical coordinates
     - when clearing, all occupied cells are reset via ClearCells before enqueueing old/new chip state.
-- `- ClearCells(Cell cell): void`
+- `- ClearCells(ICell cell): void`
     - **Purpose**: Clears all chips from cells occupied by the specified cell's chip.
     - **Usage**: Call to remove a chip and its multi-cell occupancy from the field.
     - **Params**: cell - the main or secondary cell to clear.
@@ -1649,7 +1684,7 @@
 > - **Notes**: Validates container compatibility and adds chips to containers
 > - integrates with unified interaction system.
 #### Methods
-- `+ CanInteract(Cell sourceCell, Cell targetCell): bool`
+- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Validates if a chip can be added to a container chip.
     - **Usage**: Called by unified interaction system to check container fill possibility.
     - **Params**: sourceCell - cell with chip being dragged
@@ -1657,7 +1692,7 @@
     - **Returns**: True if chip can be added to container
     - false otherwise
     - **Notes**: Checks if target is a container and if source chip is compatible.
-- `+ ExecuteInteraction(Cell sourceCell, Cell targetCell): bool`
+- `+ ExecuteInteraction(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Executes container fill interaction between chip and container.
     - **Usage**: Called by unified interaction system after CanInteract validation passes.
     - **Params**: sourceCell - cell with chip being dragged
@@ -1669,7 +1704,7 @@
 #### Fields
 - `- fieldGrid: IFieldGrid`
 #### Methods
-- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): Cell`
+- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): ICell`
     - **Purpose**: Finds the nearest free cell for placing a chip, starting the search from a rectangular area.
     - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips. The search is performed first within the specified parent area and then spirally expands around it.
     - **Params**: parentPos - area start
@@ -1680,7 +1715,31 @@
     - chipsToPotentiallyMove - chips allowed to move
     - onlyAround - if true, search only in the immediate neighborhood.
     - **Returns**: The nearest free Cell or null if none found.
-- `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<Cell> excludedCellsSet, HashSet<Chip> movingChipsSet): bool`
+- `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<ICell> excludedCellsSet, HashSet<Chip> movingChipsSet): bool`
+---
+
+## ICell
+
+> - **Purpose**: Contract for a single cell in the game grid that can hold a chip.
+> - **Usage**: Use instead of the concrete Cell type in all logic, interaction, and effect code. Enables testability and implementation swapping.
+> - **Notes**: Implemented by Cell : MonoBehaviour. Expose Transform so effects can re-parent without casting to MonoBehaviour.
+#### Fields
+- `++ Chip: Chip`
+- `++ MainCell: ICell`
+- `+- CellPosition: Vector2Int`
+- `+- IsBlocked: bool`
+- `+- Transform: Transform`
+#### Methods
+- `+ GetColorForLevelEditor(): Nullable<Color>`
+- `+ GetLocalPositionForChip(): Vector3`
+- `+ Init(Vector2Int cellPos): void`
+    - **Purpose**: Initializes the cell with its grid position.
+    - **Usage**: Call once after instantiating the cell to set its logical position in the grid.
+    - **Params**: cellPos - grid coordinates for this cell.
+- `+ OnDrag(Vector2 position, bool isValidPosition): void`
+- `+ OnDragEnd(Vector2 position): void`
+- `+ OnDragStart(Vector2 position): void`
+- `+ OnTap(Vector2 position): void`
 ---
 
 ## ICellSubscriber
@@ -1690,12 +1749,12 @@
 #### Fields
 - `+- ObservedCellPositions: IReadOnlyList<Vector2Int>`
 #### Methods
-- `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChipChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Rebinds neighbor observation when the owning chip changes its main cell.
     - **Usage**: Called by chip movement/placement flow after field occupancy is updated to the target cell.
     - **Params**: sourceCell - previous main cell (may be null on first placement)
     - targetCell - current main cell after relocation
-- `+ OnChipDestroy(Cell mainCell): void`
+- `+ OnChipDestroy(ICell mainCell): void`
     - **Purpose**: Performs subscriber cleanup before the owning chip is destroyed or removed from the field.
     - **Usage**: Called by chip destruction flow to release observer subscriptions and derived-state links.
     - **Params**: mainCell - chip main cell at destruction time
@@ -1710,7 +1769,7 @@
 > - **Purpose**: Collects chip-change records from FieldGrid during the frame.
 > - **Usage**: Flushes changes all at once (called from FieldEventHandler.LateUpdate) to ensure consistent end-of-frame snapshots.
 #### Methods
-- `+ Enqueue(Cell cell, Chip oldChip, Chip newChip): void`
+- `+ Enqueue(ICell cell, Chip oldChip, Chip newChip): void`
     - **Purpose**: Record a chip change.
     - **Usage**: Called by FieldGrid.SetChipInCell before mutating state.
     - **Params**: cell - the location of change
@@ -1727,7 +1786,7 @@
 > - **Usage**: Implement this interface for different strategies of locating chips on the field
 > - **Notes**: Allows for dependency injection of various chip discovery mechanisms
 #### Methods
-- `+ FindChips(Cell cell, Vector2Int chipSize): HashSet<Chip>`
+- `+ FindChips(ICell cell, Vector2Int chipSize): HashSet<Chip>`
 ---
 
 ## IChipFlyAnimation
@@ -1756,14 +1815,14 @@
 > - **Purpose**: Unified interface for all chip interaction logic implementations.
 > - **Usage**: Provides a standardized contract for validating and executing chip interactions.
 #### Methods
-- `+ CanInteract(Cell sourceCell, Cell targetCell): bool`
+- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Validates whether a chip interaction can be performed between source and target cells.
     - **Usage**: Call before attempting to execute an interaction to ensure it's valid.
     - **Params**: sourceCell - cell with the chip being moved
     - targetCell - destination cell for the interaction
     - **Returns**: Boolean indicating if the interaction is allowed
     - **Notes**: Should perform all necessary validation checks without modifying game state.
-- `+ ExecuteInteraction(Cell sourceCell, Cell targetCell): bool`
+- `+ ExecuteInteraction(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Executes the actual chip interaction between source and target cells.
     - **Usage**: Call after CanInteract validation passes to perform the interaction.
     - **Params**: sourceCell - cell with the chip being moved
@@ -1778,7 +1837,7 @@
 > - **Usage**: Use to manage chip movement on the field, including relocation of conflicting chips.
 > - **Notes**: Implemented by ChipMovingLogic.
 #### Methods
-- `+ CanChipMoving(Cell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations): bool`
+- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations): bool`
     - **Purpose**: Checks if a chip can move to a target and plans relocations if necessary.
     - **Usage**: Call before moving a chip to validate if the move is possible.
     - **Params**: leftTopCell - target anchor cell
@@ -1786,13 +1845,13 @@
     - chipSize - size of the chip being moved
     - plannedRelocations - output list of moves to perform
     - **Returns**: True if the move and all necessary relocations are possible.
-- `+ ChipMoving(Cell overCell, Cell leftTopCell, Cell sourceCell): void`
+- `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell): void`
     - **Purpose**: Moves a chip to a new cell position, handling potential relocations.
     - **Usage**: Call when a chip is dropped or needs to be moved programmatically.
     - **Params**: overCell - cell under the chip
     - leftTopCell - target anchor cell
     - sourceCell - original anchor cell
-- `+ ChipsRelocate(Cell leftTopCell, Cell sourceCell, List<ChipMoveAction> plannedRelocations): void`
+- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations): void`
     - **Purpose**: Executes pre-planned chip relocations.
     - **Usage**: Call after CanChipMoving returns true to apply the relocations.
     - **Params**: leftTopCell - destination for the primary chip
@@ -1830,9 +1889,9 @@
 - `+ Deactivate(Chip chip, bool force): void`
 - `+ GetId(): int`
 - `+ Init(Chip chip, int effectHash): void`
-- `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
-- `+ OnInteractionOverCellChanged(Cell prevCell, Cell currentCell, Cell underCell): void`
-- `+ OnInteractionUnderCellChanged(Cell underCell, Cell overCell): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnInteractionOverCellChanged(ICell prevCell, ICell currentCell, ICell underCell): void`
+- `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
 - `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
 - `+ TryDestroyEffect(Chip chip, EffectDestroyingSettings settings, EffectDestroyingRuntimeData destroyingData): bool`
@@ -1911,19 +1970,27 @@
 > - **Usage**: Use to access cells, validate positions, and manage chip placement on the grid.
 > - **Notes**: Implemented by FieldGrid.
 #### Fields
-- `+- Cells: Cell[]`
+- `+- Cells: ICell[]`
 - `+- FieldSize: Vector2Int`
 #### Methods
-- `+ CreateCells(Vector2Int vector2Int): void`
-    - **Purpose**: Initializes the grid with a specific size
+- `+ CreateCells(FieldData fieldData): void`
+    - **Purpose**: Initializes the grid
     - **Usage**: Call during initialization for level setup
-    - **Params**: vector2Int - dimensions of the field
-- `+ GetCells(Vector2Int cellPos, Vector2Int size): List<Cell>`
+    - **Params**: fieldData - configuration for the field
+- `+ GetCells(Vector2Int cellPos, Vector2Int size): List<ICell>`
     - **Purpose**: Retrieves a list of cells within a specified area
     - **Usage**: Query grid for multiple cells, e.g. for multi-cell chips
     - **Params**: cellPos - top-left position
     - size - area dimensions
     - **Returns**: List of cells in the specified area
+- `+ HasBlockedCells(Vector2Int cellPos, Vector2Int size): bool`
+    - **Purpose**: Checks whether any cell in a rectangular grid area blocks chip placement
+    - **Usage**: Call before placement, relocation, or drag highlight updates for multi-cell chips
+    - **Params**: cellPos - top-left position of the area
+    - size - area dimensions
+    - **Returns**: True if the area is out of bounds or contains a blocked cell
+    - otherwise false
+    - **Notes**: Treats invalid bounds as blocked so callers can safely use the result before indexing Cells
 - `+ IsValidCellPos(Vector2Int cellPos): bool`
     - **Purpose**: Checks if a position is within field bounds
     - **Usage**: Validation before any grid-based operation
@@ -1939,7 +2006,7 @@
     - **Usage**: Validation for multi-cell chip placement
     - **Params**: cellPos - top-left position
     - size - area dimensions
-- `+ SetChipInCell(Cell cell, Chip chip): void`
+- `+ SetChipInCell(ICell cell, Chip chip): void`
     - **Purpose**: Assigns or removes a chip from a specific cell
     - **Usage**: Primary method for modifying chip placement on the grid
     - **Params**: cell - target cell
@@ -1958,7 +2025,7 @@
 > - **Usage**: Injected into components that need to spawn or relocate chips.
 > - **Notes**: Provides logic for nearest free cell search with spiral expansion.
 #### Methods
-- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<Cell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): Cell`
+- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): ICell`
     - **Purpose**: Finds the nearest free cell for placing a chip.
     - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips.
     - **Params**: parentPos - search origin
@@ -2045,7 +2112,7 @@
 - `- freeCellFinder: IFreeCellFinder`
 - `- NeighborOffsets: Vector2Int[]`
 #### Methods
-- `+ CanInteract(Cell sourceCell, Cell targetCell): bool`
+- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Validates if two cells can perform a merge interaction.
     - **Usage**: Called by unified interaction system to check merge possibility.
     - **Params**: sourceCell - cell with chip being dragged
@@ -2053,18 +2120,18 @@
     - **Returns**: True if chips can be merged
     - false otherwise
     - **Notes**: Checks chip compatibility and merge data availability.
-- `+ ExecuteInteraction(Cell sourceCell, Cell targetCell): bool`
+- `+ ExecuteInteraction(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Executes merge interaction between two cells, handling potential resizing
     - **Usage**: Called by unified interaction system after CanInteract validation passes
     - **Params**: sourceCell - cell with chip being dragged
     - targetCell - destination cell
     - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed. If relocation at the primary position fails, it tries all 8 neighboring offsets before giving up.
-- `- HandleExtraChip(MergeResult mergeResult, Cell mergedCell, Vector2Int mergedChipSize): void`
-- `- NotifyNeighborsOfMerge(Cell targetCell): void`
+- `- HandleExtraChip(MergeResult mergeResult, ICell mergedCell, Vector2Int mergedChipSize): void`
+- `- NotifyNeighborsOfMerge(ICell targetCell): void`
     - **Purpose**: Notifies neighboring chips that merges have occurred nearby
     - **Usage**: Called from ExecuteInteraction before destroying the merging chips
     - **Params**: targetCell - the main cell of the target chip whose neighbors will be notified
-- `- TryResolveCellPosition(Cell primaryCell, Chip[] chipsToExclude, Vector2Int chipSize, Cell& resolvedCell, List`1& plannedRelocations): bool`
+- `- TryResolveCellPosition(ICell primaryCell, Chip[] chipsToExclude, Vector2Int chipSize, ICell& resolvedCell, List`1& plannedRelocations): bool`
     - **Purpose**: Resolves the final cell position for a merged chip: tries the primary cell first, then all 8 neighbors
     - **Usage**: Called from ExecuteInteraction when relocation check is needed
     - **Params**: primaryCell - preferred cell to place the chip
@@ -2116,7 +2183,7 @@
 - `- fieldGrid: IFieldGrid`
 - `- neighbors: HashSet<Chip>`
 #### Methods
-- `+ FindChips(Cell cell, Vector2Int chipSize): HashSet<Chip>`
+- `+ FindChips(ICell cell, Vector2Int chipSize): HashSet<Chip>`
     - **Purpose**: Retrieves all unique neighboring chips around a specific cell, accounting for chip size
     - **Usage**: Call when you need to find all unique chip neighbors for a given position and size
     - **Params**: cell - the main cell of the chip
@@ -2140,13 +2207,13 @@
 - `+- BoostedTargets: HashSet<IPowerBoosterTarget>`
 - `~ chipPowerBooster: ChipPowerBooster`
 #### Methods
-- `+ OnChipChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChipChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Re-evaluates all booster links after the booster itself is relocated.
     - **Usage**: Called when the owner booster chip changes its grid position.
     - **Params**: sourceCell - original cell
     - targetCell - result cell
     - **Notes**: Clears all previous links, re-subscribes to new neighbors, and rebuilds links from the new location.
-- `+ OnChipDestroy(Cell mainCell): void`
+- `+ OnChipDestroy(ICell mainCell): void`
     - **Purpose**: Cleans up all active booster links before the chip is destroyed.
     - **Usage**: Called during the booster's teardown lifecycle.
     - **Params**: mainCell - the booster's current cell
@@ -2188,12 +2255,12 @@
     - **Usage**: Called when deactivating effects
     - stops the repetitive powerEffectCoroutine.
     - **Notes**: Ensures the coroutine is stopped and the animator state is reset to prevent stuck animations.
-- `+ OnChangedCell(Cell sourceCell, Cell targetCell): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Reacts to cell changes by triggering the PowerBooster animation
     - **Usage**: Called automatically via CellHighlightEffect when the chip is moved
     - **Params**: sourceCell - original cell
     - targetCell - result cell
-- `+ OnInteractionOverCellChanged(Cell sourceCell, Cell targetCell, Cell interactableCell): void`
+- `+ OnInteractionOverCellChanged(ICell sourceCell, ICell targetCell, ICell interactableCell): void`
 - `- <Activate>g__StartPowerEffect|8_0(Chip chip, float waitTime): IEnumerator`
 - `~ CreateHighlights(): void`
 - `- Update(): void`

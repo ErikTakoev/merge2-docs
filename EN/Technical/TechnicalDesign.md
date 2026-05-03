@@ -15,9 +15,13 @@ We use **VContainer** for dependency management.
 Main system abstractions and their implementations:
 
 ### Grid & Data
+- **`ICell`** (Interface)
+  - **Purpose**: Game cell abstraction.
+  - **Responsibility**: Providing coordinates (`CellPosition`), access to placed chip and visual state management (e.g., highlighting). Allows implementing different field types (rectangular, isometric, etc.) without changing core logic.
+
 - **`IFieldGrid`** -> `FieldGrid`
-  - **Purpose**: Manages grid state (2D `Cell` array).
-  - **Responsibility**: Cell creation, coordinate validation, low-level chip placement operations (`SetChipInCell`).
+  - **Purpose**: Manages grid state (2D `ICell` array).
+  - **Responsibility**: Cell creation, coordinate validation, checking blocked zones (`HasBlockedCells`), low-level chip placement operations (`SetChipInCell`).
   - **`SetChipInCell` detail**: When setting chip, `FieldGrid` assigns `chip.CellPosition` before `IChipChangeNotifier.Enqueue(...)` so subscribers receive event with already up-to-date coordinates. During cleanup, it first clears occupancy (`ClearCells`), then enqueues `oldChip -> null` event.
 
 - **`IFieldInitializeCommand`** -> `FieldInitializeCommand`
@@ -25,12 +29,12 @@ Main system abstractions and their implementations:
   - **Responsibility**: Creating visual grid and loading initial chips. Receives `FieldData` and `ChipDataCollection` through Injection.
 
 - **`IChipChangeNotifier`** -> `DeferredChipChangeNotifier`
-  - **Purpose**: Aggregating cell changes during frame and a single `Flush` in `LateUpdate`.
+  - **Purpose**: Aggregating cell changes (implementations of `ICell`) during frame and a single `Flush` in `LateUpdate`.
   - **Responsibility**: `FieldGrid` adds events through `Enqueue`, `FieldEventHandler` calls `Flush`, and subscribers receive a consistent set of `ChipChangedEvent`.
   - **Details**: [Cell Observer System](../Features/CellObserverSystem.md).
 
 - **`ICellSubscriber`** -> `CellSubscriber`, `PowerBoosterCellSubscriber`
-  - **Purpose**: Contract for components reacting to changes in neighboring cells.
+  - **Purpose**: Contract for components reacting to changes in neighboring cells (`ICell`).
   - **Responsibility**: `OnChipChangedCell` rebinds subscriptions after movement, `OnChipDestroy` performs cleanup before chip destruction, `OnObservedCellChipChanged` handles batch events through [Cell Observer System](../Features/CellObserverSystem.md).
 
 ### Logic & Interaction

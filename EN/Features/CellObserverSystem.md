@@ -1,75 +1,75 @@
 [← Back to Main](../Main.md)
 
-# Cell Observer System (Cell Observation System)
+# Cell Observer System
 
-Cell observation system is a key component of Merge2 architecture that allows game objects (chips) and services to efficiently react to changes in game field state. It provides deferred event dispatching, which minimizes unnecessary calculations and guarantees state stability during logic processing.
+The cell observation system is a key component of the Merge2 architecture, allowing game objects (chips) and services to effectively react to field state changes. It provides deferred event dispatching, which minimizes redundant calculations and ensures state stability during logic processing.
 
-## Main Components
+## Core Components
 
-System consists of three key entities:
+The system consists of three key entities:
 
 ### 1. [ChipChangedEvent](../../../Core/Scripts/Field/CellObserver/ChipChangedEvent.cs)
 A lightweight structure (struct) describing a single change in a specific grid cell.
 
 - **Properties**:
-    - `Cell Cell`: Cell where change happened.
-    - `Chip OldChip`: Chip that was in cell before change (null if cell was empty).
-    - `Chip NewChip`: Chip that is in cell after change (null if cell is now empty).
+    - `ICell Cell`: The cell where the change occurred.
+    - `Chip OldChip`: The chip that was in the cell before the change (null if the cell was empty).
+    - `Chip NewChip`: The chip that is in the cell after the change (null if the cell is now empty).
 - **Helpers**:
-    - `ChipAdded`: true if chip appeared in a previously empty cell.
-    - `ChipRemoved`: true if chip was removed from or moved out of the cell.
-    - `ChipReplaced`: true if one chip was replaced with another within a single cell.
+    - `ChipAdded`: true if a chip appeared in a previously empty cell.
+    - `ChipRemoved`: true if a chip was removed or moved from the cell.
+    - `ChipReplaced`: true if one chip was replaced by another within the same cell.
 
 ### 2. [DeferredChipChangeNotifier](../../../Core/Scripts/Field/CellObserver/DeferredChipChangeNotifier.cs)
-Event aggregator that accumulates all changes during current frame.
+An event aggregator that accumulates all changes during the current frame.
 
-- **Deferred processing**: Instead of immediate event dispatch on each change (which may lead to dozens of calls during complex moves/merges), events are collected in `pending` queue.
-- **Event collapsing (Collapse)**: If same cell changes multiple times in one frame, system automatically merges these changes into one event, preserving earliest `OldChip` and final `NewChip`.
-- **Flush**: Called once at frame end (usually in `LateUpdate`), publishing the whole event batch at once.
+- **Deferred Processing**: Instead of immediate event dispatch upon every change (which could lead to dozens of calls during complex moves/merges), events are gathered in a `pending` queue.
+- **Event Collapse**: If the same cell (`ICell` implementation) changes multiple times in one frame, the system automatically merges these changes into one event, keeping the very first `OldChip` and the final `NewChip`.
+- **Flush**: Called once at the end of the frame (usually in `LateUpdate`), publishing the entire batch of events at once.
 
 ### 3. [CellObserverManager](../../../Core/Scripts/Field/CellObserver/CellObserverManager.cs)
-Central manager that controls `ICellSubscriber` subscriptions and is responsible for precise event delivery.
+Central manager that controls `ICellSubscriber` subscriptions and is responsible for accurate event delivery.
 
-- **Two-way indexing**:
-    - `cellToSubscribers`: Allows instantly finding all subscribers for a specific cell.
-    - `subscriberToCells`: Allows quickly removing all subscriptions of a specific object on destroy.
-- **Working with Multi-cell chips**: During event dispatch, manager automatically computes area (footprint) occupied by old chip and occupied by new chip. Events are received by all subscribers that observe at least one cell from this expanded area.
+- **Two-way Indexing**:
+    - `cellToSubscribers`: Allows instantly finding all subscribers for a specific cell (`ICell`).
+    - `subscriberToCells`: Allows quickly removing all subscriptions of a specific object when it is destroyed.
+- **Multi-cell Chip Support**: When dispatching events, the manager automatically calculates the footprint occupied by the old chip and the new one. Events are received by all subscribers observing at least one cell (`ICell`) within this expanded area.
 
 ---
 
-## Workflow Pipeline
+## Workflow
 
-1. **State change**: `FieldGrid.SetChipInCell` is called to change cell content.
+1. **State Change**: `FieldGrid.SetChipInCell` is called to change cell content.
 2. **Registration**: `FieldGrid` calls `IChipChangeNotifier.Enqueue`, passing change details.
-3. **Accumulation**: `DeferredChipChangeNotifier` adds event into queue or updates existing event for this cell.
-4. **Trigger**: At the end of game loop (LateUpdate), `notifier.Flush()` is called.
+3. **Accumulation**: `DeferredChipChangeNotifier` adds the event to the queue or updates an existing one for this cell.
+4. **Trigger**: At the end of the game loop (LateUpdate), `notifier.Flush()` is called.
 5. **Dispatch**:
-    - `CellObserverManager` receives event list.
-    - For each event, influence zone is determined (considering chip sizes).
-    - `OnObservedCellChipChanged(evt)` is called for each subscriber in zone.
+    - `CellObserverManager` receives the list of events.
+    - For each event, an influence zone is determined (considering chip sizes).
+    - For each subscriber in the zone, `OnObservedCellChipChanged(evt)` is called.
 
 ---
 
 ## Optimizations
 
-System is designed to work under high change intensity:
+The system is designed to work under high-intensity change conditions:
 
-1. **Batching**: Notification happens once per frame. This guarantees subscribers see the final stable field state after all logical manipulations.
-2. **Subscriber deduplication**: `eventNotifiedSubscribers` (HashSet) is used so one subscriber does not receive same event multiple times even if it observes several neighboring cells in change zone.
-3. **O(1) Operations**: Using dictionaries and hash sets provides instant subscriber lookup and event collapsing.
-4. **Safe Callbacks**: `subscriberSnapshot` (List) is used for iteration. This allows safe subscription removal (Unsubscribe) directly during callback processing without breaking collection.
-5. **Allocation minimization**: All helper collections (`snapshot`, `dedupe set`) are reused between frames and events, preventing unnecessary Garbage Collector load.
+1. **Batching**: Notification happens once per frame. This ensures that subscribers see the final stable state of the field after all logical manipulations.
+2. **Subscriber Deduplication**: `eventNotifiedSubscribers` (HashSet) is used so a subscriber doesn't receive the same event multiple times, even if they observe several neighboring cells in the change zone.
+3. **O(1) Operations**: Use of dictionaries and hash sets ensures instant subscriber lookup and event merging.
+4. **Safe Callbacks**: `subscriberSnapshot` (List) is used for iteration. This allows safely unsubscribing directly during callback processing without breaking the collection.
+5. **Allocation Minimization**: All auxiliary collections (`snapshot`, `dedupe set`) are reused between frames and events, preventing excessive Garbage Collector load.
 
 ---
 
 ## Current Usage
 
-Main usage mechanism is implementation of `ICellSubscriber` interface.
+The primary usage mechanism is implementing the `ICellSubscriber` interface.
 
 ### CellSubscriber
-Base component that allows chip to "see" its neighbors.
-- Automatically subscribes to all cells around chip (considering its size).
-- Re-subscribes when chip moves to a new position.
+Base component that allows a chip to "see" its neighbors.
+- Automatically subscribes to all cells around the chip (considering its size).
+- Resubscribes when the chip moves to a new position.
 
 ### PowerBoosterCellSubscriber
 Specialized version for [ChipPowerBooster](../Chips/ChipPowerBooster.md).
@@ -77,4 +77,4 @@ Specialized version for [ChipPowerBooster](../Chips/ChipPowerBooster.md).
 - Dynamically applies or removes acceleration modifiers when neighboring chips appear, disappear, or change.
 
 ### Integration Tests
-System is actively used in tests (`ChipPowerBoosterTests`) to verify connection integrity and correctness of effect calls during complex field manipulations.
+The system is actively used in tests (`ChipPowerBoosterTests`) to verify link integrity and correct effect triggers during complex field manipulations.

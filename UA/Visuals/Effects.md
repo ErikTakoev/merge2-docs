@@ -43,7 +43,7 @@
 - **`Activate(Chip chip) → bool`**: Активація ефекту. Повертає `false`, якщо `effectId` міститься в `chip.BlockingState.HideEffectIds` (ефект приховано іншим блокуючим ефектом). При успішній активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
 - **`Deactivate(Chip chip, bool force)`**: Деактивація ефекту.
 - **`SendTrigger(string triggerName, bool allowRepeat)`**: Відправка довільного тригеру в Animator.
-- **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин.
+- **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`).
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Обробка зміни стану руху (початок перетягування або системне переміщення).
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Перевіряє, чи досяг ефект порогу руйнування.
 - **`BlockingSettings`** (`EffectBlockingSettings`): Конфігурація блокувань чіпа при активації ефекту. Детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocking-system).
@@ -60,8 +60,8 @@
 - **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
 - **`Deactivate(Chip chip, bool force)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play`.
 - **`GetId()`**: Повертає збережений `effectId`.
-- **`OnChangedCell(Cell sourceCell, Cell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
-- **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин під час Drag-and-Drop.
+- **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
+- **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`) під час Drag-and-Drop.
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Автоматично приховує ефект при початку руху, якщо встановлено `deactivateOnMove = true`, та відновлює стан при зупинці.
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Якщо `NeighboringMergeCount` менше порогу, відправляє прогресивний тригер (наприклад, `"Hit_1"`, `"Hit_2"`); якщо досяг порогу — деактивує ефект і повертає `true`.
 
@@ -118,11 +118,14 @@
   - `color`: Колір підсвітки.
   - `order`: Зсув по осі Z для правильного рендерингу над полем.
 - **Shared Material**: Перший створений хайлайт генерує `Material` (через `SpriteRenderer.material`), всі наступні використовують `sharedMaterial` для спільного кольору.
+- **Адаптація до архітектури**:
+  - Використовує інтерфейс `ICell` для визначення цільових клітинок.
+  - Впроваджено перевірку заблокованих зон через `IFieldGrid.HasBlockedCells`: якщо хоча б одна клітинка під фішкою заблокована, підсвітка приховується для візуалізації неможливості розміщення.
 - **Extensibility**: Клас спроектований для наслідування та перевизначення:
   - `CreateHighlights()`: Віртуальний — базова реалізація створює сітку за `chipSize`. Може бути перевизначений для іншої геометрії (наприклад, [§ 6 Power Booster Connector Highlight](#6-power-booster-connector-highlight)).
   - `DestroyHighlights()`: Віртуальний — очищує `highlights` список та `sharedMaterial`.
   - `CreateHighlight(Vector3)`: Віртуальний — створює один елемент підсвітки з префабу.
-  - `OnChangedCell(Cell, Cell)`: Віртуальний — реагує на зміну клітинки (активація/деактивація `gameObject`).
+  - `OnChangedCell(ICell, ICell)`: Віртуальний — реагує на зміну клітинки (активація/деактивація `gameObject`).
 
 ### 3. Container Requirements
 **Клас**: `ChipContainerEffect.cs`
