@@ -8,6 +8,7 @@
 - [CellSubscriber](#cellsubscriber)
 - [Chip](#chip)
 - [ChipChangedEvent](#chipchangedevent)
+- [ChipCollections](#chipcollections)
 - [ChipContainer](#chipcontainer)
 - [ChipContainerData](#chipcontainerdata)
 - [ChipContainerEffect](#chipcontainereffect)
@@ -62,6 +63,7 @@
 - [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
 - [IChipChangeNotifier](#ichipchangenotifier)
+- [IChipCollections](#ichipcollections)
 - [IChipFinder](#ichipfinder)
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
@@ -155,6 +157,7 @@
     - **Params**: position - screen or world position of the tap.
 - `- Expecto.MergeBase.ICell.GetColorForLevelEditor(): Nullable<Color>`
 - `- Update(): void`
+- `- WaitAndStartFlyAnimation(Chip chip, Transform tr, Vector3 localTarget, float movingTime, float delay): IEnumerator`
 ---
 
 ## CellHighlightEffect
@@ -166,9 +169,11 @@
 > - **Notes**: Handles multiple cells if chip size > 1x1
 > - updates position during drag interaction
 #### Fields
+- `~ alphaId: int`
 - `~ chipSize: Vector2Int`
 - `~ color: Color`
 - `~ fieldGrid: IFieldGrid`
+- `~ globalAlpha: float`
 - `~ highlightPrefab: GameObject`
 - `~ highlights: List<GameObject>`
 - `~ order: float`
@@ -182,6 +187,7 @@
 - `~ CreateHighlights(): void`
 - `~ DestroyHighlights(): void`
 - `- SetHighlightsVisible(bool value): void`
+- `~ Update(): void`
 ---
 
 ## CellObserverManager
@@ -287,6 +293,7 @@
 - `++ CellPosition: Vector2Int`
 - `++ LogEnable: bool`
 - `+- Animator: Animator`
+- `+- AppearanceDelay: float`
 - `+- BlockingState: CombinedBlockingState`
 - `+- CellSubscriber: ICellSubscriber`
 - `+- Data: ChipData`
@@ -295,10 +302,13 @@
 - `+- RuntimeData: ChipRuntimeData`
 - `+- SortingLayer: IChipSortingLayer`
 - `~ chipChangeNotifier: IChipChangeNotifier`
+- `~ chipCollections: IChipCollections`
+- `~ dontRepeatTrigger: bool`
 - `~ effectOfPrioritizingDestroying: IEffect`
 - `~ effects: Dictionary<int, IEffect>`
 - `~ extraEffectsData: ChipExtraEffectsData`
 - `~ fieldGrid: IFieldGrid`
+- `~ invertTransformNode: Transform`
 - `~ isDragging: bool`
     - **Purpose**: Tracks whether the chip is currently being dragged by the user
     - **Usage**: Set via SetDragging
@@ -307,7 +317,9 @@
     - **Notes**: Separate from IsMoving which tracks visual/sorting state
     - allows detection of user-initiated drag vs system movement
 - `- lastTrigger: string`
+- `~ lastTriggerName: string`
 - `~ resolver: IObjectResolver`
+- `~ transformNode: Transform`
 #### Methods
 - `+ CanMoving(): bool`
     - **Purpose**: Checks whether the chip can currently be moved by the player
@@ -323,6 +335,19 @@
     - override in derived classes for custom teardown before or after base destruction
     - **Params**: mainCell - the chip's main occupied cell on the field grid
     - **Notes**: Clears grid occupancy via FieldGrid first (which enqueues chip-change notifications), then invokes ICellSubscriber cleanup while cell context is still valid, destroys spawned effect objects, and finally schedules GameObject destruction with a short delay (0.1s)
+- `+ GetEffect(int effectHash): IEffect`
+    - **Purpose**: Retrieves an effect from the effects dictionary by its EffectConsts hash key
+    - **Usage**: Call in methods that need to access a specific effect without type casting
+    - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.MoveLocked)
+    - **Returns**: The IEffect instance or null if not found
+    - **Notes**: Use GetEffect<T>() for type-safe access when specialized interfaces are needed
+- `+ GetEffect(int effectHash): T`
+    - **Purpose**: Retrieves and casts an effect from the effects dictionary by its EffectConsts hash key
+    - **Usage**: Call when you need a specialized effect interface (e.g., IEffectGeneratorCharging)
+    - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.GeneratorCharging)
+    - T - Target effect interface type
+    - **Returns**: The effect cast to type T, or null if not found or cannot be cast
+    - **Notes**: Handles null safely with null-conditional operator (?.) at callsite
 - `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
     - **Purpose**: Initializes the chip with data and sets up all required components and effects
     - **Usage**: Call after creating a chip instance to assign data and prepare effects
@@ -391,12 +416,15 @@
     - **Usage**: Override in derived classes to implement custom tap behavior
     - receives tap position in world coordinates
     - **Params**: position - the world position where the chip was tapped
-- `+ SendTrigger(AnimatorTrigger trigger): void`
-- `+ SendTrigger(string trigger): void`
+- `+ ResetTrigger(string triggerName): void`
+- `+ SendTrigger(AnimatorTrigger trigger, bool allowRepeat): void`
+- `+ SendTrigger(string trigger, bool allowRepeat): void`
     - **Purpose**: Sends a trigger to the animator and synchronizes the 'Little' state.
     - **Usage**: Called when a chip state change requires an animation trigger (e.g., Generate, Recharge).
     - **Params**: trigger - the animator trigger name to fire
-    - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state.
+    - allowRepeat - if true, bypasses the dontRepeatTrigger check
+    - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state. Prevents redundant triggers if dontRepeatTrigger is enabled.
+- `+ SetAppearanceDelay(float delay): void`
 - `+ SetDragging(bool value): void`
     - **Purpose**: Sets the drag state of the chip and ensures visual consistency
     - **Usage**: Called by DraggableChipLogic when user drag starts (true) or ends (false)
@@ -411,6 +439,7 @@
     - **Notes**: Sets sorting order to 2 for moving chips to ensure they're on top
     - on move-start it enqueues a chip-change event with NewChip=null for the current cell so observer-based systems can immediately react to temporary chip departure
     - calls UpdateVisual when movement ends
+- `+ SetRotationZ(float zAngle): void`
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the chip based on its runtime data
     - **Usage**: Call after modifying runtimeData.EffectEnables to synchronize visual effects
@@ -424,21 +453,10 @@
     - activate - Whether to immediately activate the effect
     - **Notes**: Null-safe: effect is only added if not null
     - handles activation before storing
+- `- AppearanceDelayCoroutine(float delay): IEnumerator`
 - `~ DestroyEffects(): void`
-- `~ GetEffect(int effectHash): IEffect`
-    - **Purpose**: Retrieves an effect from the effects dictionary by its EffectConsts hash key
-    - **Usage**: Call in methods that need to access a specific effect without type casting
-    - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.MoveLocked)
-    - **Returns**: The IEffect instance or null if not found
-    - **Notes**: Use GetEffect<T>() for type-safe access when specialized interfaces are needed
-- `~ GetEffect(int effectHash): T`
-    - **Purpose**: Retrieves and casts an effect from the effects dictionary by its EffectConsts hash key
-    - **Usage**: Call when you need a specialized effect interface (e.g., IEffectGeneratorCharging)
-    - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.GeneratorCharging)
-    - T - Target effect interface type
-    - **Returns**: The effect cast to type T, or null if not found or cannot be cast
-    - **Notes**: Handles null safely with null-conditional operator (?.) at callsite
 - `- HandleDestroyingEffects(): void`
+- `~ HasTrigger(string name): bool`
 - `~ InitDestroyingEffectsData(): void`
     - **Purpose**: Scans all registered effects for DestroyingSettings and initializes their runtime destroying data
     - **Usage**: Called from PostInitEffects after all effects are added to the dictionary
@@ -490,6 +508,25 @@
 - `+- OldChip: Chip`
 #### Methods
 - `+ ToString(): string`
+---
+
+## ChipCollections
+
+> - **Purpose**: Provides a centralized collection of all active chips on the field, categorized by their data type
+> - **Usage**: Injected as IChipCollections
+> - used to find all chips of a specific type or to iterate over all active chips
+> - **Notes**: Updated by ChipFactory during creation and by Chip during destruction
+#### Fields
+- `+- AllChipsByData: Dictionary<ChipData, List<Chip>>`
+#### Methods
+- `+ AddChip(Chip chip): void`
+    - **Purpose**: Adds a chip to the collection, grouping it by its ChipData
+    - **Usage**: Called by ChipFactory immediately after a new chip is initialized
+    - **Params**: chip - the chip instance to add
+- `+ RemoveChip(Chip chip): void`
+    - **Purpose**: Removes a chip from the collection and cleans up empty data entries
+    - **Usage**: Called by Chip.Destroy just before the chip GameObject is destroyed
+    - **Params**: chip - the chip instance to remove
 ---
 
 ## ChipContainer
@@ -652,12 +689,13 @@
 > - **Notes**: Handles object pooling and initialization
 > - requires ChipData with valid PrefabLink.
 #### Fields
+- `~ chipCollections: IChipCollections`
 - `~ fieldGrid: IFieldGrid`
 - `~ resolver: IObjectResolver`
 #### Methods
-- `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer): Chip`
-- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer): Chip`
-- `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid): void`
+- `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, Nullable<float> appearanceDelay): Chip`
+- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, Nullable<float> appearanceDelay): Chip`
+- `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid, IChipCollections chipCollections): void`
 ---
 
 ## ChipFlyAnimation
@@ -895,6 +933,7 @@
 > - used to determine merge compatibility and resulting chips
 #### Fields
 - `++ Combinations: MergeCombination[]`
+- `+- MergeableChips: IEnumerable<ChipData>`
 #### Methods
 - `+ CanMerge(ChipData otherChip): bool`
     - **Purpose**: Checks if this chip can be merged with another specific chip
@@ -1151,30 +1190,30 @@
 #### Fields
 - `+- Chip: Chip`
 - `+- IsDragging: bool`
-- `- chipInteractionLogics: List<IChipInteractionLogic>`
+- `~ chipInteractionLogics: List<IChipInteractionLogic>`
     - **Purpose**: Collection of all chip interaction logic handlers
     - **Usage**: Internal field
     - populated in Awake and queried during drag operations
     - **Notes**: Populated in Awake from attached components
     - used to check and execute interactions like merge or container fill
-- `- chipMovingLogic: IChipMovingLogic`
-- `- currentMergableCell: ICell`
-- `- currentMergableLogic: IChipInteractionLogic`
-- `- draggableChip: Chip`
-- `- draggableTransform: Transform`
+- `~ chipMovingLogic: IChipMovingLogic`
+- `~ currentMergableCell: ICell`
+- `~ currentMergableLogic: IChipInteractionLogic`
+- `~ draggableChip: Chip`
+- `~ draggableTransform: Transform`
     - **Purpose**: Cached transform of the chip being dragged
     - **Usage**: Internal field
     - cached for performance during drag operations
     - **Notes**: Set in OnDragStart for performance optimization during drag
-- `- fieldGrid: IFieldGrid`
-- `- prevCell: ICell`
-- `- sourceCell: ICell`
+- `~ fieldGrid: IFieldGrid`
+- `~ prevCell: ICell`
+- `~ sourceCell: ICell`
     - **Purpose**: Stores the cell from which the chip was originally dragged
     - **Usage**: Internal field
     - automatically set in OnDragStart and used throughout drag operations
     - **Notes**: Set in OnDragStart
     - used to track the chip's origin during drag operations
-- `- sourceCellTransform: Transform`
+- `~ sourceCellTransform: Transform`
     - **Purpose**: Cached transform of the source cell
     - **Usage**: Internal field
     - used for coordinate transformations during drag
@@ -1206,7 +1245,7 @@
     - **Params**: sourceCell - cell chip is dragged from
     - worldPosition - mouse position in world space
     - **Notes**: Sets up internal references and marks chip as dragging.
-- `- Awake(): void`
+- `~ Awake(): void`
 - `- GetFilterCells(ICell targetCell): List<ICell>`
 - `- MoveToWorldPosition(Vector3 worldPosition): void`
 - `- ResetCurrentMergable(): void`
@@ -1780,6 +1819,14 @@
     - **Usage**: Called from FieldEventHandler.LateUpdate.
 ---
 
+## IChipCollections
+#### Fields
+- `+- AllChipsByData: Dictionary<ChipData, List<Chip>>`
+#### Methods
+- `+ AddChip(Chip chip): void`
+- `+ RemoveChip(Chip chip): void`
+---
+
 ## IChipFinder
 
 > - **Purpose**: Contract for chip finding/discovery implementations
@@ -2072,6 +2119,7 @@
 > - automatically called on game start.
 > - **Notes**: Wires up dependencies, connects input events, and initializes field and chips.
 #### Fields
+- `- chipCollections: IChipCollections`
 - `- chipFactory: ChipFactory`
 - `- field: IFieldEventHandler`
 - `- fieldGrid: IFieldGrid`
@@ -2236,8 +2284,6 @@
 > - **Notes**: Uses powerEffectCoroutine to repeat a secondary animation trigger while active.
 #### Fields
 - `+ distractionAmount: float`
-- `+ globalAlpha: float`
-- `~ alphaId: int`
 - `~ connectorCellPositions: IReadOnlyList<Vector2Int>`
 - `~ distractionAmountId: int`
 - `~ originCellPosition: Vector2Int`
@@ -2261,9 +2307,9 @@
     - **Params**: sourceCell - original cell
     - targetCell - result cell
 - `+ OnInteractionOverCellChanged(ICell sourceCell, ICell targetCell, ICell interactableCell): void`
-- `- <Activate>g__StartPowerEffect|8_0(Chip chip, float waitTime): IEnumerator`
+- `- <Activate>g__StartPowerEffect|6_0(Chip chip, float waitTime): IEnumerator`
 - `~ CreateHighlights(): void`
-- `- Update(): void`
+- `~ Update(): void`
 ---
 
 ## PowerBoosterJoinEffect

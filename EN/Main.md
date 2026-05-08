@@ -4,17 +4,14 @@ Welcome to the Merge Toolkit documentation. This file is a navigation hub for al
 
 ## Contents
 
-### Quick Start
-A quick start for the first module launch, dependency check, and creating your own merge scenario.
+### Getting Started
+Quick start and extension guide for the project.
 
 - **[Quick Start](Quick_Start.md)**
-  > **Context**: First connect `VContainer`, then run `ElementalMerge2` step by step and use the practical workflow through `Level Editor` and `Chip Viewer`.
-
-### Extension Guide
-How to extend the project: add new chip types, effects, interactions, and services.
+  > **Context**: First module launch, connect `VContainer`, run `ElementalMerge2` and practical workflow through `Level Editor` and `Chip Viewer`.
 
 - **[Extension Guide](ExtensionGuide.md)**
-  > **Context**: A step-by-step guide for extending the project through VContainer, creating new Chip types, adding effects, and new interactions.
+  > **Context**: Step-by-step guide for extending the project: adding new chip types, effects, interactions, and services.
 
 ### Game Objects (Chips)
 This section describes the core entities located on the game field (Grid). All objects inherit from or use the base `Chip` principles.
