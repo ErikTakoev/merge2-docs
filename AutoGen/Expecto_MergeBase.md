@@ -329,7 +329,7 @@
     - false if movement is locked
     - **Notes**: Based on runtimeData.IsMoveLocked
     - prevents drag-and-drop when locked
-- `+ Destroy(ICell mainCell): void`
+- `+ Destroy(ICell mainCell, bool force): void`
     - **Purpose**: Destroys the chip and all its attached effects
     - **Usage**: Call to remove the chip from the field and scene
     - override in derived classes for custom teardown before or after base destruction
@@ -454,7 +454,7 @@
     - **Notes**: Null-safe: effect is only added if not null
     - handles activation before storing
 - `- AppearanceDelayCoroutine(float delay): IEnumerator`
-- `~ DestroyEffects(): void`
+- `~ DestroyEffects(float destroyDelay): void`
 - `- HandleDestroyingEffects(): void`
 - `~ HasTrigger(string name): bool`
 - `~ InitDestroyingEffectsData(): void`
@@ -781,7 +781,7 @@
     - **Returns**: True when the booster was newly added
     - false when it was already present.
     - **Notes**: Multiplier becomes the maximum power among active boosters to prevent stacking by sum.
-- `+ Destroy(ICell mainCell): void`
+- `+ Destroy(ICell mainCell, bool force): void`
     - **Purpose**: Cleans up generator-owned callbacks and subscriptions before the base chip destruction flow runs.
     - **Usage**: Call when removing a ChipGenerator from the field
     - this override must execute before base.Destroy so auto-mode callbacks cannot fire against a chip that is already being removed.
@@ -1009,7 +1009,7 @@
     - **Purpose**: Applies booster influence to a target entity and notifies join effect.
     - **Usage**: Called by PowerBoosterCellSubscriber when a matching target enters observed cells.
     - **Params**: target - chip/entity receiving this booster
-- `+ Destroy(ICell mainCell): void`
+- `+ Destroy(ICell mainCell, bool force): void`
     - **Purpose**: Ensures booster subscriptions/modifiers are cleared before base chip destruction.
     - **Usage**: Called by chip lifecycle when booster is removed from field.
     - **Params**: mainCell - booster main grid cell at destruction time
@@ -1439,6 +1439,7 @@
 - `+ GeneratorCharged: int`
 - `+ GeneratorCharging: int`
 - `+ MergeAvailable: int`
+- `+ MergeLight: int`
 - `+ PBoosterConnectorCells: int`
 - `+ PBoosterJoin: int`
 - `+ ShadowEffect: int`

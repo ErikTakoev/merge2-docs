@@ -77,11 +77,13 @@
   - `UpdatePrioritizingDestroyingEffect()` обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying`.
   - `HandleDestroyingEffects()` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
   - `RemoveEffect(int effectId)` деактивує ефект, видаляє з словника та `EffectEnables`, прибирає блок з `BlockingState`, обирає наступний пріоритетний ефект, і оновлює візуал.
-- При виклику `Destroy(Cell)`, система:
+- При виклику `Destroy(Cell, bool force)`, система:
   1. Очищує occupancy в `FieldGrid`
   2. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`
-  3. Знищує всі ефекти зі словника `effects`
-  4. Запускає знищення самого `gameObject` з затримкою 0.1s
+  3. Знищує всі ефекти зі словника `effects` з відповідною затримкою
+  4. Запускає знищення самого `gameObject` з затримкою: 0.1s (якщо `force=true`) або 0.3s (якщо `force=false`). 
+  
+  Більша затримка при `force=false` дозволяє відіграти фінальні анімації (наприклад, анімацію злиття в ізометрії).
 
 ### Extensions for Specialized Chips
 Спеціалізовані чіпи розширюють `InitEffects()` для додавання власних ефектів:

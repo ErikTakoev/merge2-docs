@@ -77,11 +77,13 @@ The whole effect system uses centralized integer constants defined in [EffectCon
   - `UpdatePrioritizingDestroyingEffect()` selects effect with highest `Priority` as `effectOfPrioritizingDestroying`.
   - `HandleDestroyingEffects()` increments `NeighboringMergeCount` and calls `TryDestroyEffect`.
   - `RemoveEffect(int effectId)` deactivates effect, removes it from dictionary and `EffectEnables`, removes block from `BlockingState`, selects next priority effect, and updates visual.
-- On `Destroy(Cell)` call, system:
+- On `Destroy(Cell, bool force)` call, system:
   1. Clears occupancy in `FieldGrid`
   2. Calls `ICellSubscriber.OnChipDestroy(mainCell)`
-  3. Destroys all effects from `effects` dictionary
-  4. Starts destruction of `gameObject` itself with 0.1s delay
+  3. Destroys all effects from `effects` dictionary with corresponding delay
+  4. Starts destruction of `gameObject` itself with delay: 0.1s (if `force=true`) or 0.3s (if `force=false`). 
+  
+  The longer delay when `force=false` allows final animations (e.g., isometric merge animation) to complete.
 
 ### Extensions for Specialized Chips
 Specialized chips extend `InitEffects()` to add their own effects:

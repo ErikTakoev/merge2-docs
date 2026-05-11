@@ -41,7 +41,7 @@
 - **`GetId()`**: Повертає унікальний ID ефекту (з `EffectConsts`).
 - **`Init(Chip chip, int effectId)`**: Ініціалізація з посиланням на чіп та ідентифікатором ефекту.
 - **`Activate(Chip chip) → bool`**: Активація ефекту. Повертає `false`, якщо `effectId` міститься в `chip.BlockingState.HideEffectIds` (ефект приховано іншим блокуючим ефектом). При успішній активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
-- **`Deactivate(Chip chip, bool force)`**: Деактивація ефекту.
+- **`Deactivate(Chip chip, bool force)`**: Деактивація ефекту. При `force = true` форсує негайну зміну стану (корисно для миттєвого очищення).
 - **`SendTrigger(string triggerName, bool allowRepeat)`**: Відправка довільного тригеру в Animator.
 - **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`).
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Обробка зміни стану руху (початок перетягування або системне переміщення).
@@ -58,7 +58,7 @@
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
 - **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
 - **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
-- **`Deactivate(Chip chip, bool force)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play`.
+- **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)`.
 - **`GetId()`**: Повертає збережений `effectId`.
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`) під час Drag-and-Drop.
@@ -69,6 +69,7 @@
 - `ParentChip`: Ефект прикріплений до трансформу фішки.
 - `ParentChipAnimationNode`: Ефект прикріплений до дочірнього об'єкта `AnimationNode` (використовується для анімацій вильоту).
 - `ParentCell`: Ефект прикріплений до трансформу клітинки (слідує за клітинкою, а не фішкою).
+- `ParentCellWithoutRotation`: Ефект прикріплений до трансформу клітинки, але ігнорує її поворот.
 
 **Налаштування руху**:
 - `deactivateOnMove`: Якщо `true`, ефект автоматично деактивується під час перетягування фішки, щоб зменшити візуальний шум.

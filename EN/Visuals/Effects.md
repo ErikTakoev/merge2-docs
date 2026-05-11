@@ -41,7 +41,7 @@ Main contract for all effects:
 - **`GetId()`**: Returns unique effect ID (from `EffectConsts`).
 - **`Init(Chip chip, int effectId)`**: Initialization with chip reference and effect identifier.
 - **`Activate(Chip chip) → bool`**: Activates the effect. Returns `false` if `effectId` is in `chip.BlockingState.HideEffectIds` (effect hidden by another blocking effect). On success calls `chip.BlockingState.ApplyBlock(BlockingSettings)`.
-- **`Deactivate(Chip chip, bool force)`**: Deactivates the effect.
+- **`Deactivate(Chip chip, bool force)`**: Deactivates the effect. If `force = true` forces immediate state change (useful for instant cleanup).
 - **`SendTrigger(string triggerName, bool allowRepeat)`**: Sends an arbitrary trigger to Animator.
 - **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Handling cell (`ICell`) changes.
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Handling movement state changes (start of drag or system move).
@@ -58,7 +58,7 @@ For more details on blocking system (Blocking Settings, Combined Blocking State)
 Base class for all effects. Implements `IEffect` and provides virtual methods for managing effect lifecycle:
 - **`Init(Chip chip, int effectId)`**: Initializes effect, stores `effectId`, sets position depending on chip size, applies `AutoSizeType`, deactivates by default.
 - **`Activate(Chip chip) → bool`**: Enables effect. If `effectId` is in `HideEffectIds`, calls `Deactivate` and returns `false`. On activation calls `chip.BlockingState.ApplyBlock(BlockingSettings)`.
-- **`Deactivate(Chip chip, bool force)`**: Disables effect. If `force = true` — immediate state change via `animator.Play`.
+- **`Deactivate(Chip chip, bool force = false)`**: Disables effect. If `force = true` — immediate state change via `animator.Play("Deactivate", -1, 1f)`.
 - **`GetId()`**: Returns stored `effectId`.
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Called when chip moves. If `parentType` is set to `ParentCell`, effect rebinds to new cell.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Handling cell (`ICell`) changes during Drag-and-Drop.
@@ -69,6 +69,7 @@ Base class for all effects. Implements `IEffect` and provides virtual methods fo
 - `ParentChip`: Effect is attached to chip transform.
 - `ParentChipAnimationNode`: Effect is attached to `AnimationNode` child object (used for fly animations).
 - `ParentCell`: Effect is attached to cell transform (follows cell, not chip).
+- `ParentCellWithoutRotation`: Effect is attached to cell transform, but ignores its rotation (useful for UI elements above the cell).
 
 **Movement Settings**:
 - `deactivateOnMove`: If `true`, effect automatically deactivates during chip drag to reduce visual noise.
