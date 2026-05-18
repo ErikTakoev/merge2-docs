@@ -334,7 +334,8 @@
     - **Usage**: Call to remove the chip from the field and scene
     - override in derived classes for custom teardown before or after base destruction
     - **Params**: mainCell - the chip's main occupied cell on the field grid
-    - **Notes**: Clears grid occupancy via FieldGrid first (which enqueues chip-change notifications), then invokes ICellSubscriber cleanup while cell context is still valid, destroys spawned effect objects, and finally schedules GameObject destruction with a short delay (0.1s)
+    - force - if true, destruction happens faster (0.1s), otherwise slower (0.3s) to allow for animations
+    - **Notes**: Clears grid occupancy via FieldGrid first (which enqueues chip-change notifications), then invokes ICellSubscriber cleanup while cell context is still valid, destroys spawned effect objects, and finally schedules GameObject destruction with a delay based on force parameter
 - `+ GetEffect(int effectHash): IEffect`
     - **Purpose**: Retrieves an effect from the effects dictionary by its EffectConsts hash key
     - **Usage**: Call in methods that need to access a specific effect without type casting
@@ -455,6 +456,9 @@
     - handles activation before storing
 - `- AppearanceDelayCoroutine(float delay): IEnumerator`
 - `~ DestroyEffects(float destroyDelay): void`
+    - **Purpose**: Destroys all attached effects with a specified delay
+    - **Usage**: Called from Destroy() to clean up visual effects with a timing synchronized with GameObject destruction
+    - **Params**: destroyDelay - delay in seconds before GameObjects are destroyed
 - `- HandleDestroyingEffects(): void`
 - `~ HasTrigger(string name): bool`
 - `~ InitDestroyingEffectsData(): void`
@@ -1299,7 +1303,7 @@
     - **Usage**: Call when the chip is deactivated or disabled
     - trigger 'Deactivate' animation if configured
     - **Params**: chip - the chip this effect belongs to
-    - force - if true, forces immediate animation state change
+    - force - if true, forces immediate animation state change (plays 'Deactivate' state at end time)
 - `+ GetId(): int`
     - **Purpose**: Returns the unique hash/ID of this effect for identification in the chip's effects dictionary
     - **Usage**: Called by external code to retrieve the effect's ID for lookup or removal
@@ -1580,9 +1584,10 @@
 > - coordinates chip placement, movement, and merging.
 > - **Notes**: Central controller for grid logic and chip management.
 #### Fields
+- `+- IsChipDragging: bool`
 - `- chipChangeNotifier: IChipChangeNotifier`
 - `~ draggableChip: DraggableChipLogic`
-- `- fieldGrid: IFieldGrid`
+- `~ fieldGrid: IFieldGrid`
 - `- OnChangeField: Action`
 - `~ shouldNotifyFieldChanged: bool`
 #### Methods
