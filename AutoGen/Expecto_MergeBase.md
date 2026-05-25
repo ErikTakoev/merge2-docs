@@ -33,6 +33,7 @@
 - [ChipSortingLayer](#chipsortinglayer)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ContainerInfo](#containerinfo)
+- [DeferredCell](#deferredcell)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
 - [Effect](#effect)
@@ -79,7 +80,11 @@
 - [IFieldGrid](#ifieldgrid)
 - [IFieldInitializeCommand](#ifieldinitializecommand)
 - [IFreeCellFinder](#ifreecellfinder)
+- [ILockedAreaManager](#ilockedareamanager)
 - [IPowerBoosterTarget](#ipowerboostertarget)
+- [IVisualField](#ivisualfield)
+- [LockedAreaEffect](#lockedareaeffect)
+- [LockedAreaManager](#lockedareamanager)
 - [Merge2Initializer](#merge2initializer)
 - [Merge2LifetimeScope](#merge2lifetimescope)
 - [MergeableChipLogic](#mergeablechiplogic)
@@ -97,9 +102,9 @@
 ## BlockedCell
 #### Fields
 - `++ Chip: Chip`
+- `++ IsBlocked: bool`
 - `++ MainCell: ICell`
 - `+- CellPosition: Vector2Int`
-- `+- IsBlocked: bool`
 - `+- Transform: Transform`
 #### Methods
 - `+ GetColorForLevelEditor(): Nullable<Color>`
@@ -120,9 +125,9 @@
 > - **Notes**: Acts as a container for a chip and handles chip movement/interaction logic.
 #### Fields
 - `++ Chip: Chip`
+- `++ IsBlocked: bool`
 - `++ MainCell: ICell`
 - `+- CellPosition: Vector2Int`
-- `+- IsBlocked: bool`
 - `+- Transform: Transform`
 - `~ field: IFieldEventHandler`
 - `~ flyAnimation: IChipFlyAnimation`
@@ -1164,6 +1169,40 @@
 - `+- ContainerElementPrefab: GameObject`
 ---
 
+## DeferredCell
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Add-on component that stores initial chip data until its locked area becomes available
+> - **Usage**: Added automatically by FieldGrid to regular Cell or IsoCell prefabs for locked-area deferred coordinates
+> - **Notes**: Keeps deferred loading independent from the concrete cell class
+> - requires an ICell component on the same GameObject
+#### Fields
+- `- chipFactory: ChipFactory`
+- `- deferredCellData: CellData`
+- `- deferredChipData: ChipData`
+- `- hasDeferredChip: bool`
+- `- ownerCell: ICell`
+#### Methods
+- `+ Init(ICell cell): void`
+    - **Purpose**: Binds this deferred loader to the concrete grid cell it augments
+    - **Usage**: Called by FieldGrid immediately after adding this component to a spawned cell GameObject
+    - **Params**: cell - real Cell or IsoCell implementation that should receive the deferred chip
+    - **Notes**: The component does not implement ICell itself and always delegates chip placement to this owner cell
+- `+ SetupDeferredChip(CellData cellData, ChipData chipData): void`
+    - **Purpose**: Stores level chip configuration without creating the chip immediately
+    - **Usage**: Called by FieldInitializeCommand.LoadChips when the target cell is deferred
+    - **Params**: cellData - serialized cell placement and runtime effect state
+    - chipData - chip definition resolved from the collection
+    - **Notes**: A later call to SpawnDeferredChip consumes this data exactly once
+- `+ SpawnDeferredChip(): Chip`
+    - **Purpose**: Creates the delayed chip when the owning locked area opens
+    - **Usage**: Called by LockedAreaManager.UnlockArea after the cell is unblocked
+    - **Returns**: Created chip instance, or null when there is no stored chip data or creation fails
+    - **Notes**: Copies blocker effect state from FieldData so deferred chips match normal LoadChips initialization
+- `+ TryGet(ICell cell, DeferredCell& deferredCell): bool`
+- `- EnsureOwnerCell(): void`
+---
+
 ## DeferredChipChangeNotifier
 
 > - **Purpose**: Plain-class implementation of IChipChangeNotifier.
@@ -1291,13 +1330,13 @@
 #### Methods
 - `+ Activate(Chip chip): bool`
     - **Purpose**: Activates the effect on the specified chip
-    - **Usage**: Call when the chip is activated (e.g. created or enabled)
+    - **Usage**: Call when the chip or non-chip visual owner is activated
     - trigger 'Activate' animation if configured
     - **Params**: chip - the chip this effect belongs to
     - **Returns**: True if the effect was activated
     - false if skipped because effectId is in chip.BlockingState.HideEffectIds
-    - **Notes**: When activated, calls chip.BlockingState.ApplyBlock(BlockingSettings) to apply this effect blocking rules
-    - when hidden, calls Deactivate instead
+    - **Notes**: Pass null only for non-chip visuals
+    - when chip is provided, applies BlockingSettings and respects HideEffectIds
 - `+ Deactivate(Chip chip, bool force): void`
     - **Purpose**: Deactivates the effect on the specified chip
     - **Usage**: Call when the chip is deactivated or disabled
@@ -1555,6 +1594,8 @@
 - `+- Cells: CellData[]`
 - `+- ChipDataCollection: ChipDataCollection`
 - `+- FieldSize: Vector2Int`
+- `+- LevelVisualPrefab: GameObject`
+- `+- LockedAreas: LockedAreaData[]`
 - `- cellPrefabCollection: CellPrefabCollection`
 #### Methods
 - `+ SetCells(CellData[] newCells): void`
@@ -1569,6 +1610,14 @@
     - **Usage**: Called by LevelEditorWindow to set field properties during editing
     - **Notes**: Only available in editor
     - allows modification of private serialized fields
+- `+ SetLevelVisualPrefab(GameObject prefab): void`
+    - **Purpose**: Editor-only setter for the level visual prefab reference
+    - **Usage**: Called by level editing tools when assigning visuals that contain LockedAreaEffect components
+    - **Params**: prefab - prefab instantiated during runtime locked-area initialization
+- `+ SetLockedAreas(LockedAreaData[] newLockedAreas): void`
+    - **Purpose**: Editor-only setter for the lockedAreas array
+    - **Usage**: Called by LevelEditorWindow when saving level data after editing locked areas
+    - **Params**: newLockedAreas - array of locked area definitions to persist
 - `+ ValidateLevel(List`1& errors): bool`
     - **Purpose**: Validates level data for errors and inconsistencies
     - **Usage**: Call before saving to check for overlapping chips and out-of-bounds placements
@@ -1677,6 +1726,19 @@
     - chip - chip instance to place (null means clear).
     - **Notes**: When placing, CellPosition is assigned before chipChangeNotifier.Enqueue so observers handling the event read the chip at its new logical coordinates
     - when clearing, all occupied cells are reset via ClearCells before enqueueing old/new chip state.
+- `- AddDeferredCell(GameObject cellGO, ICell cell): void`
+    - **Purpose**: Attaches the deferred chip loader to a spawned real cell
+    - **Usage**: Called during CreateCells for coordinates listed in CellsToLockAndDeferred
+    - **Params**: cellGO - spawned cell GameObject
+    - cell - ICell implementation on that GameObject
+    - **Notes**: Supports both base Cell and derived cells such as IsoCell without requiring a DeferredCell prefab
+- `- BuildDeferredCellsSet(FieldData fieldData): HashSet<Vector2Int>`
+    - **Purpose**: Collects grid coordinates that need deferred chip loading during field creation
+    - **Usage**: Called once from CreateCells before prefab selection begins
+    - **Params**: fieldData - level configuration containing locked-area definitions
+    - **Returns**: Set of coordinates whose chips should be loaded only after area unlock
+    - **Notes**: Coordinates keep their normal cell prefab
+    - FieldGrid adds a DeferredCell component after spawning
 - `- ClearCells(ICell cell): void`
     - **Purpose**: Clears all chips from cells occupied by the specified cell's chip.
     - **Usage**: Call to remove a chip and its multi-cell occupancy from the field.
@@ -1697,13 +1759,21 @@
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
 - `~ fieldSpriteRenderer: SpriteRenderer`
+- `- levelVisualInstance: GameObject`
+- `- lockedAreaManager: ILockedAreaManager`
 - `~ mergeCamera: Camera`
+- `- resolver: IObjectResolver`
 #### Methods
 - `+ CreateField(): void`
     - **Purpose**: Creates the field grid and sets up camera based on field data.
     - **Usage**: Call first during initialization to create the field structure.
     - **Notes**: Validates FieldData before proceeding
     - sets camera size and creates cells.
+- `+ CreateLevelVisual(): void`
+    - **Purpose**: Creates the level visual prefab and initializes field-wide visual components
+    - **Usage**: Call after field and locked-area runtime state are initialized
+    - **Notes**: Only initializes the root IVisualField
+    - concrete visual fields are responsible for their child visual components
 - `+ GetFieldData(): FieldData`
     - **Purpose**: Returns the current FieldData used by this field.
     - **Usage**: Used in tests to access ChipDataCollection and other field configurations.
@@ -1770,9 +1840,9 @@
 > - **Notes**: Implemented by Cell : MonoBehaviour. Expose Transform so effects can re-parent without casting to MonoBehaviour.
 #### Fields
 - `++ Chip: Chip`
+- `++ IsBlocked: bool`
 - `++ MainCell: ICell`
 - `+- CellPosition: Vector2Int`
-- `+- IsBlocked: bool`
 - `+- Transform: Transform`
 #### Methods
 - `+ GetColorForLevelEditor(): Nullable<Color>`
@@ -2069,6 +2139,7 @@
 ## IFieldInitializeCommand
 #### Methods
 - `+ CreateField(): void`
+- `+ CreateLevelVisual(): void`
 - `+ LoadChips(): void`
 ---
 
@@ -2089,6 +2160,30 @@
     - chipsToPotentiallyMove - set of chips allowed to move
     - onlyAround - if true, limits search to the immediate neighborhood.
     - **Returns**: The nearest free Cell or null if none found.
+---
+
+## ILockedAreaManager
+
+> - **Purpose**: Contract for coordinating runtime locked-area state, visuals, and deferred chip spawning
+> - **Usage**: Inject to initialize locked areas, register visual effects, and unlock areas during gameplay
+> - **Notes**: Implemented by LockedAreaManager
+#### Methods
+- `+ Initialize(): void`
+    - **Purpose**: Applies initial locked-area state to field cells
+    - **Usage**: Call once during scene startup after field cells exist and before LoadChips
+    - **Notes**: Blocks both normal locked cells and deferred cells
+    - level visuals are created by FieldInitializeCommand
+- `+ RegisterEffect(LockedAreaEffect effect): void`
+    - **Purpose**: Associates a spawned visual effect with its locked-area state
+    - **Usage**: Called by LockedAreaEffect.Init after the level visual prefab is instantiated
+    - **Params**: effect - effect component representing a single locked area visual
+    - **Notes**: Immediately synchronizes visual state so late registrations still match current lock state
+- `+ UnlockArea(int areaId, bool force): void`
+    - **Purpose**: Opens a locked area and materializes any deferred chips inside it
+    - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
+    - **Params**: areaId - unique identifier from FieldData.LockedAreas
+    - force - true repeats unlock side effects even if the area is already open
+    - **Notes**: Unblocks cells first so spawned chips can behave as normal cells immediately after creation
 ---
 
 ## IPowerBoosterTarget
@@ -2118,6 +2213,69 @@
     - **Params**: chipPowerBooster - booster to remove
 ---
 
+## IVisualField
+
+> - **Purpose**: Contract for the root visual field component created from FieldData.LevelVisualPrefab
+> - **Usage**: Implement on the level visual prefab root so FieldInitializeCommand can initialize field-wide visual services
+> - **Notes**: Use for visual field concerns such as camera bounds without coupling MergeBase to a concrete view implementation
+#### Methods
+- `+ InitVisualField(): void`
+---
+
+## LockedAreaEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: Runtime visual controller for one locked area overlay or gate
+> - **Usage**: Attach to level visual prefab children and assign the matching LockedAreaId
+> - FieldInitializeCommand calls Init after instantiation
+> - **Notes**: Inherits Effect for shared animator trigger behavior, but does not call base.Init because this visual is not owned by a chip
+#### Fields
+- `+- LockedAreaId: int`
+- `- lockedAreaManager: ILockedAreaManager`
+#### Methods
+- `+ Init(Chip chip, int effectId): void`
+    - **Purpose**: Registers this level visual effect with the locked-area runtime manager
+    - **Usage**: Called by FieldInitializeCommand after the level visual prefab is instantiated and injected
+    - **Params**: chip - ignored because locked-area visuals are not chip-owned
+    - effectId - stored for inherited Effect identity
+    - **Notes**: Intentionally skips base.Init because the base implementation reads chip.Data and deactivates chip effects
+---
+
+## LockedAreaManager
+
+> - **Purpose**: Coordinates runtime locked-area state, visuals, and deferred chip spawning
+> - **Usage**: Registered as a VContainer singleton and initialized after FieldGrid creates cells but before chips are loaded
+> - **Notes**: Cells remain blocked until UnlockArea clears them
+> - deferred chips are created only during unlock
+#### Fields
+- `- effectsByAreaId: Dictionary<int, List<LockedAreaEffect>>`
+- `- fieldData: FieldData`
+- `- fieldGrid: IFieldGrid`
+- `- lockedAreaIds: HashSet<int>`
+#### Methods
+- `+ Initialize(): void`
+    - **Purpose**: Applies initial locked-area state to field cells
+    - **Usage**: Call once during scene startup after field cells exist and before LoadChips
+    - **Notes**: Blocks both normal locked cells and deferred cells
+    - level visuals are created by FieldInitializeCommand
+- `+ RegisterEffect(LockedAreaEffect effect): void`
+    - **Purpose**: Associates a spawned visual effect with its locked-area state
+    - **Usage**: Called by LockedAreaEffect.Init after the level visual prefab is instantiated
+    - **Params**: effect - effect component representing a single locked area visual
+    - **Notes**: Immediately synchronizes visual state so late registrations still match current lock state
+- `+ UnlockArea(int areaId, bool force): void`
+    - **Purpose**: Opens a locked area and materializes any deferred chips inside it
+    - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
+    - **Params**: areaId - unique identifier from FieldData.LockedAreas
+    - force - true repeats unlock side effects even if the area is already open
+    - **Notes**: Unblocks cells first so spawned chips can behave as normal cells immediately after creation
+- `- DeactivateEffects(int areaId, bool immediate): void`
+- `- SetAreaBlocked(LockedAreaData area, bool isBlocked): void`
+- `- SetCellsBlocked(Vector2Int[] cellPositions, bool isBlocked): void`
+- `- SpawnDeferredChips(LockedAreaData area): void`
+- `- TryGetArea(int areaId, LockedAreaData& area): bool`
+---
+
 ## Merge2Initializer
 
 > - **Purpose**: Main initializer for the Merge2 game module using VContainer.
@@ -2131,6 +2289,7 @@
 - `- fieldGrid: IFieldGrid`
 - `- fieldInitializeCommand: IFieldInitializeCommand`
 - `- inputManager: InputManager`
+- `- lockedAreaManager: ILockedAreaManager`
 - `- resolver: IObjectResolver`
 #### Methods
 - `+ Initialize(): void`

@@ -37,6 +37,10 @@
   - **Призначення**: Контракт для компонентів, що реагують на зміни в сусідніх клітинках (`ICell`).
   - **Відповідальність**: `OnChipChangedCell` перев'язує підписки після переміщення, `OnChipDestroy` виконує cleanup перед знищенням чіпа, `OnObservedCellChipChanged` обробляє батч-події через [Cell Observer System](../Features/CellObserverSystem.md).
 
+- **`ILockedAreaManager`** -> `LockedAreaManager`
+  - **Призначення**: Управління станом заблокованих ділянок на рівні.
+  - **Відповідальність**: Ініціалізація заблокованих ділянок, блокування комірок, реєстрація візуальних ефектів, розблокування ділянок та спавн відкладених фішок. Детально описано у [Locked Areas](../Features/LockedAreas.md).
+
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
   - **Призначення**: Абстракція системи вводу для Dependency Injection.
