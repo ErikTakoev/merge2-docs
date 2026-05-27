@@ -81,6 +81,7 @@
 - [IFieldInitializeCommand](#ifieldinitializecommand)
 - [IFreeCellFinder](#ifreecellfinder)
 - [ILockedAreaManager](#ilockedareamanager)
+- [IMergeCamera](#imergecamera)
 - [IPowerBoosterTarget](#ipowerboostertarget)
 - [IVisualField](#ivisualfield)
 - [LockedAreaEffect](#lockedareaeffect)
@@ -88,6 +89,7 @@
 - [Merge2Initializer](#merge2initializer)
 - [Merge2LifetimeScope](#merge2lifetimescope)
 - [MergeableChipLogic](#mergeablechiplogic)
+- [MergeCamera](#mergecamera)
 - [MergeCombination](#mergecombination)
 - [MergeResult](#mergeresult)
 - [NeighborChipFinder](#neighborchipfinder)
@@ -96,6 +98,7 @@
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
 - [ShadowEffect](#shadoweffect)
 - [SortingLayerData](#sortinglayerdata)
+- [VisualField](#visualfield)
 
 ---
 
@@ -108,7 +111,7 @@
 - `+- Transform: Transform`
 #### Methods
 - `+ GetColorForLevelEditor(): Nullable<Color>`
-- `+ GetLocalPositionForChip(): Vector3`
+- `+ GetLocalPositionForChip(Vector2Int chipSize): Vector3`
 - `+ Init(Vector2Int cellPos): void`
 - `+ OnDrag(Vector2 position, bool isValidPosition): void`
 - `+ OnDragEnd(Vector2 position): void`
@@ -134,7 +137,7 @@
 - `~ logEnable: bool`
 - `~ movingTime: float`
 #### Methods
-- `+ GetLocalPositionForChip(): Vector3`
+- `+ GetLocalPositionForChip(Vector2Int chipSize): Vector3`
     - **Purpose**: Gets the center position of the chip in this cell.
     - **Usage**: Call to determine where to place the chip inside the cell.
     - **Returns**: Vector3 representing the local center position for the chip.
@@ -1758,11 +1761,10 @@
 - `- chipFactory: ChipFactory`
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
-- `~ fieldSpriteRenderer: SpriteRenderer`
-- `- levelVisualInstance: GameObject`
 - `- lockedAreaManager: ILockedAreaManager`
-- `~ mergeCamera: Camera`
+- `- mergeCamera: IMergeCamera`
 - `- resolver: IObjectResolver`
+- `- visualFieldInstance: GameObject`
 #### Methods
 - `+ CreateField(): void`
     - **Purpose**: Creates the field grid and sets up camera based on field data.
@@ -1777,6 +1779,7 @@
 - `+ GetFieldData(): FieldData`
     - **Purpose**: Returns the current FieldData used by this field.
     - **Usage**: Used in tests to access ChipDataCollection and other field configurations.
+- `+ InitCamera(): void`
 - `+ LoadChips(): void`
     - **Purpose**: Loads and creates chips from field data.
     - **Usage**: Call after CreateField to populate the field with initial chips.
@@ -1788,7 +1791,6 @@
     - **Usage**: Internal helper method called by LoadChips for each chip.
     - **Params**: cellData - cell data for the chip
     - chipData - chip configuration data.
-- `- SetupCameraAndFieldSize(Vector2Int fieldSize): void`
 ---
 
 ## FillContainerLogic
@@ -1846,7 +1848,7 @@
 - `+- Transform: Transform`
 #### Methods
 - `+ GetColorForLevelEditor(): Nullable<Color>`
-- `+ GetLocalPositionForChip(): Vector3`
+- `+ GetLocalPositionForChip(Vector2Int chipSize): Vector3`
 - `+ Init(Vector2Int cellPos): void`
     - **Purpose**: Initializes the cell with its grid position.
     - **Usage**: Call once after instantiating the cell to set its logical position in the grid.
@@ -2140,6 +2142,7 @@
 #### Methods
 - `+ CreateField(): void`
 - `+ CreateLevelVisual(): void`
+- `+ InitCamera(): void`
 - `+ LoadChips(): void`
 ---
 
@@ -2186,6 +2189,23 @@
     - **Notes**: Unblocks cells first so spawned chips can behave as normal cells immediately after creation
 ---
 
+## IMergeCamera
+
+> - **Purpose**: Defines camera controls used by the isometric field input bridge.
+> - **Usage**: Register an IsoMergeCamera as this interface in the isometric LifetimeScope.
+> - **Notes**: All methods are driven by InputManager and IsoFieldEventHandler events.
+#### Fields
+- `+- Camera: Camera`
+#### Methods
+- `+ Init(Vector3 startPosition, float orthographicSize): void`
+- `+ OnDrag(Vector3 worldPosition, bool isChipDragging): Nullable<Vector3>`
+- `+ OnDragEnd(bool wasChipDragging): void`
+- `+ OnDragStart(Vector3 worldPosition, bool isChipDragging): void`
+- `+ OnPointerMoved(Vector2 screenPosition): void`
+- `+ OnZoom(float delta, Vector2 screenPosition): void`
+- `+ SetBounds(Vector3 leftBottom, Vector3 rightTop): void`
+---
+
 ## IPowerBoosterTarget
 
 > - **Purpose**: Contract for entities that can be influenced by ChipPowerBooster instances.
@@ -2219,7 +2239,8 @@
 > - **Usage**: Implement on the level visual prefab root so FieldInitializeCommand can initialize field-wide visual services
 > - **Notes**: Use for visual field concerns such as camera bounds without coupling MergeBase to a concrete view implementation
 #### Methods
-- `+ InitVisualField(): void`
+- `+ InitVisualField(FieldData fieldData): void`
+- `+ OnFieldSizeChanged(Vector2Int newSize): void`
 ---
 
 ## LockedAreaEffect
@@ -2354,6 +2375,21 @@
     - **plannedRelocations - output**: relocations for the resolved cell
     - **Returns**: True if a valid position was found (primary or neighbor)
     - false if all options failed
+---
+
+## MergeCamera
+**Inherits**: `MonoBehaviour`
+#### Fields
+- `+- Camera: Camera`
+- `- cam: Camera`
+#### Methods
+- `+ Init(Vector3 startPosition, float orthographicSize): void`
+- `+ OnDrag(Vector3 worldPosition, bool isChipDragging): Nullable<Vector3>`
+- `+ OnDragEnd(bool wasChipDragging): void`
+- `+ OnDragStart(Vector3 worldPosition, bool isChipDragging): void`
+- `+ OnPointerMoved(Vector2 screenPosition): void`
+- `+ OnZoom(float delta, Vector2 screenPosition): void`
+- `+ SetBounds(Vector3 leftBottom, Vector3 rightTop): void`
 ---
 
 ## MergeCombination
@@ -2588,5 +2624,16 @@
 - `+ AdditionallyWhenMoving: int`
 - `+ CachedOrder: int`
 - `+ Renderer: Renderer`
+---
+
+## VisualField
+**Inherits**: `MonoBehaviour`
+#### Fields
+- `- fieldSpriteRenderer: SpriteRenderer`
+- `- resolver: IObjectResolver`
+#### Methods
+- `+ InitVisualField(FieldData fieldData): void`
+- `+ OnFieldSizeChanged(Vector2Int newSize): void`
+- `- ApplyEffects(): void`
 ---
 
