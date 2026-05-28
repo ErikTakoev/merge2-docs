@@ -69,9 +69,18 @@ In "Edit Locked Areas" mode, interaction with the grid changes:
 For more details on the lifecycle and logic of locked areas, see the [Locked Areas (Locked Areas)](Features/LockedAreas.md) section.
 
 ## Technical Implementation
+
+### Core Architecture and Synchronization
+- **`IMergeLifetimeScope` as the Single Source of Truth**: The editor is activated and rendered only when an `IMergeLifetimeScope` component is present in the current hierarchy of the active scene. The connection between the editor and the scene is direct: the `FieldData` field in the active scope acts as the single source of truth. Any actions like creating levels (`OnNewLevel`), loading, or auto-saving (`EnsureAutosaveTarget`, `AutosaveCurrentField`) write the asset directly to the active scope and mark it as dirty (`EditorUtility.SetDirty`).
+- **VContainer Integration**: The field grid (`IFieldGrid`) is resolved primarily via the DI container (`scope.Container.Resolve<IFieldGrid>()`), ensuring full compatibility with runtime dependencies and scene configuration. If the container is not built in Edit mode, a fallback search for the component directly in the scene is used.
+- **Isolation and Suppression in Prefab Mode**: The editor tracks the Prefab Mode state using `PrefabStage` and `PrefabStageUtility` events. When switching to Prefab Mode, interaction with the editor is suspended, and the scene visual preview is instantly destroyed. After closing Prefab Mode, the editor automatically restores its state and performs a re-synchronization.
+- **Domain Reload Resilience**: After a Unity domain reload, when the non-serialized dictionary of placed chips (`placedChips`) is reset, the editor automatically detects the desynchronization and repopulates the dictionary based on the serialized `FieldData` asset from the active scope.
+- **Isolated Scene Visual Preview**: To render the field prefab and placed chips, the editor dynamically creates a separate temporary additive scene (`LevelEditorPreviewScene`). This prevents cluttering or accidental modification of the main open scene of the project. All preview objects are created with the `HideFlags.DontSave` flag.
+
+### Undo/Redo System
 The Undo/Redo system is built on the **Command** pattern.
 
-### Key Components
+#### Key Components
 - **`IEditorCommand`**: Interface for all editor commands. Each command implements execution (`Execute`) and rollback (`Undo`) logic.
 - **`EditorCommandHistory`**: Manager class that controls two stacks (Undo and Redo).
 - **`LevelEditorWindow.UndoRedo.cs`**: Partial class containing definitions of all concrete commands:
@@ -86,7 +95,7 @@ The Undo/Redo system is built on the **Command** pattern.
     - `ChangeLockedAreaIdCommand` — changes a locked area ID.
     - `PaintLockedAreaCellsCommand` — edits `CellsToLock` and `CellsToLockAndDeferred` (painting locked/deferred cells).
 
-### Workflow (Flow)
+#### Workflow (Flow)
 Instead of directly changing `placedChips` or `gridSize`, editor methods (for example, `PlaceChip`) called via Scene View events or UI create the corresponding command object and call `RecordAndExecute(command)`. This method delegates execution to `EditorCommandHistory`, which pushes the command to the stack and calls `Repaint()` of Scene View and editor windows.
 
 ---
