@@ -13,6 +13,18 @@ Quick start and extension guide for the project.
 - **[Extension Guide](ExtensionGuide.md)**
   > **Context**: Step-by-step guide for extending the project: adding new chip types, effects, interactions, and services.
 
+### Extensions
+Additional modules and specialized solutions built on top of the Merge Toolkit.
+
+- **[Merge Toolkit - Isometric](Extensions/Isometric/IsometricMain.md)**
+  > **Context**: Support for an isometric grid, depth sorting, and specific visual effects for isometric games.
+- **Merge Toolkit - Classic**
+  > **Context**: Core mechanics set for classic 2D or Top-Down merge puzzles.
+- **Merge Toolkit - Tower Defense**
+  > **Context**: An extension combining the chip merge system with tower defense mechanics.
+
+
+
 ### Game Objects (Chips)
 This section describes the core entities located on the game field (Grid). All objects inherit from or use the base `Chip` principles.
 
@@ -30,6 +42,9 @@ This section describes the core entities located on the game field (Grid). All o
 
 ### Key Features
 Mechanics that distinguish this project from classic Merge games.
+
+- **[Locked Areas](Features/LockedAreas.md)**
+  > **Context**: A system for locking specific grid areas until they are unlocked. Supports two types of locked cells: simple (with instant chip loading) and deferred (with chips appearing after unlocking).
 
 - **[Multi-cell Chips](Features/MultiCellChip.md)**
   > **Context**: Support for chips larger than 1x1. Describes the complex Anchor Cell system, position validation, and rendering specifics for objects occupying multiple cells.
@@ -73,7 +88,7 @@ Information for developers about architecture, patterns, and tools.
   > - **Interfaces**: Description of key abstractions (`IFieldGrid`, `IChipMovingLogic`, `IFieldEventHandler`, etc.).
 
 
-
+  
 - **[Testing](Technical/Testing.md)**
   > **Context**: A guide for writing tests. Focus on **Integration Tests** that use a real field prefab (`TestFieldBuilder`) to verify gameplay scenarios (Spawn -> Move -> Merge -> Validation), including the subscription pipeline of [Cell Observer System](Features/CellObserverSystem.md) and `ChipPowerBooster` scenarios for manual+auto generators.
 

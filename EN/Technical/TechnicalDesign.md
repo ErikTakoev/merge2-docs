@@ -37,6 +37,10 @@ Main system abstractions and their implementations:
   - **Purpose**: Contract for components reacting to changes in neighboring cells (`ICell`).
   - **Responsibility**: `OnChipChangedCell` rebinds subscriptions after movement, `OnChipDestroy` performs cleanup before chip destruction, `OnObservedCellChipChanged` handles batch events through [Cell Observer System](../Features/CellObserverSystem.md).
 
+- **`ILockedAreaManager`** -> `LockedAreaManager`
+  - **Purpose**: Manages the state of locked areas at the level.
+  - **Responsibility**: Initialization of locked areas, cell blocking, visual effect registration, unlocking areas, and spawning deferred chips. Described in detail in [Locked Areas](../Features/LockedAreas.md).
+
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
   - **Purpose**: Input system abstraction for Dependency Injection.
@@ -61,6 +65,15 @@ Main system abstractions and their implementations:
 - **`IChipFinder`** -> `NeighborChipFinder`
   - **Purpose**: Finding neighboring chips around a cell considering chip size.
   - **Responsibility**: Allocation-free iteration over 4 bounds of chip bounding box, collecting unique neighbors via `HashSet<Chip>`. Used by `MergeableChipLogic` for `NotifyNeighborsOfMerge`.
+
+### Camera & Visual Field
+- **`IMergeCamera`** -> `MergeCamera` (2D) / `IsoMergeCamera` (Isometric)
+  - **Purpose**: Camera abstraction to support different projection types (2D and isometric).
+  - **Responsibility**: Initializing camera orthographic size/position, handling drag, zoom, and managing movement bounds of the camera on the game field.
+  
+- **`IVisualField`** -> `VisualField` (2D) / `IsoVisualField` (Isometric)
+  - **Purpose**: Contract for the root component of the visual game field representation.
+  - **Responsibility**: Initializing the visual representation of the field, adjusting to the grid size, setting camera bounds, and initializing effects (e.g., locked areas).
 
 ## Visual Effects System
 Visual chip effects are implemented through interface system for flexibility and logic separation.
