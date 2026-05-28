@@ -27,6 +27,7 @@ The `Chip` class is the visual representation and base component.
   - **BlockingState**: (`CombinedBlockingState`) aggregated permission state (for example, `CanBeMoved`, `CanBeMergedAsSource`) determined by active effects.
 - **Visual Management**:
   - **SortingLayer** (`IChipSortingLayer`): Controls sorting layers of multiple chip renderers, ensuring correct display during movement.
+  - **AnimationNode** (`Transform`): Reference to the chip's animation node where visual effects (of type `ParentChipAnimationNode`) that should move with the chip are attached.
 - **Others**:
   - **LogEnable**: Flag to enable logging of chip events to console.
 - **Effects**: Managed by a centralized system based on `Dictionary<int, IEffect>` with hash keys from `EffectConsts`.  

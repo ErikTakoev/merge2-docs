@@ -82,6 +82,7 @@
 - [IFreeCellFinder](#ifreecellfinder)
 - [ILockedAreaManager](#ilockedareamanager)
 - [IMergeCamera](#imergecamera)
+- [IMergeLifetimeScope](#imergelifetimescope)
 - [IPowerBoosterTarget](#ipowerboostertarget)
 - [IVisualField](#ivisualfield)
 - [LockedAreaEffect](#lockedareaeffect)
@@ -300,6 +301,7 @@
 #### Fields
 - `++ CellPosition: Vector2Int`
 - `++ LogEnable: bool`
+- `+- AnimationNode: Transform`
 - `+- Animator: Animator`
 - `+- AppearanceDelay: float`
 - `+- BlockingState: CombinedBlockingState`
@@ -1593,14 +1595,17 @@
 ## FieldData
 **Inherits**: `ScriptableObject`
 #### Fields
-- `+- CellPrefabs: CellPrefabCollection`
+- `+- BlockedCells: Vector2Int[]`
 - `+- Cells: CellData[]`
 - `+- ChipDataCollection: ChipDataCollection`
 - `+- FieldSize: Vector2Int`
 - `+- LevelVisualPrefab: GameObject`
 - `+- LockedAreas: LockedAreaData[]`
-- `- cellPrefabCollection: CellPrefabCollection`
 #### Methods
+- `+ SetBlockedCells(Vector2Int[] newBlockedCells): void`
+    - **Purpose**: Editor-only setter for blocked cells array
+    - **Usage**: Called by LevelEditorWindow when saving level data to assign blocked cells array
+    - **Params**: newBlockedCells - array of blocked cell positions to persist
 - `+ SetCells(CellData[] newCells): void`
     - **Purpose**: Editor-only setter for cells array
     - **Usage**: Called by LevelEditorWindow when saving level data
@@ -1679,6 +1684,7 @@
 - `+- Cells: ICell[]`
 - `+- FieldSize: Vector2Int`
 - `- chipChangeNotifier: IChipChangeNotifier`
+- `- mergeSettings: MergeSettings`
 - `- resolver: IObjectResolver`
 #### Methods
 - `+ CreateCells(FieldData fieldData): void`
@@ -1780,6 +1786,9 @@
     - **Purpose**: Returns the current FieldData used by this field.
     - **Usage**: Used in tests to access ChipDataCollection and other field configurations.
 - `+ InitCamera(): void`
+    - **Purpose**: Initializes the merge camera's orthographic size and position based on the field size.
+    - **Usage**: Called after visual field creation to ensure correct camera framing.
+    - **Notes**: Retrieves Camera component from the injected IMergeCamera and computes bounds multiplier.
 - `+ LoadChips(): void`
     - **Purpose**: Loads and creates chips from field data.
     - **Usage**: Call after CreateField to populate the field with initial chips.
@@ -2139,11 +2148,22 @@
 ---
 
 ## IFieldInitializeCommand
+
+> - **Purpose**: Interface for field initialization commands that set up the board structure, load chips, and prepare cameras.
+> - **Usage**: Injected and called by the field initialization orchestrator (e.g., Merge2Initializer). Implementations should handle both 2D and Isometric layouts.
 #### Methods
 - `+ CreateField(): void`
+    - **Purpose**: Creates the cells and logical field grid structure.
+    - **Usage**: Called first during initialization.
 - `+ CreateLevelVisual(): void`
+    - **Purpose**: Creates the level visual prefab and initializes field-wide visual components.
+    - **Usage**: Called after logical cell states are ready.
 - `+ InitCamera(): void`
+    - **Purpose**: Initializes the merge camera parameters (position, bounds, viewport scale) relative to the field bounds.
+    - **Usage**: Called as the final step of field setup to ensure correct camera framing.
 - `+ LoadChips(): void`
+    - **Purpose**: Populates the cells on the field grid with initial chips from cell data.
+    - **Usage**: Called after logical and visual field structures are set up.
 ---
 
 ## IFreeCellFinder
@@ -2191,9 +2211,9 @@
 
 ## IMergeCamera
 
-> - **Purpose**: Defines camera controls used by the isometric field input bridge.
-> - **Usage**: Register an IsoMergeCamera as this interface in the isometric LifetimeScope.
-> - **Notes**: All methods are driven by InputManager and IsoFieldEventHandler events.
+> - **Purpose**: Defines camera controls used by the merge field input bridge.
+> - **Usage**: Register a MergeCamera or IsoMergeCamera as this interface in the LifetimeScope.
+> - **Notes**: All methods are driven by InputManager and FieldEventHandler events.
 #### Fields
 - `+- Camera: Camera`
 #### Methods
@@ -2204,6 +2224,16 @@
 - `+ OnPointerMoved(Vector2 screenPosition): void`
 - `+ OnZoom(float delta, Vector2 screenPosition): void`
 - `+ SetBounds(Vector3 leftBottom, Vector3 rightTop): void`
+---
+
+## IMergeLifetimeScope
+
+> - **Purpose**: Interface for LifetimeScope components in Merge2 and IsoMerge to expose configuration
+> - **Usage**: Implemented by Merge2LifetimeScope and IsoMergeLifetimeScope to allow Editor and Runtime tools to query and set properties without tight coupling
+#### Fields
+- `++ FieldData: FieldData`
+- `++ MergeSettings: MergeSettings`
+- `+- Container: IObjectResolver`
 ---
 
 ## IPowerBoosterTarget
@@ -2324,9 +2354,11 @@
 **Inherits**: `LifetimeScope`
 #### Fields
 - `++ FieldData: FieldData`
+- `++ MergeSettings: MergeSettings`
 #### Methods
 - `~ Awake(): void`
 - `~ Configure(IContainerBuilder builder): void`
+- `- Expecto.MergeBase.IMergeLifetimeScope.get_Container(): IObjectResolver`
 ---
 
 ## MergeableChipLogic
@@ -2379,11 +2411,18 @@
 
 ## MergeCamera
 **Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Provides the default 2D orthographic camera implementation for the merge field, managing size and initial position.
+> - **Usage**: Attach to the camera GameObject in 2D scenes and register as IMergeCamera in Merge2LifetimeScope.
 #### Fields
 - `+- Camera: Camera`
 - `- cam: Camera`
 #### Methods
 - `+ Init(Vector3 startPosition, float orthographicSize): void`
+    - **Purpose**: Sets the camera orthographic size and position based on the field constraints.
+    - **Usage**: Called during initialization by FieldInitializeCommand.
+    - **Params**: startPosition - the initial camera coordinates
+    - orthographicSize - the calculated viewport scale.
 - `+ OnDrag(Vector3 worldPosition, bool isChipDragging): Nullable<Vector3>`
 - `+ OnDragEnd(bool wasChipDragging): void`
 - `+ OnDragStart(Vector3 worldPosition, bool isChipDragging): void`
@@ -2628,11 +2667,18 @@
 
 ## VisualField
 **Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Provides visual presentation of the 2D merge grid, managing field sprite size and injecting sub-effects like locked areas.
+> - **Usage**: Attach to visual field prefabs
+> - instantiated dynamically via field initialization.
 #### Fields
 - `- fieldSpriteRenderer: SpriteRenderer`
 - `- resolver: IObjectResolver`
 #### Methods
 - `+ InitVisualField(FieldData fieldData): void`
+    - **Purpose**: Initializes the 2D visual field using field configuration data.
+    - **Usage**: Called dynamically after instantiating the prefab during field initialization.
+    - **Params**: fieldData - configuration specifying grid size and other settings.
 - `+ OnFieldSizeChanged(Vector2Int newSize): void`
 - `- ApplyEffects(): void`
 ---

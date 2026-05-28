@@ -8,6 +8,7 @@ This document defines standards for writing technical documentation for Merge To
 - **Language**: Ukrainian.
 - **Style**: Concise, technical, structured.
 - **Format**: Markdown.
+- **Current State Description (CRITICAL)**: Documentation must describe the system ONLY in its current state ("as is"). Avoid descriptions like "how it used to be", comparisons to older versions, or notes on what was changed. The history of changes belongs to Git commits, while technical documentation should remain a clean source of truth for the current codebase.
 
 ## 2. Document Structure
 Each document must have a clear structure:

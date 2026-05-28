@@ -27,6 +27,7 @@
   - **BlockingState**: (`CombinedBlockingState`) агрегований стан дозволів (наприклад, `CanBeMoved`, `CanBeMergedAsSource`), що визначається активними ефектами.
 - **Visual Management**:
   - **SortingLayer** (`IChipSortingLayer`): Керує шарами сортування декількох рендерерів чіпа, забезпечуючи коректне відображення під час руху.
+  - **AnimationNode** (`Transform`): Посилання на вузол анімації фішки, куди прикріплюються візуальні ефекти (типу `ParentChipAnimationNode`), що мають рухатися разом із фішкою.
 - **Others**:
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  

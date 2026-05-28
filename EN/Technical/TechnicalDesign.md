@@ -7,7 +7,7 @@ Architecture is built on principles of modularity, Dependency Injection, and cle
 
 ## Dependency Injection (VContainer)
 We use **VContainer** for dependency management.
-- **LifetimeScope**: `Merge2LifetimeScope` is the configuration point for the Merge2 scene. Static level data (`FieldData`, `ChipDataCollection`) is also registered here as singletons. `FieldData` can be assigned dynamically, allowing use of the same LifetimeScope for different field configurations (for example, in tests).
+- **LifetimeScope**: `Merge2LifetimeScope` and `IsoMergeLifetimeScope` implement the `IMergeLifetimeScope` interface and act as configuration points for their respective Merge2 and IsoMerge scenes. Static level data (`FieldData`, `ChipDataCollection`) along with global merge settings (`MergeSettings`) are registered here as singletons. `FieldData` and `MergeSettings` can be assigned dynamically (for example, in tests).
 - **Initialization**: `Merge2Initializer` acts as Entry Point. It receives key interfaces through constructor (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) and initializes field through `IFieldInitializeCommand`.
 - **Component Injection**: All gameplay services and logic classes receive dependencies through `[Inject]` or constructor.
 
@@ -23,6 +23,10 @@ Main system abstractions and their implementations:
   - **Purpose**: Manages grid state (2D `ICell` array).
   - **Responsibility**: Cell creation, coordinate validation, checking blocked zones (`HasBlockedCells`), low-level chip placement operations (`SetChipInCell`).
   - **`SetChipInCell` detail**: When setting chip, `FieldGrid` assigns `chip.CellPosition` before `IChipChangeNotifier.Enqueue(...)` so subscribers receive event with already up-to-date coordinates. During cleanup, it first clears occupancy (`ClearCells`), then enqueues `oldChip -> null` event.
+
+- **`IMergeLifetimeScope`** (Interface)
+  - **Purpose**: Unified access to LifetimeScope configurations in Merge2 and IsoMerge scenes.
+  - **Responsibility**: Allows Editor and Runtime tools to dynamically query and set properties like `FieldData` and `MergeSettings`, and retrieve the container (`IObjectResolver`) without tight coupling to concrete LifetimeScope implementations.
 
 - **`IFieldInitializeCommand`** -> `FieldInitializeCommand`
   - **Purpose**: Level initialization command.
@@ -115,7 +119,7 @@ Project uses ScriptableObjects for storing level state and metadata.
 ### ChipData & SpecialData
 `ChipData` stores base chip parameters (type, prefab, size), and extendable data is moved to `specialDatas` (`SerializeReference`).
 - **Contract**: `IChipSpecialData` — base interface for specialized configurations.
-- **Merge as SpecialData**: `ChipMergeData` is now one of `IChipSpecialData` blocks and is not stored as a separate field in `ChipData`.
+- **Merge as SpecialData**: `ChipMergeData` is one of `IChipSpecialData` blocks for chip merge configuration.
 - **Access**: 
   - `GetSpecialData<T>()` returns typed data block (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, etc.).
   - `CreateSpecialData<T>()` dynamically creates a new special data instance, adds it to collection, and returns reference. Useful for tests when `ChipData` must be cloned and config changed on the fly.
@@ -132,8 +136,10 @@ Project uses ScriptableObjects for storing level state and metadata.
 ### FieldData & CellData
 `FieldData` describes initial field state. Each cell is represented by `CellData` structure:
 - **FieldChipData**: Contains chip data (**ChipId**) and array of active blocker effects (**BlockerEffectIds**, for example `EffectConsts.Blockers.MoveLockedEffect`).
-- **Position**: Anchor coordinates (top-left).
+- **BlockedCells**: Array of coordinates (`Vector2Int[]`) defining blocked cells on the level, which are initialized as impassable cells.
+- **Position**: Anchor coordinates (top-left) for placed chips within `CellData`.
 - **Code location**: `FieldData` and `FieldChipData` are located in `Core/Scripts/Field/Data`.
+- **MergeSettings**: Global scene configuration, which includes `CellPrefab` to instantiate default game cells.
 
 ### Runtime State
 In game, information about active blocker effects is stored in `ChipRuntimeData.EffectEnables` (`HashSet<int>`). This set is used as state indicator — `Chip.InitEffects()` and `UpdateVisual()` activate effects whose IDs are in set. Then the effect itself, having `EffectBlockingSettings`, passes specific restrictions into chip global `CombinedBlockingState` (which gameplay logic already uses). Additionally, `EffectDestroyingData` (`Dictionary<int, EffectDestroyingRuntimeData>`) tracks effect destruction progress on neighboring merges. This allows dynamically changing chip states (for example, unlocking after specific conditions), separating visual effects and blocking logic.

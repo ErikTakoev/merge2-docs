@@ -145,9 +145,9 @@ Tests of chip booster functionality ([ChipPowerBooster](../Chips/ChipPowerBooste
 ### TestSettings
 Class configuration for test settings.
 - **Purpose**: Stores path to test scene prefab and debug flags.
-- **Updates**: 
-  - Added menu item `Window/Expecto/MergeBase/Tests/Enable Debug Mode` for quick debug mode enabling.
-  - Added reference to `ChipCreatorSettings` for automatic path setup for data and prefabs during test runs.
+- **Features**: 
+  - Menu item `Window/Expecto/MergeBase/Tests/Enable Debug Mode` for quick debug mode enabling.
+  - Reference to `ChipCreatorSettings` for automatic path setup for data and prefabs during test runs.
 
 ### Automated Scaffolding
 "New Game Folder" tool automatically creates:

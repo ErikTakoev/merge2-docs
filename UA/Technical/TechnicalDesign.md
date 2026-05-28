@@ -7,7 +7,7 @@
 
 ## Dependency Injection (VContainer)
 Ми використовуємо **VContainer** для керування залежностями.
-- **LifetimeScope**: `Merge2LifetimeScope` — точка конфігурації для сцени Merge2. Тут також реєструються статичні дані рівня (`FieldData`, `ChipDataCollection`) як синглтони. `FieldData` може бути призначений динамічно, що дозволяє використовувати один і той самий LifetimeScope для різних конфігурацій поля (наприклад, у тестах).
+- **LifetimeScope**: `Merge2LifetimeScope` та `IsoMergeLifetimeScope` реалізують інтерфейс `IMergeLifetimeScope` і є точками конфігурації для відповідних сцен Merge2 та IsoMerge. Тут реєструються дані рівня (`FieldData`, `ChipDataCollection`), а також глобальні налаштування злиття (`MergeSettings`) як синглтони. `FieldData` та `MergeSettings` можуть бути призначені динамічно (наприклад, у тестах).
 - **Initialization**: `Merge2Initializer` виступає як Entry Point. Він отримує через конструктор ключові інтерфейси (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) та ініціалізує поле через `IFieldInitializeCommand`.
 - **Component Injection**: Всі ігрові сервіси та логічні класи отримують залежності через `[Inject]` або конструктор.
 
@@ -23,6 +23,10 @@
   - **Призначення**: Управління станом сітки (2D масив `ICell`).
   - **Відповідальність**: Створення комірок, валідація координат, перевірка заблокованих зон (`HasBlockedCells`), низькорівневі операції розміщення чіпів (`SetChipInCell`).
   - **Деталь `SetChipInCell`**: При встановленні чіпа `FieldGrid` призначає `chip.CellPosition` до `IChipChangeNotifier.Enqueue(...)`, щоб підписники отримували подію вже з актуальними координатами. При очищенні спочатку скидає occupancy (`ClearCells`), потім enqueue події `oldChip -> null`.
+
+- **`IMergeLifetimeScope`** (Інтерфейс)
+  - **Призначення**: Уніфікований доступ до конфігурації LifetimeScope в Merge2 та IsoMerge.
+  - **Відповідальність**: Дозволяє Editor- та Runtime-інструментам динамічно зчитувати та записувати `FieldData` і `MergeSettings`, а також отримувати доступ до контейнера `IObjectResolver` без жорсткої залежності від конкретної реалізації LifetimeScope.
 
 - **`IFieldInitializeCommand`** -> `FieldInitializeCommand`
   - **Призначення**: Команда ініціалізації рівня.
@@ -115,7 +119,7 @@
 ### ChipData & SpecialData
 `ChipData` зберігає базові параметри чіпа (тип, префаб, розмір), а розширювані дані винесені в `specialDatas` (`SerializeReference`).
 - **Контракт**: `IChipSpecialData` — базовий інтерфейс для спеціалізованих конфігурацій.
-- **Merge як SpecialData**: `ChipMergeData` тепер є одним із блоків `IChipSpecialData` і не зберігається окремим полем у `ChipData`.
+- **Merge як SpecialData**: `ChipMergeData` є одним із блоків `IChipSpecialData` для конфігурації злиття чіпів.
 - **Доступ**: 
   - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData` тощо).
   - `CreateSpecialData<T>()` — динамічно створює нову інстанцію спеціальних даних, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
@@ -132,8 +136,10 @@
 ### FieldData & CellData
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
 - **FieldChipData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
-- **Позиція**: Координати якоря (top-left).
+- **BlockedCells**: Масив координат (`Vector2Int[]`), які визначають заблоковані клітинки на рівні, що ініціалізуються як непрохідні.
+- **Позиція**: Координати якоря (top-left) для розміщених фішок у `CellData`.
 - **Розташування в коді**: `FieldData` і `FieldChipData` знаходяться в `Core/Scripts/Field/Data`.
+- **MergeSettings**: Глобальні налаштування сцени, які зокрема містять `CellPrefab` для створення стандартних ігрових клітинок.
 
 ### Runtime State
 У грі інформація про активні extra-ефекти зберігається у `ChipRuntimeData.EffectEnables` (`HashSet<int>`). Цей набір використовується як індикатор стану — `Chip.InitEffects()` та `UpdateVisual()` активують ефекти, чиї ID є в наборі. А вже сам ефект, маючи `EffectBlockingSettings`, передає конкретні заборони до загального `CombinedBlockingState` чіпа (з яким вже працює ігрова логіка). Додатково, `EffectDestroyingData` (`Dictionary<int, EffectDestroyingRuntimeData>`) трекає прогрес руйнування ефектів при сусідніх злиттях. Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), розмежовуючи візуальні ефекти та логіку блокування.
