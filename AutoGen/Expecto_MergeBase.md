@@ -1599,8 +1599,8 @@
 - `+- Cells: CellData[]`
 - `+- ChipDataCollection: ChipDataCollection`
 - `+- FieldSize: Vector2Int`
-- `+- LevelVisualPrefab: GameObject`
 - `+- LockedAreas: LockedAreaData[]`
+- `+- VisualFieldPrefab: GameObject`
 #### Methods
 - `+ SetBlockedCells(Vector2Int[] newBlockedCells): void`
     - **Purpose**: Editor-only setter for blocked cells array

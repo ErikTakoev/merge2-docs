@@ -11,9 +11,10 @@
 Перед розширенням рекомендується створити чисту структуру проєкту. Детальна інструкція знаходиться у [Quick Start → Create New Merge Game (Clean Project)](Quick_Start.md#create-new-merge-game-clean-project).
 
 **Коротко:**
-1. Відкрийте **Window → Expecto → MergeBase → Chip Viewer**.
-2. У вкладці **Settings** натисніть **New Game Folder**.
-3. Інструмент автоматично створить повну структуру папок, сцену, `Merge2LifetimeScope`, `ChipCreatorSettings`, тести та всі необхідні ассети.
+1. Відкрийте **Window → Expecto → Clean Merge Project**.
+2. Оберіть потрібний шаблон конфігурації у полі **Template Settings** (використовує ScriptableObject асети типу `MergeTemplateSettings`).
+3. Вкажіть бажаний **Namespace**, унікальний **Prefix** та натисніть кнопку **Select Folder For Clean Project**, обравши або створивши папку нової гри.
+4. Інструмент автоматично створить повну структуру папок на основі конфігурації шаблону, сцену, згенерує C# класи `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer`, скопіює та перейменує базові префаби поля, підготує інтеграційні тести (`.Tests.asmdef`, тестові ассети та шаблон класу тесту) та автоматично перемкне відкрите вікно **Chip Viewer** на використання нових налаштувань.
 
 Після цього ваш проєкт готовий до розширення.
 
