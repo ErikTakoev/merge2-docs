@@ -1238,6 +1238,7 @@
 #### Fields
 - `+- Chip: Chip`
 - `+- IsDragging: bool`
+- `- cellsToCheckBuffer: List<ICell>`
 - `~ chipInteractionLogics: List<IChipInteractionLogic>`
     - **Purpose**: Collection of all chip interaction logic handlers
     - **Usage**: Internal field
@@ -1254,6 +1255,7 @@
     - cached for performance during drag operations
     - **Notes**: Set in OnDragStart for performance optimization during drag
 - `~ fieldGrid: IFieldGrid`
+- `- filterCellsBuffer: List<ICell>`
 - `~ prevCell: ICell`
 - `~ sourceCell: ICell`
     - **Purpose**: Stores the cell from which the chip was originally dragged
@@ -1699,6 +1701,12 @@
     - **Params**: cellPos - top-left position
     - size - area dimensions (width, height).
     - **Returns**: List of all cells in the specified area.
+- `+ GetCells(Vector2Int cellPos, Vector2Int size, List<ICell> result): void`
+    - **Purpose**: Non-allocating overload that fills a caller-provided list instead of creating a new one
+    - **Usage**: Use in hot paths (e.g., drag loop) to avoid per-frame GC allocations
+    - **Params**: cellPos - top-left position
+    - size - area dimensions
+    - result - pre-allocated list to fill (cleared internally)
 - `+ HasBlockedCells(Vector2Int cellPos, Vector2Int size): bool`
     - **Purpose**: Checks whether a rectangular grid area contains cells that cannot receive chips
     - **Usage**: Use before movement, relocation, and drag highlight display for multi-cell chips
@@ -2117,6 +2125,12 @@
     - **Params**: cellPos - top-left position
     - size - area dimensions
     - **Returns**: List of cells in the specified area
+- `+ GetCells(Vector2Int cellPos, Vector2Int size, List<ICell> result): void`
+    - **Purpose**: Non-allocating overload that fills a caller-provided list instead of creating a new one
+    - **Usage**: Use in hot paths (e.g., drag loop) to avoid per-frame GC allocations
+    - **Params**: cellPos - top-left position
+    - size - area dimensions
+    - result - pre-allocated list to fill (cleared internally)
 - `+ HasBlockedCells(Vector2Int cellPos, Vector2Int size): bool`
     - **Purpose**: Checks whether any cell in a rectangular grid area blocks chip placement
     - **Usage**: Call before placement, relocation, or drag highlight updates for multi-cell chips
@@ -2223,7 +2237,7 @@
 - `+ OnDragStart(Vector3 worldPosition, bool isChipDragging): void`
 - `+ OnPointerMoved(Vector2 screenPosition): void`
 - `+ OnZoom(float delta, Vector2 screenPosition): void`
-- `+ SetBounds(Vector3 leftBottom, Vector3 rightTop): void`
+- `+ SetBounds(Transform leftBottom, Transform rightTop): void`
 ---
 
 ## IMergeLifetimeScope
@@ -2428,7 +2442,7 @@
 - `+ OnDragStart(Vector3 worldPosition, bool isChipDragging): void`
 - `+ OnPointerMoved(Vector2 screenPosition): void`
 - `+ OnZoom(float delta, Vector2 screenPosition): void`
-- `+ SetBounds(Vector3 leftBottom, Vector3 rightTop): void`
+- `+ SetBounds(Transform leftBottom, Transform rightTop): void`
 ---
 
 ## MergeCombination
