@@ -1,6 +1,7 @@
 # Namespace: Expecto.MergeBase
 
 ## Table of Contents
+- [AreaUnlockedEventArgs](#areaunlockedeventargs)
 - [BlockedCell](#blockedcell)
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
@@ -13,8 +14,10 @@
 - [ChipContainerData](#chipcontainerdata)
 - [ChipContainerEffect](#chipcontainereffect)
 - [ChipContainerRuntimeData](#chipcontainerruntimedata)
+- [ChipCreatedEventArgs](#chipcreatedeventargs)
 - [ChipData](#chipdata)
 - [ChipDataCollection](#chipdatacollection)
+- [ChipEffectUnlockedEventArgs](#chipeffectunlockedeventargs)
 - [ChipExtraEffectsData](#chipextraeffectsdata)
 - [ChipFactory](#chipfactory)
 - [ChipFlyAnimation](#chipflyanimation)
@@ -27,6 +30,7 @@
 - [ChipMovingLogic](#chipmovinglogic)
 - [ChipPowerBooster](#chippowerbooster)
 - [ChipPowerBoosterData](#chippowerboosterdata)
+- [ChipRemovedEventArgs](#chipremovedeventargs)
 - [ChipRuntimeData](#chipruntimedata)
 - [ChipSelectorAttribute](#chipselectorattribute)
 - [ChipSelectorDrawer](#chipselectordrawer)
@@ -84,6 +88,7 @@
 - [IMergeCamera](#imergecamera)
 - [IMergeLifetimeScope](#imergelifetimescope)
 - [IPowerBoosterTarget](#ipowerboostertarget)
+- [IScenarioEventHandler](#iscenarioeventhandler)
 - [IVisualField](#ivisualfield)
 - [LockedAreaEffect](#lockedareaeffect)
 - [LockedAreaManager](#lockedareamanager)
@@ -97,10 +102,21 @@
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
+- [ScenarioEventHandler](#scenarioeventhandler)
 - [ShadowEffect](#shadoweffect)
 - [SortingLayerData](#sortinglayerdata)
+- [UnlockAreaNode](#unlockareanode)
 - [VisualField](#visualfield)
+- [WaitForAreaUnlockedNode](#waitforareaunlockednode)
+- [WaitForChipCreatedNode](#waitforchipcreatednode)
+- [WaitForChipEffectUnlockedNode](#waitforchipeffectunlockednode)
+- [WaitForChipRemovedNode](#waitforchipremovednode)
 
+---
+
+## AreaUnlockedEventArgs
+#### Fields
+- `+ AreaId: int`
 ---
 
 ## BlockedCell
@@ -329,6 +345,7 @@
 - `- lastTrigger: string`
 - `~ lastTriggerName: string`
 - `~ resolver: IObjectResolver`
+- `~ scenarioEventHandler: IScenarioEventHandler`
 - `~ transformNode: Transform`
 #### Methods
 - `+ CanMoving(): bool`
@@ -652,6 +669,12 @@
     - empty dictionary means container is full
 ---
 
+## ChipCreatedEventArgs
+#### Fields
+- `+ Cell: ICell`
+- `+ Chip: Chip`
+---
+
 ## ChipData
 **Inherits**: `ScriptableObject`
 #### Fields
@@ -678,6 +701,12 @@
 - `+ GetChipData(string chipName): ChipData`
 ---
 
+## ChipEffectUnlockedEventArgs
+#### Fields
+- `+ Chip: Chip`
+- `+ EffectId: int`
+---
+
 ## ChipExtraEffectsData
 
 > - **Purpose**: Configures available extra blocker/overlay effects for a chip type via name-to-prefab mappings
@@ -698,18 +727,27 @@
 
 ## ChipFactory
 
-> - **Purpose**: Factory for creating Chip objects.
-> - **Usage**: Call CreateChip to instantiate a Chip from a ChipData.
-> - **Notes**: Handles object pooling and initialization
-> - requires ChipData with valid PrefabLink.
+> - **Purpose**: Factory for creating and placing Chip instances on the field grid.
+> - **Usage**: Call Init once during scene initialization (Merge2Initializer) then call CreateChip to instantiate chips from ChipData
+> - pass runtimeDataInitializer to override runtime data before Init.
+> - **Notes**: After SetChipInCell, fires IScenarioEventHandler.RaiseChipCreated so scenario listeners and UVS nodes receive the creation event. Requires ChipData with a valid PrefabLink.
 #### Fields
 - `~ chipCollections: IChipCollections`
 - `~ fieldGrid: IFieldGrid`
 - `~ resolver: IObjectResolver`
+- `~ scenarioEventHandler: IScenarioEventHandler`
 #### Methods
 - `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, Nullable<float> appearanceDelay): Chip`
 - `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, Nullable<float> appearanceDelay): Chip`
-- `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid, IChipCollections chipCollections): void`
+- `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid, IChipCollections chipCollections, IScenarioEventHandler scenarioEventHandler): void`
+    - **Purpose**: Wires all dependencies required by the factory before any chip can be created.
+    - **Usage**: Called once by Merge2Initializer / IsoMergeInitializer at scene start. Must be called before CreateChip.
+    - **Params**: resolver - VContainer object resolver for prefab instantiation
+    - fieldGrid - grid for cell placement
+    - chipCollections - registry of active chips
+    - scenarioEventHandler - optional
+    - when null, scenario events are silently skipped
+    - **Notes**: scenarioEventHandler defaults to null to stay backward-compatible with tests that build ChipFactory without a full lifetime scope.
 ---
 
 ## ChipFlyAnimation
@@ -1076,6 +1114,11 @@
 - `++ Power: float`
 ---
 
+## ChipRemovedEventArgs
+#### Fields
+- `+ Chip: Chip`
+---
+
 ## ChipRuntimeData
 
 > - **Purpose**: Stores runtime state for chips during gameplay, including dynamic properties that change during game execution
@@ -1297,6 +1340,11 @@
     - **Notes**: Sets up internal references and marks chip as dragging.
 - `~ Awake(): void`
 - `- GetFilterCells(ICell targetCell): List<ICell>`
+    - **Purpose**: Collects unique non-empty cells overlapping with the dragged chip's target area.
+    - **Usage**: Internal helper called by UpdateInteractionState during chip dragging to find potential interaction targets.
+    - **Params**: targetCell - the top-left/anchor cell of the candidate placement area
+    - **Returns**: A reference to the shared filterCellsBuffer list populated with relevant cells.
+    - **Notes**: Uses pre-allocated internal buffers to avoid per-frame GC allocations in the drag interaction loop.
 - `- MoveToWorldPosition(Vector3 worldPosition): void`
 - `- ResetCurrentMergable(): void`
 - `- ResetDragState(): void`
@@ -2277,6 +2325,19 @@
     - **Params**: chipPowerBooster - booster to remove
 ---
 
+## IScenarioEventHandler
+
+> - **Purpose**: Contract for dispatching key board-state transitions (chip created, removed, effect unlocked, area unlocked) to scenario and quest listeners.
+> - **Usage**: Inject via VContainer
+> - call Raise* methods from ChipFactory, Chip, and LockedAreaManager at the appropriate lifecycle points. Subscribers may be C# delegates or Unity Visual Scripting EventBus listeners.
+> - **Notes**: Registered as Singleton in Merge2LifetimeScope and IsoMergeLifetimeScope. All Raise* methods fire both a C# event and an EventBus.Trigger for UVS graph nodes.
+#### Methods
+- `+ RaiseAreaUnlocked(int areaId): void`
+- `+ RaiseChipCreated(Chip chip, ICell cell): void`
+- `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
+- `+ RaiseChipRemoved(Chip chip): void`
+---
+
 ## IVisualField
 
 > - **Purpose**: Contract for the root visual field component created from FieldData.LevelVisualPrefab
@@ -2317,6 +2378,7 @@
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
 - `- lockedAreaIds: HashSet<int>`
+- `- scenarioEventHandler: IScenarioEventHandler`
 #### Methods
 - `+ Initialize(): void`
     - **Purpose**: Applies initial locked-area state to field cells
@@ -2356,6 +2418,8 @@
 - `- inputManager: InputManager`
 - `- lockedAreaManager: ILockedAreaManager`
 - `- resolver: IObjectResolver`
+- `- scenarioEventHandler: IScenarioEventHandler`
+- `- scriptMachine: ScriptMachine`
 #### Methods
 - `+ Initialize(): void`
     - **Purpose**: Initializes the Merge2 module by setting up all dependencies and creating the field.
@@ -2369,6 +2433,7 @@
 #### Fields
 - `++ FieldData: FieldData`
 - `++ MergeSettings: MergeSettings`
+- `- scriptMachine: ScriptMachine`
 #### Methods
 - `~ Awake(): void`
 - `~ Configure(IContainerBuilder builder): void`
@@ -2642,6 +2707,25 @@
 - `- WaitStopMovingAndShowEffects(IPowerBoosterTarget target): IEnumerator`
 ---
 
+## ScenarioEventHandler
+
+> - **Purpose**: Bridges Merge2 chip lifecycle events to both C# subscribers and Unity Visual Scripting EventBus listeners.
+> - **Usage**: Registered as Singleton via VContainer
+> - Raise* methods are called by ChipFactory (OnChipCreated), Chip.Destroy (OnChipRemoved), Chip.RemoveEffect (OnChipEffectUnlocked), and LockedAreaManager.UnlockArea (OnAreaUnlocked).
+> - **Notes**: Each Raise* method fires the corresponding C# event and then calls EventBus.Trigger with a typed EventArgs struct. UVS Wait-nodes register on EventBus
+> - C# subscribers bind to the event delegates directly.
+#### Fields
+- `- OnAreaUnlocked: Action<int>`
+- `- OnChipCreated: Action<Chip>`
+- `- OnChipEffectUnlocked: Action<Chip, int>`
+- `- OnChipRemoved: Action<Chip>`
+#### Methods
+- `+ RaiseAreaUnlocked(int areaId): void`
+- `+ RaiseChipCreated(Chip chip, ICell cell): void`
+- `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
+- `+ RaiseChipRemoved(Chip chip): void`
+---
+
 ## ShadowEffect
 **Inherits**: `Effect`
 
@@ -2679,6 +2763,23 @@
 - `+ Renderer: Renderer`
 ---
 
+## UnlockAreaNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Triggers the unlocking of a locked area on the field grid via ILockedAreaManager.
+> - **Usage**: Connect to a control flow
+> - resolves ILockedAreaManager from local object Variables and calls UnlockArea.
+> - **Notes**: Supports optional force unlock flag. Emits event OnAreaUnlocked on completion. LockedAreaManager must be set on the ScriptMachine's GameObject local Variables during scene initialization.
+#### Fields
+- `+- expectedAreaId: ValueInput`
+- `+- forceUnlock: ValueInput`
+- `+- inputTrigger: ControlInput`
+- `+- outputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- Trigger(Flow flow): ControlOutput`
+---
+
 ## VisualField
 **Inherits**: `MonoBehaviour`
 
@@ -2695,5 +2796,79 @@
     - **Params**: fieldData - configuration specifying grid size and other settings.
 - `+ OnFieldSizeChanged(Vector2Int newSize): void`
 - `- ApplyEffects(): void`
+---
+
+## WaitForAreaUnlockedNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Suspends graph execution until a locked area is unlocked.
+> - **Usage**: Connect to a control flow
+> - registers to EventBus dynamically when reached, resumes flow when event triggers.
+> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
+#### Fields
+- `+- areaId: ValueOutput`
+- `+- expectedAreaId: ValueInput`
+- `+- inputTrigger: ControlInput`
+- `+- outputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- TriggerCoroutine(Flow flow): IEnumerator`
+---
+
+## WaitForChipCreatedNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Suspends graph execution until a new chip is created, matching optional expectedChipData.
+> - **Usage**: Connect to a control flow
+> - registers to EventBus dynamically when reached, resumes flow when event triggers.
+> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
+#### Fields
+- `+- cell: ValueOutput`
+- `+- chip: ValueOutput`
+- `+- chipData: ValueOutput`
+- `+- expectedChipData: ValueInput`
+- `+- inputTrigger: ControlInput`
+- `+- outputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- TriggerCoroutine(Flow flow): IEnumerator`
+---
+
+## WaitForChipEffectUnlockedNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Suspends graph execution until a blocker effect is removed from a chip.
+> - **Usage**: Connect to a control flow
+> - registers to EventBus dynamically when reached, resumes flow when event triggers.
+> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
+#### Fields
+- `+- chip: ValueOutput`
+- `+- chipData: ValueOutput`
+- `+- effectId: ValueOutput`
+- `+- expectedChipData: ValueInput`
+- `+- expectedEffectId: ValueInput`
+- `+- inputTrigger: ControlInput`
+- `+- outputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- TriggerCoroutine(Flow flow): IEnumerator`
+---
+
+## WaitForChipRemovedNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Suspends graph execution until a chip is removed.
+> - **Usage**: Connect to a control flow
+> - registers to EventBus dynamically when reached, resumes flow when event triggers.
+> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
+#### Fields
+- `+- chip: ValueOutput`
+- `+- chipData: ValueOutput`
+- `+- expectedChipData: ValueInput`
+- `+- inputTrigger: ControlInput`
+- `+- outputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- TriggerCoroutine(Flow flow): IEnumerator`
 ---
 

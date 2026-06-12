@@ -7,7 +7,7 @@
 
 ## Dependency Injection (VContainer)
 Ми використовуємо **VContainer** для керування залежностями.
-- **LifetimeScope**: `Merge2LifetimeScope` та `IsoMergeLifetimeScope` реалізують інтерфейс `IMergeLifetimeScope` і є точками конфігурації для відповідних сцен Merge2 та IsoMerge. Тут реєструються дані рівня (`FieldData`, `ChipDataCollection`), а також глобальні налаштування злиття (`MergeSettings`) як синглтони. `FieldData` та `MergeSettings` можуть бути призначені динамічно (наприклад, у тестах).
+- **LifetimeScope**: `Merge2LifetimeScope` та `IsoMergeLifetimeScope` реалізують інтерфейс `IMergeLifetimeScope` і є точками конфігурації для відповідних сцен Merge та IsoMerge. Тут реєструються дані рівня (`FieldData`, `ChipDataCollection`), а також глобальні налаштування злиття (`MergeSettings`) як синглтони. `FieldData` та `MergeSettings` можуть бути призначені динамічно (наприклад, у тестах).
 - **Initialization**: `Merge2Initializer` виступає як Entry Point. Він отримує через конструктор ключові інтерфейси (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) та ініціалізує поле через `IFieldInitializeCommand`.
 - **Component Injection**: Всі ігрові сервіси та логічні класи отримують залежності через `[Inject]` або конструктор.
 
@@ -25,7 +25,7 @@
   - **Деталь `SetChipInCell`**: При встановленні чіпа `FieldGrid` призначає `chip.CellPosition` до `IChipChangeNotifier.Enqueue(...)`, щоб підписники отримували подію вже з актуальними координатами. При очищенні спочатку скидає occupancy (`ClearCells`), потім enqueue події `oldChip -> null`.
 
 - **`IMergeLifetimeScope`** (Інтерфейс)
-  - **Призначення**: Уніфікований доступ до конфігурації LifetimeScope в Merge2 та IsoMerge.
+  - **Призначення**: Уніфікований доступ до конфігурації LifetimeScope в Merge та IsoMerge.
   - **Відповідальність**: Дозволяє Editor- та Runtime-інструментам динамічно зчитувати та записувати `FieldData` і `MergeSettings`, а також отримувати доступ до контейнера `IObjectResolver` без жорсткої залежності від конкретної реалізації LifetimeScope.
 
 - **`IFieldInitializeCommand`** -> `FieldInitializeCommand`
@@ -78,6 +78,11 @@
 - **`IVisualField`** -> `VisualField` (2D) / `IsoVisualField` (Isometric)
   - **Призначення**: Контракт для кореневого компонента візуального представлення ігрового поля.
   - **Відповідальність**: Ініціалізація візуального представлення поля, підлаштування під розмір сітки, налаштування меж камери та ініціалізація ефектів (наприклад, заблокованих ділянок).
+
+### Scenario & Quests
+- **`IScenarioEventHandler`** -> `ScenarioEventHandler`
+  - **Призначення**: Контракт для передачі подій сценаріїв та квестів.
+  - **Відповідальність**: Трансляція життєвого циклу чіпів та змін на полі (створення чіпа, знищення, зняття блокуючого ефекту, розблокування зони) у C# події та події Unity Visual Scripting (EventBus). Виступає сполучною ланкою між ядром Merge та сценаріями.
 
 ## Visual Effects System
 Візуальні ефекти для фішок реалізовані через систему інтерфейсів для гнучкості та розділення логіки.

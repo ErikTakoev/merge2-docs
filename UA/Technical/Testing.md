@@ -140,6 +140,25 @@
   6. **Верифікація**: Чекає час `ChargingTime - timeToMove`. Генератор залишається UNCHARGED, оскільки підсилення було знято при знищенні першого бустера.
 - **Важливість**: Гарантує, що `PowerBoosterCellSubscriber.OnChipDestroy()` коректно видаляє всі підсилення перед знищенням бустера, щоб не залишати "привидів" активних бустерів у генераторів.
 
+### ScenarioTests
+Тести взаємодії ядра Merge з системою сценаріїв та івентів (`IScenarioEventHandler`) у C# та Unity Visual Scripting (UVS).
+
+#### Test_OnChipCreated_ScenarioEvents
+- **Мета**: Перевіряє генерацію події `OnChipCreated` при створенні нового чіпа.
+- **Сценарій**: Створює чіп через `ChipFactory.CreateChip` і перевіряє, що C# делегат `IScenarioEventHandler.OnChipCreated` та подія UVS `OnChipCreated` у `EventBus` були успішно викликані з посиланням на створений чіп.
+
+#### Test_OnChipRemoved_ScenarioEvents
+- **Мета**: Перевіряє генерацію події `OnChipRemoved` перед знищенням чіпа.
+- **Сценарій**: Створює чіп і викликає `Destroy()`. Перевіряє, що C# делегат `IScenarioEventHandler.OnChipRemoved` та подія UVS `OnChipRemoved` у `EventBus` були успішно викликані з посиланням на цей чіп до повного його очищення.
+
+#### Test_OnChipEffectUnlocked_ScenarioEvents
+- **Мета**: Перевіряє генерацію події `OnChipEffectUnlocked` при знятті блокуючого ефекту з чіпа.
+- **Сценарій**: Додає ефект-блокатор на чіп, викликає внутрішній метод `RemoveEffect` і перевіряє, що подія успішно доставила посилання на чіп та ID знятого ефекту в C# та UVS.
+
+#### Test_OnAreaUnlocked_ScenarioEvents
+- **Мета**: Перевіряє генерацію події `OnAreaUnlocked` при відкритті заблокованої зони.
+- **Сценарій**: Реєструє тестову зону в `FieldData`, викликає `LockedAreaManager.UnlockArea` і перевіряє, що C# та UVS отримали правильний ID розблокованої зони.
+
 ## Instrumentation (Helpers)
 
 ### TestSettings
