@@ -134,8 +134,10 @@ Locks cells based on `FieldData.LockedAreas`:
 ```csharp
 foreach (FieldData.LockedAreaData area in fieldData.LockedAreas)
 {
-    lockedAreaIds.Add(area.LockedAreaId);
-    SetAreaBlocked(area, true);
+    if (!unlockedAreaIds.Contains(area.LockedAreaId))
+    {
+        SetAreaBlocked(area, true);
+    }
 }
 ```
 
@@ -151,7 +153,7 @@ Instantiates `LevelVisualPrefab` and initializes level visualization:
    this.effectId = effectId;
    lockedAreaManager.RegisterEffect(this);
    ```
-4. `RegisterEffect` **instantly synchronizes** the effect state — calling `Activate(null)` or `Deactivate(null, force: true)` based on the current `lockedAreaIds` state.
+4. `RegisterEffect` **instantly synchronizes** the effect state — calling `Activate(null)` or `Deactivate(null, force: true)` based on the current `unlockedAreaIds` state.
 
 #### Step 4: `FieldInitializeCommand.LoadChips()`
 Loads chips from `FieldData`:
@@ -179,7 +181,7 @@ Unlocks the area and triggers all related actions:
 ```csharp
 public void UnlockArea(int areaId, bool force = false)
 {
-    if (!lockedAreaIds.Contains(areaId) && !force)
+    if (unlockedAreaIds.Contains(areaId) && !force)
         return;
 
     if (!TryGetArea(areaId, out FieldData.LockedAreaData area))
@@ -189,7 +191,7 @@ public void UnlockArea(int areaId, bool force = false)
     }
 
     // 1. Unlock all cells of the area
-    lockedAreaIds.Remove(areaId);
+    unlockedAreaIds.Add(areaId);
     SetAreaBlocked(area, false);
 
     // 2. Spawn deferred chips (only for CellsToLockAndDeferred)

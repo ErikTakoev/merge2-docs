@@ -2357,14 +2357,22 @@
 > - **Notes**: Inherits Effect for shared animator trigger behavior, but does not call base.Init because this visual is not owned by a chip
 #### Fields
 - `+- LockedAreaId: int`
+- `- fadeOutCoroutine: Coroutine`
 - `- lockedAreaManager: ILockedAreaManager`
 #### Methods
+- `+ FadeOutParticles(float duration): void`
+    - **Purpose**: Smoothly fades out and extinguishes all active child particles over a specified duration
+    - **Usage**: Called via animation events during deactivation, passing the desired fade duration in seconds
+    - **Params**: duration - the total time in seconds over which the particles should gradually disappear
+    - **Notes**: Stops particle emission immediately and runs a coroutine that scales down the alpha channel of startColor for all active particles frame-by-frame to prevent sudden lifetime progression jumps
 - `+ Init(Chip chip, int effectId): void`
     - **Purpose**: Registers this level visual effect with the locked-area runtime manager
     - **Usage**: Called by FieldInitializeCommand after the level visual prefab is instantiated and injected
     - **Params**: chip - ignored because locked-area visuals are not chip-owned
     - effectId - stored for inherited Effect identity
     - **Notes**: Intentionally skips base.Init because the base implementation reads chip.Data and deactivates chip effects
+- `- FadeOutParticlesCoroutine(float duration): IEnumerator`
+- `- OnDisable(): void`
 ---
 
 ## LockedAreaManager
@@ -2377,8 +2385,8 @@
 - `- effectsByAreaId: Dictionary<int, List<LockedAreaEffect>>`
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
-- `- lockedAreaIds: HashSet<int>`
 - `- scenarioEventHandler: IScenarioEventHandler`
+- `- unlockedAreaIds: HashSet<int>`
 #### Methods
 - `+ Initialize(): void`
     - **Purpose**: Applies initial locked-area state to field cells

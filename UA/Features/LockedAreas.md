@@ -60,6 +60,7 @@ lockedAreaManager.UnlockArea(areaId: 1);
   > **Важливо**: `base.Init()` **не викликається** — базова реалізація читає `chip.Data` і деактивує чіп-ефекти, що не підходить для рівневих візуалів.
 - **`Activate(Chip chip)`**: Активує GameObject та запускає анімацію через `Animator.SetTrigger("Activate")`. `chip` може бути `null` (рівневі ефекти не прив'язані до фішки)
 - **`Deactivate(Chip chip, bool force)`**: Запускає анімацію через `Animator.SetTrigger("Deactivate")` (зазвичай з фейд-аутом). `chip` може бути `null`
+- **`FadeOutParticles(float duration)`**: Запускається через анімаційний івент під час деактивації. Зупиняє спавн нових часток та плавно зменшує їхню видимість (альфа-канал) до нуля протягом вказаного часу `duration` (в секундах), запобігаючи різким перепадам у розмірі або кольорі.
 
 
 #### 3. `DeferredCell` (компонент-доповнення до Cell)
@@ -134,8 +135,10 @@ public class FieldData : ScriptableObject
 ```csharp
 foreach (FieldData.LockedAreaData area in fieldData.LockedAreas)
 {
-    lockedAreaIds.Add(area.LockedAreaId);
-    SetAreaBlocked(area, true);
+    if (!unlockedAreaIds.Contains(area.LockedAreaId))
+    {
+        SetAreaBlocked(area, true);
+    }
 }
 ```
 
@@ -151,7 +154,7 @@ foreach (FieldData.LockedAreaData area in fieldData.LockedAreas)
    this.effectId = effectId;
    lockedAreaManager.RegisterEffect(this);
    ```
-4. `RegisterEffect` **одразу синхронізує** стан ефекту — викликає `Activate(null)` або `Deactivate(null, force: true)` залежно від поточного стану `lockedAreaIds`
+4. `RegisterEffect` **одразу синхронізує** стан ефекту — викликає `Activate(null)` або `Deactivate(null, force: true)` залежно від поточного стану `unlockedAreaIds`
 
 #### Крок 4: `FieldInitializeCommand.LoadChips()`
 Завантажує фішки з `FieldData`:
@@ -179,7 +182,7 @@ foreach (FieldData.LockedAreaData area in fieldData.LockedAreas)
 ```csharp
 public void UnlockArea(int areaId, bool force = false)
 {
-    if (!lockedAreaIds.Contains(areaId) && !force)
+    if (unlockedAreaIds.Contains(areaId) && !force)
         return;
 
     if (!TryGetArea(areaId, out FieldData.LockedAreaData area))
@@ -189,7 +192,7 @@ public void UnlockArea(int areaId, bool force = false)
     }
 
     // 1. Розблокування всіх комірок ділянки
-    lockedAreaIds.Remove(areaId);
+    unlockedAreaIds.Add(areaId);
     SetAreaBlocked(area, false);
 
     // 2. Спавн відкладених фішок (лише для CellsToLockAndDeferred)
