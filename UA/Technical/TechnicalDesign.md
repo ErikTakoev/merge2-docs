@@ -72,7 +72,7 @@
 
 - **`IChipFinder`** -> `NeighborChipFinder`
   - **Призначення**: Пошук сусідніх чіпів навколо клітинки з урахуванням розміру чіпа.
-  - **Відповідальність**: Allocation-free ітерація по 4 границях bounding box чіпа, збір унікальних сусідів через `HashSet<Chip>`. Використовується `MergeableChipLogic` для `NotifyNeighborsOfMerge`.
+  - **Відповідальність**: Allocation-free ітерація по 4 границях bounding box чіпа, збір унікальних сусідів через `HashSet<Chip>`. Використовується `DraggableChipLogic` для `NotifyNeighborsOfInteraction`.
 
 ### Camera & Visual Field
 - **`IMergeCamera`** -> `MergeCamera` (2D) / `IsoMergeCamera` (Isometric)

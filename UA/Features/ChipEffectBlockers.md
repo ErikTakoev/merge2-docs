@@ -47,7 +47,7 @@
 ### Lifecycle
 1. `Chip.InitDestroyingEffectsData()` — сканує всі ефекти з `DestroyingSettings`, створює `EffectDestroyingRuntimeData` записи.
 2. `Chip.UpdatePrioritizingDestroyingEffect()` — обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying`.
-3. Коли сусідній чіп зливається (`OnNeighborsChipOfMerged`), `HandleDestroyingEffects` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
+3. Коли на сусідній клітинці відбувається взаємодія (`OnNeighborsChipOfInteraction`), `HandleDestroyingEffects` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
 4. Якщо `TryDestroyEffect` повертає `true`, `RemoveEffect` деактивує ефект, видаляє з словника, прибирає блок із `BlockingState`, і обирає наступний пріоритетний ефект.
 
 ---

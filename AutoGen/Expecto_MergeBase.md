@@ -437,7 +437,7 @@
     - **Params**: underCell - The cell currently directly under the chip
     - overCell - The cell above which the chip is currently positioned
     - **Notes**: Broadcasts event to all effects in the dictionary
-- `+ OnNeighborsChipOfMerged(): void`
+- `+ OnNeighborsChipOfInteraction(): void`
     - **Purpose**: Called when a neighboring chip merges with another chip, notifying this chip of the merge event
     - **Usage**: Override in derived classes to react to neighboring merges
     - default implementation handles effect destruction logic
@@ -671,6 +671,10 @@
 ---
 
 ## ChipContainerElementData
+
+> - **Purpose**: Holds visual element prefab reference required by containers when displaying filled chips.
+> - **Usage**: Attached to ChipData via specialDatas array. Retrieved by ContainerInfo to display visual items inside container slots.
+> - **Notes**: Implements IChipSpecialData for registration in chip data assets.
 #### Fields
 - `+- ContainerElementPrefab: GameObject`
 ---
@@ -1307,6 +1311,7 @@
 - `+- Chip: Chip`
 - `+- IsDragging: bool`
 - `- cellsToCheckBuffer: List<ICell>`
+- `~ chipFinder: IChipFinder`
 - `~ chipInteractionLogics: List<IChipInteractionLogic>`
     - **Purpose**: Collection of all chip interaction logic handlers
     - **Usage**: Internal field
@@ -1372,8 +1377,17 @@
     - **Returns**: A reference to the shared filterCellsBuffer list populated with relevant cells.
     - **Notes**: Uses pre-allocated internal buffers to avoid per-frame GC allocations in the drag interaction loop.
 - `- MoveToWorldPosition(Vector3 worldPosition): void`
+- `~ NotifyNeighborsOfInteraction(ICell targetCell, Vector2Int targetChipSize): void`
+    - **Purpose**: Notifies neighboring chips that an interaction has occurred on the target cell.
+    - **Usage**: Called from OnDragEnd after a successful chip interaction.
+    - **Params**: targetCell - main target cell of the interaction
+    - targetChipSize - size of target chip prior to interaction
 - `- ResetCurrentMergable(): void`
 - `- ResetDragState(): void`
+- `~ TriggerMergeLightEffect(ICell targetCell): void`
+    - **Purpose**: Activates the MergeLight effect on the resulting chip after an interaction.
+    - **Usage**: Called from OnDragEnd after a successful chip interaction.
+    - **Params**: targetCell - main cell where the interaction target chip resides
 - `- UpdateInteractionState(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Checks if merge or container fill is allowed between two cells.
     - **Usage**: Call before attempting merge or placement.
@@ -2503,7 +2517,6 @@
 #### Fields
 - `- chipDataCollection: ChipDataCollection`
 - `- chipFactory: ChipFactory`
-- `- chipFinder: IChipFinder`
 - `- chipMovingLogic: IChipMovingLogic`
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
@@ -2524,10 +2537,6 @@
     - targetCell - destination cell
     - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed. If relocation at the primary position fails, it tries all 8 neighboring offsets before giving up.
 - `- HandleExtraChip(MergeResult mergeResult, ICell mergedCell, Vector2Int mergedChipSize): void`
-- `- NotifyNeighborsOfMerge(ICell targetCell): void`
-    - **Purpose**: Notifies neighboring chips that merges have occurred nearby
-    - **Usage**: Called from ExecuteInteraction before destroying the merging chips
-    - **Params**: targetCell - the main cell of the target chip whose neighbors will be notified
 - `- TryResolveCellPosition(ICell primaryCell, Chip[] chipsToExclude, Vector2Int chipSize, ICell& resolvedCell, List`1& plannedRelocations): bool`
     - **Purpose**: Resolves the final cell position for a merged chip: tries the primary cell first, then all 8 neighbors
     - **Usage**: Called from ExecuteInteraction when relocation check is needed

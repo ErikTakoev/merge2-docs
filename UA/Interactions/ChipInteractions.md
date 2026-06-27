@@ -37,7 +37,9 @@ IDragFeedback[] feedbacks = GetComponents<IDragFeedback>();
 Коли гравець відпускає фішку:
 - Спочатку викликаються фідбек-методи завершення `OnDragEndFeedback`.
 - Якщо знайдено активну `currentMergableLogic`, викликається `ExecuteInteraction(sourceCell, targetCell)`.
-- Якщо взаємодія успішна, обробка завершується.
+- Якщо взаємодія успішна (`ExecuteInteraction` повертає `true`), `DraggableChipLogic` виконує уніфіковані ефекти пост-інтеракції:
+  - Сповіщення сусідніх фішок про проведення взаємодії за допомогою `NotifyNeighborsOfInteraction`.
+  - Активацію візуального ефекту підсвічування `MergeLight` на цільовій фішці.
 - Якщо взаємодія не знайдена або неможлива, фішка повертається на місце або переміщується (Swap/Move) через `IChipMovingLogic`.
 
 ## IChipInteractionLogic Interface

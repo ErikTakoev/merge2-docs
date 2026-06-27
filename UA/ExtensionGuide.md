@@ -286,7 +286,7 @@ public override void InitRuntimeData(ChipData data, ref ChipRuntimeData runtimeD
 | `OnDragStart/OnDrag/OnDragEnd` | Кастомна поведінка при перетягуванні. |
 | `UpdateVisual()` | Синхронізація візуального стану ефектів з `RuntimeData`. |
 | `SetMoving(bool)` | Зміна sorting order та сповіщення ефектів про початок/кінець руху. |
-| `OnNeighborsChipOfMerged()` | Реакція на те, що сусідній чіп був змерджений (використовується для систем знищення ефектів). |
+| `OnNeighborsChipOfInteraction()` | Реакція на те, що на сусідній клітинці відбулася взаємодія (використовується для систем знищення ефектів). |
 | `OnDraggingChipWithMoveLocked()` | Візуальна реакція на спробу перемістити заблокований чіп. |
 | `Destroy(Cell)` | Очищення при знищенні. |
 | `CanMoving()` | Чи може фішка бути переміщена. |
