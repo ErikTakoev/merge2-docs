@@ -212,6 +212,7 @@ public void UnlockArea(int areaId, bool force = false)
 1. **Розблокування комірок** (`IsBlocked = false`):
    - `Cell.OnTap`, `Cell.OnDragStart`, `Cell.OnDrag`, `Cell.OnDragEnd` більше не ігнорують вводи
    - `FieldGrid` дозволяє розміщувати фішки на цих комірках
+   - Якщо на клітинці вже перебуває фішка, її доступність у колекціях злиття та контейнерів оновлюється через `chipCollections.OnChipBlockingChanged(cell.Chip)`
 
 2. **Спавн відкладених фішок** (`DeferredCell.SpawnDeferredChip()`):
    - Викликає `ChipFactory.CreateChip(ownerCell, deferredChipData, ...)`

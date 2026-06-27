@@ -13,6 +13,7 @@
 - [ChipContainer](#chipcontainer)
 - [ChipContainerData](#chipcontainerdata)
 - [ChipContainerEffect](#chipcontainereffect)
+- [ChipContainerElementData](#chipcontainerelementdata)
 - [ChipContainerRuntimeData](#chipcontainerruntimedata)
 - [ChipCreatedEventArgs](#chipcreatedeventargs)
 - [ChipData](#chipdata)
@@ -75,6 +76,7 @@
 - [IChipMovingLogic](#ichipmovinglogic)
 - [IChipSortingLayer](#ichipsortinglayer)
 - [IChipSpecialData](#ichipspecialdata)
+- [IDragFeedback](#idragfeedback)
 - [IEffect](#ieffect)
 - [IEffectBlockingSettings](#ieffectblockingsettings)
 - [IEffectContainer](#ieffectcontainer)
@@ -97,6 +99,7 @@
 - [MergeableChipLogic](#mergeablechiplogic)
 - [MergeCamera](#mergecamera)
 - [MergeCombination](#mergecombination)
+- [MergeHintDragFeedback](#mergehintdragfeedback)
 - [MergeResult](#mergeresult)
 - [NeighborChipFinder](#neighborchipfinder)
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
@@ -543,21 +546,40 @@
 
 ## ChipCollections
 
-> - **Purpose**: Provides a centralized collection of all active chips on the field, categorized by their data type
+> - **Purpose**: Provides a centralized collection of all active chips on the field, categorized by their data type. Also maintains two filtered sub-collections for fast merge-target and container-fill lookups.
 > - **Usage**: Injected as IChipCollections
-> - used to find all chips of a specific type or to iterate over all active chips
-> - **Notes**: Updated by ChipFactory during creation and by Chip during destruction
+> - used to find all chips of a specific type or to iterate over all active chips. Call OnChipBlockingChanged when a chip's BlockingState or its cell's IsBlocked changes. Call OnContainerRequirementsChanged when a container's active requirements shrink.
+> - **Notes**: Updated by ChipFactory during creation and by Chip during destruction. MergeableChipsByData and FillableChipsByData are kept in sync via invalidation callbacks
+> - never stale-read by polling.
 #### Fields
 - `+- AllChipsByData: Dictionary<ChipData, List<Chip>>`
+- `+- FillableChipsByData: Dictionary<ChipData, List<Chip>>`
+- `+- MergeableChipsByData: Dictionary<ChipData, List<Chip>>`
+- `- fieldGrid: IFieldGrid`
 #### Methods
 - `+ AddChip(Chip chip): void`
-    - **Purpose**: Adds a chip to the collection, grouping it by its ChipData
+    - **Purpose**: Adds a chip to the collection, grouping it by its ChipData. Also inserts it into filtered sub-collections if it passes the merge/fill criteria.
     - **Usage**: Called by ChipFactory immediately after a new chip is initialized
     - **Params**: chip - the chip instance to add
+- `+ OnChipBlockingChanged(Chip chip): void`
+    - **Purpose**: Re-evaluates a chip's presence in MergeableChipsByData and FillableChipsByData after its BlockingState or cell's IsBlocked flag changes.
+    - **Usage**: Called by Chip.RemoveEffect after a blocker effect is destroyed, and by LockedAreaManager when a cell's IsBlocked flag changes.
+    - **Params**: chip - the chip whose eligibility may have changed
+- `+ OnContainerRequirementsChanged(ChipContainer container, ChipData fulfilledRequirement): void`
+    - **Purpose**: Removes a container from the specific key in FillableChipsByData that was just fulfilled.
+    - **Usage**: Called by ChipContainer.TryAddChip when one requirement is completed but the container is not yet full. The fulfilled ChipData key is passed directly — no dictionary iteration needed.
+    - **Params**: container - the container whose requirement changed
+    - fulfilledRequirement - the ChipData that was just satisfied and must be removed from FillableChipsByData
 - `+ RemoveChip(Chip chip): void`
-    - **Purpose**: Removes a chip from the collection and cleans up empty data entries
+    - **Purpose**: Removes a chip from the collection and cleans up empty data entries. Also removes it from all filtered sub-collections.
     - **Usage**: Called by Chip.Destroy just before the chip GameObject is destroyed
     - **Params**: chip - the chip instance to remove
+- `- AddContainerToFillable(ChipContainer container): void`
+- `- AddToDict(Dictionary<ChipData, List<Chip>> dict, ChipData key, Chip chip): void`
+- `- IsChipMergeable(Chip chip): bool`
+- `- IsContainerFillable(ChipContainer container): bool`
+- `- RemoveContainerFromFillable(ChipContainer container): void`
+- `- RemoveFromDict(Dictionary<ChipData, List<Chip>> dict, ChipData key, Chip chip): void`
 ---
 
 ## ChipContainer
@@ -576,6 +598,7 @@
 > - Uses event OnFillContainer for notification
 > - Requires proper ChipData with ChipContainerData
 #### Fields
+- `+- ContainerRequirements: IReadOnlyDictionary<ContainerInfo, int>`
 - `~ chipContainerData: ChipContainerData`
 - `- chipFactory: ChipFactory`
 - `- containerEffect: EffectContainerRef`
@@ -633,10 +656,7 @@
 > - **Notes**: Instantiates and positions element prefabs based on ContainerInfo
 > - Handles activation/deactivation animations
 #### Fields
-- `- elementSortingOrder: int`
-- `- layoutConfigs: LayoutConfig[]`
 - `- layoutForElements: Transform`
-- `- panelSpriteRenderer: SpriteRenderer`
 #### Methods
 - `+ Activate(Chip chip): bool`
 - `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
@@ -648,6 +668,11 @@
     - **Notes**: Dynamically instantiates UI elements (bubbles) and resizes the background panel. Deactivates effect if isFull is true.
 - `- ClearElements(): void`
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
+---
+
+## ChipContainerElementData
+#### Fields
+- `+- ContainerElementPrefab: GameObject`
 ---
 
 ## ChipContainerRuntimeData
@@ -1211,10 +1236,10 @@
 
 ## ContainerInfo
 #### Fields
-- `+ Count: int`
-- `+ Type: ContainerType`
-- `+ TypeOrId: string`
 - `+- ContainerElementPrefab: GameObject`
+- `+- Count: int`
+- `+- RequiredChip: ChipData`
+- `- cachedElementPrefab: GameObject`
 ---
 
 ## DeferredCell
@@ -1291,6 +1316,7 @@
 - `~ chipMovingLogic: IChipMovingLogic`
 - `~ currentMergableCell: ICell`
 - `~ currentMergableLogic: IChipInteractionLogic`
+- `~ dragFeedbacks: List<IDragFeedback>`
 - `~ draggableChip: Chip`
 - `~ draggableTransform: Transform`
     - **Purpose**: Cached transform of the chip being dragged
@@ -1537,6 +1563,7 @@
 - `+ GeneratorCharged: int`
 - `+ GeneratorCharging: int`
 - `+ MergeAvailable: int`
+- `+ MergeHint: int`
 - `+ MergeLight: int`
 - `+ PBoosterConnectorCells: int`
 - `+ PBoosterJoin: int`
@@ -1819,6 +1846,7 @@
 > - **Notes**: Uses VContainer dependency injection
 > - requires FieldData and ChipDataCollection.
 #### Fields
+- `- cameraBoundsMultiplier: float`
 - `- chipDataCollection: ChipDataCollection`
 - `- chipFactory: ChipFactory`
 - `- fieldData: FieldData`
@@ -1965,8 +1993,12 @@
 ## IChipCollections
 #### Fields
 - `+- AllChipsByData: Dictionary<ChipData, List<Chip>>`
+- `+- FillableChipsByData: Dictionary<ChipData, List<Chip>>`
+- `+- MergeableChipsByData: Dictionary<ChipData, List<Chip>>`
 #### Methods
 - `+ AddChip(Chip chip): void`
+- `+ OnChipBlockingChanged(Chip chip): void`
+- `+ OnContainerRequirementsChanged(ChipContainer container, ChipData fulfilledRequirement): void`
 - `+ RemoveChip(Chip chip): void`
 ---
 
@@ -2063,6 +2095,17 @@
 ---
 
 ## IChipSpecialData
+---
+
+## IDragFeedback
+
+> - **Purpose**: Contract for visual drag feedback components attached to the same GameObject as DraggableChipLogic.
+> - **Usage**: Implement on MonoBehaviours to receive drag lifecycle callbacks for visual hints (e.g., MergeHint, GroupCounter).
+> - **Notes**: Collected via GetComponents<IDragFeedback>() in DraggableChipLogic.Awake(). OnDragFeedback is only called when the anchor cell changes.
+#### Methods
+- `+ OnDragEndFeedback(Chip chip): void`
+- `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
+- `+ OnDragStartFeedback(Chip chip): void`
 ---
 
 ## IEffect
@@ -2382,6 +2425,7 @@
 > - **Notes**: Cells remain blocked until UnlockArea clears them
 > - deferred chips are created only during unlock
 #### Fields
+- `- chipCollections: IChipCollections`
 - `- effectsByAreaId: Dictionary<int, List<LockedAreaEffect>>`
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
@@ -2532,6 +2576,28 @@
     - **Usage**: Called internally to determine the outcome when multiple outcomes are possible
     - **Params**: none
     - **Returns**: The selected MergeResult object
+---
+
+## MergeHintDragFeedback
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Activates MergeHint effects on all compatible chips when a chip drag begins.
+> - **Usage**: Attach to the same GameObject as DraggableChipLogic. Automatically collected via IDragFeedback.
+> - **Notes**: Uses a coroutine to spread hint activation across frames (HintsPerFrame batch size) to avoid FPS spikes.
+#### Fields
+- `- chipCollections: IChipCollections`
+- `- hintCoroutine: Coroutine`
+- `- hintedChips: List<Chip>`
+- `- HintsPerFrame: int`
+#### Methods
+- `+ OnDragEndFeedback(Chip chip): void`
+- `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
+- `+ OnDragStartFeedback(Chip chip): void`
+- `- ActivateHintsGradually(Chip chip): IEnumerator`
+    - **Purpose**: Gradually activates MergeHint effects on compatible merge targets and fillable containers to avoid FPS spikes.
+    - **Usage**: Started as a coroutine from OnDragStartFeedback.
+    - **Params**: chip - the chip being dragged
+    - **Notes**: Uses MergeableChipsByData (merge targets) and FillableChipsByData (containers) — both already filter out blocked chips. All hinted chips are tracked in hintedChips for cleanup.
 ---
 
 ## MergeResult
@@ -2795,6 +2861,7 @@
 > - **Usage**: Attach to visual field prefabs
 > - instantiated dynamically via field initialization.
 #### Fields
+- `- fieldBorderSpriteRenderer: SpriteRenderer`
 - `- fieldSpriteRenderer: SpriteRenderer`
 - `- resolver: IObjectResolver`
 #### Methods
