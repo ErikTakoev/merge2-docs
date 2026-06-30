@@ -78,14 +78,19 @@
   - `UpdatePrioritizingDestroyingEffect()` обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying`.
   - `HandleDestroyingEffects()` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
   - `RemoveEffect(int effectId)` деактивує ефект, видаляє з словника та `EffectEnables`, прибирає блок з `BlockingState`, обирає наступний пріоритетний ефект, і оновлює візуал.
-- При виклику `Destroy(Cell, bool force)`, система:
-  1. Очищує occupancy в `FieldGrid`
-  2. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`
-  3. Знищує всі ефекти зі словника `effects` з відповідною затримкою
-  4. Запускає знищення самого `gameObject` з затримкою: 0.1s (якщо `force=true`) або 0.3s (якщо `force=false`). 
+- Процес знищення чіпа підтримує анімації руйнування та є двохетапним:
+  - **`Destroy(ICell mainCell, bool force)`**: Ініціює процес знищення. Повертає `float` (тривалість анімації руйнування).
+    1. Перевіряє, чи чіп уже знищується (`IsDestroying`).
+    2. Очищує occupancy в `FieldGrid` та `ChipCollections`.
+    3. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`.
+    4. Якщо `force` є істиною, або відсутній `Animator`, або немає тригера `"Destroy"`, викликає `FinishDestroy()` негайно та повертає `0f`.
+    5. Інакше надсилає тригер аніматора `AnimatorTrigger.Destroy`, розраховує тривалість анімації (через `data.DestroyDuration` або на основі довжини кліпу з назвою, що містить "destroy") та повертає цю тривалість (`float`), щоб викликач міг затримати подальші дії (наприклад, появу нового чіпа при злитті).
+  - **`FinishDestroy()`**: Завершує руйнування об'єкта. Може бути викликаний безпосередньо з `Destroy`, або через Unity Animation Event наприкінці анімації руйнування.
+    1. Викликає `DestroyEffects(0f)`.
+    2. Знищує GameObject чіпа.
+    
+    Під час знищення ефектів через `DestroyEffects` перевіряється властивість ефекту `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект не знищується разом із чіпом (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
   
-  Більша затримка при `force=false` дозволяє відіграти фінальні анімації (наприклад, анімацію злиття в ізометрії).
-
 ### Extensions for Specialized Chips
 Спеціалізовані чіпи розширюють `InitEffects()` для додавання власних ефектів:
 - **`ChipGenerator.InitEffects()`**: Додає `GeneratorCharging` та `GeneratorCharged` ефекти
@@ -105,6 +110,17 @@
   - Сповіщає всі ефекти через метод `OnMovingStateChanged(chip, isMoving)`.
   - На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
+
+### Flight Settings (Налаштування польоту)
+Кожен чіп містить налаштування польоту `FlightSettings` типу `ChipFlightSettings` (структура), що визначає параметри переміщення фішки по сітці поля:
+- **`Duration`**: Тривалість польоту в секундах.
+- **`FlightDelay`**: Затримка перед початком польоту.
+- **`Type`**: Тип траєкторії польоту (`FlightType`):
+  - `Linear` — лінійний рух.
+  - `ArcBounce` — параболічний рух із відскоками при приземленні (за замовчуванням).
+  - `HalfArcHalfBounce` — рух з меншою висотою дуги та меншим відскоком (наприклад, при звичайному переміщенні або зміні місць).
+  - `HalfArc` — рух по низькій дузі без відскоків.
+- **`SetFlightSettings(ChipFlightSettings settings)`**: Оновлює налаштування польоту для наступного переміщення чіпа.
 
 ### Other Methods
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.

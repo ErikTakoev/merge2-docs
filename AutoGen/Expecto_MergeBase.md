@@ -21,6 +21,7 @@
 - [ChipEffectUnlockedEventArgs](#chipeffectunlockedeventargs)
 - [ChipExtraEffectsData](#chipextraeffectsdata)
 - [ChipFactory](#chipfactory)
+- [ChipFlightSettings](#chipflightsettings)
 - [ChipFlyAnimation](#chipflyanimation)
 - [ChipGenerator](#chipgenerator)
 - [ChipGeneratorData](#chipgeneratordata)
@@ -65,6 +66,7 @@
 - [FieldGrid](#fieldgrid)
 - [FieldInitializeCommand](#fieldinitializecommand)
 - [FillContainerLogic](#fillcontainerlogic)
+- [FlightType](#flighttype)
 - [FreeCellFinder](#freecellfinder)
 - [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
@@ -100,6 +102,7 @@
 - [MergeCamera](#mergecamera)
 - [MergeCombination](#mergecombination)
 - [MergeHintDragFeedback](#mergehintdragfeedback)
+- [MergeLightDragFeedback](#mergelightdragfeedback)
 - [MergeResult](#mergeresult)
 - [NeighborChipFinder](#neighborchipfinder)
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
@@ -155,7 +158,6 @@
 - `~ field: IFieldEventHandler`
 - `~ flyAnimation: IChipFlyAnimation`
 - `~ logEnable: bool`
-- `~ movingTime: float`
 #### Methods
 - `+ GetLocalPositionForChip(Vector2Int chipSize): Vector3`
     - **Purpose**: Gets the center position of the chip in this cell.
@@ -185,7 +187,7 @@
     - **Params**: position - screen or world position of the tap.
 - `- Expecto.MergeBase.ICell.GetColorForLevelEditor(): Nullable<Color>`
 - `- Update(): void`
-- `- WaitAndStartFlyAnimation(Chip chip, Transform tr, Vector3 localTarget, float movingTime, float delay): IEnumerator`
+- `- WaitAndStartFlyAnimation(Chip chip, Transform tr, Vector3 localTarget, float duration, FlightType flightType, float delay): IEnumerator`
 ---
 
 ## CellHighlightEffect
@@ -322,10 +324,11 @@
 - `++ LogEnable: bool`
 - `+- AnimationNode: Transform`
 - `+- Animator: Animator`
-- `+- AppearanceDelay: float`
 - `+- BlockingState: CombinedBlockingState`
 - `+- CellSubscriber: ICellSubscriber`
 - `+- Data: ChipData`
+- `+- FlightSettings: ChipFlightSettings`
+- `+- IsDestroying: bool`
 - `+- IsMoving: bool`
 - `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
@@ -359,13 +362,15 @@
     - false if movement is locked
     - **Notes**: Based on runtimeData.IsMoveLocked
     - prevents drag-and-drop when locked
-- `+ Destroy(ICell mainCell, bool force): void`
-    - **Purpose**: Destroys the chip and all its attached effects
-    - **Usage**: Call to remove the chip from the field and scene
-    - override in derived classes for custom teardown before or after base destruction
-    - **Params**: mainCell - the chip's main occupied cell on the field grid
-    - force - if true, destruction happens faster (0.1s), otherwise slower (0.3s) to allow for animations
-    - **Notes**: Clears grid occupancy via FieldGrid first (which enqueues chip-change notifications), then invokes ICellSubscriber cleanup while cell context is still valid, destroys spawned effect objects, and finally schedules GameObject destruction with a delay based on force parameter
+- `+ Destroy(ICell mainCell, bool force): float`
+    - **Purpose**: Initiates the destruction of the chip by clearing grid/collection references and starting the destruction animation.
+    - **Usage**: Call to remove the chip from the field grid. The actual GameObject destruction happens in FinishDestroy, either immediately or triggered by animator event.
+    - **Params**: mainCell - the chip's main occupied cell
+    - force - if true, bypasses animation and destroys immediately
+    - **Notes**: Clears grid occupancy and collections first. If force is true, or animator is missing/does not have Destroy trigger, FinishDestroy is called immediately. Otherwise, sends the Destroy animator trigger.
+- `+ FinishDestroy(): void`
+    - **Purpose**: Completes the destruction process by destroying attached effects and the GameObject itself.
+    - **Usage**: Called immediately if force is true, or triggered via a Unity Animation Event at the end of the destroy animation.
 - `+ GetEffect(int effectHash): IEffect`
     - **Purpose**: Retrieves an effect from the effects dictionary by its EffectConsts hash key
     - **Usage**: Call in methods that need to access a specific effect without type casting
@@ -438,10 +443,10 @@
     - overCell - The cell above which the chip is currently positioned
     - **Notes**: Broadcasts event to all effects in the dictionary
 - `+ OnNeighborsChipOfInteraction(): void`
-    - **Purpose**: Called when a neighboring chip merges with another chip, notifying this chip of the merge event
-    - **Usage**: Override in derived classes to react to neighboring merges
+    - **Purpose**: Called when a neighboring chip interacts with another chip, notifying this chip of the interaction event
+    - **Usage**: Override in derived classes to react to neighboring interactions
     - default implementation handles effect destruction logic
-    - **Notes**: Called from MergeableChipLogic.ExecuteInteraction before destroying neighboring chips
+    - **Notes**: Called from DraggableChipLogic.NotifyNeighborsOfInteraction after a successful interaction
 - `+ OnTap(Vector2 position): void`
     - **Purpose**: Called when the chip is tapped by the user
     - **Usage**: Override in derived classes to implement custom tap behavior
@@ -462,6 +467,11 @@
     - **Params**: value - true when user starts dragging, false when drag ends
     - **Notes**: Automatically calls SetMoving(true) if chip is not already moving
     - separates user drag state from movement state
+- `+ SetFlightSettings(ChipFlightSettings settings): void`
+    - **Purpose**: Updates the flight animation configuration for the chip
+    - **Usage**: Called when creating or relocating the chip to specify its next flight movement properties
+    - **Params**: settings - the flight settings to apply
+    - falls back to default settings if duration is invalid (<= 0)
 - `+ SetMoving(bool value): void`
     - **Purpose**: Updates the sorting order of the chip during movement (user drag or system relocation)
     - **Usage**: Called when movement starts (true) or ends (false)
@@ -485,6 +495,7 @@
     - **Notes**: Null-safe: effect is only added if not null
     - handles activation before storing
 - `- AppearanceDelayCoroutine(float delay): IEnumerator`
+- `- CalculateDestroyDuration(): float`
 - `~ DestroyEffects(float destroyDelay): void`
     - **Purpose**: Destroys all attached effects with a specified delay
     - **Usage**: Called from Destroy() to clean up visual effects with a timing synchronized with GameObject destruction
@@ -707,6 +718,7 @@
 ## ChipData
 **Inherits**: `ScriptableObject`
 #### Fields
+- `++ DestroyDuration: Nullable<float>`
 - `++ Size: Vector2Int`
 - `+ PrefabLink: GameObject`
 - `+ Type: string`
@@ -766,8 +778,26 @@
 - `~ resolver: IObjectResolver`
 - `~ scenarioEventHandler: IScenarioEventHandler`
 #### Methods
-- `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, Nullable<float> appearanceDelay): Chip`
-- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, Nullable<float> appearanceDelay): Chip`
+- `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings, Nullable<float> appearanceDelay): Chip`
+    - **Purpose**: Instantiates and initializes a new chip on the specified cell
+    - **Usage**: Call when spawning a new chip on the field (e.g., from container, generator, or initialization)
+    - **Params**: cell - target cell to place the chip on
+    - chipData - configuration settings for the new chip
+    - parentWorldPosition - optional start position for flight animation
+    - runtimeDataInitializer - optional delegate to modify runtime state before initialization
+    - flightSettings - flight animation configuration
+    - appearanceDelay - optional animation delay in seconds
+    - **Returns**: The initialized Chip instance, or null if creation failed
+- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings, Nullable<float> appearanceDelay): Chip`
+    - **Purpose**: Instantiates and initializes a new chip at the specified grid coordinates
+    - **Usage**: Convenience wrapper around the cell-based CreateChip method
+    - **Params**: cellPosition - target grid coordinates
+    - chipData - configuration settings
+    - parentWorldPosition - optional start position
+    - runtimeDataInitializer - optional delegate
+    - flightSettings - flight animation configuration
+    - appearanceDelay - optional delay
+    - **Returns**: The initialized Chip instance
 - `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid, IChipCollections chipCollections, IScenarioEventHandler scenarioEventHandler): void`
     - **Purpose**: Wires all dependencies required by the factory before any chip can be created.
     - **Usage**: Called once by Merge2Initializer / IsoMergeInitializer at scene start. Must be called before CreateChip.
@@ -779,33 +809,55 @@
     - **Notes**: scenarioEventHandler defaults to null to stay backward-compatible with tests that build ChipFactory without a full lifetime scope.
 ---
 
+## ChipFlightSettings
+
+> - **Purpose**: Encapsulates configuration parameters for a chip's flight animation, including duration, delay, and motion type
+> - **Usage**: Passed to chip creation and relocation methods to configure transition animations. Use predefined static presets like Default, ChipSwap, or ChipRelocate
+#### Fields
+- `+ ChipGrow: ChipFlightSettings`
+- `+ ChipRelocate: ChipFlightSettings`
+- `+ ChipSwap: ChipFlightSettings`
+- `+ Default: ChipFlightSettings`
+- `+- Duration: float`
+- `+- FlightDelay: float`
+- `+- Type: FlightType`
+---
+
 ## ChipFlyAnimation
 
 > - **Purpose**: Handles the logic for animating a chip flying to a target position
 > - **Usage**: Instance per animation context. Call Update per frame.
-> - **Notes**: Uses Vector3.Lerp for simple linear movement
+> - **Notes**: Supports Linear, ArcBounce, HalfArcHalfBounce, HalfArc flight types. Each type is handled in its own private method.
 #### Fields
 - `+- IsAnimating: bool`
 - `- animationDuration: float`
+- `- ARC_PATH_RATIO: float`
+- `- ARC_PHASE: float`
+- `- currentFlightType: FlightType`
 - `- elapsedTime: float`
 - `- onCompleteCallback: Action`
 - `- startPosition: Vector3`
 - `- targetPosition: Vector3`
 - `- targetTransform: Transform`
 #### Methods
-- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, Action onComplete): void`
+- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, FlightType flightType, Action onComplete): void`
     - **Purpose**: Starts the fly animation for a chip
     - **Usage**: Call when a chip needs to fly back to its cell (e.g. after invalid drag or swap)
     - **Params**: target - the transform to animate
     - startPos - local start position
     - endPos - local target position
     - duration - time in seconds
+    - flightType - type of flight animation
     - onComplete - callback when finished
 - `+ StopAnimation(): void`
 - `+ Update(float deltaTime): void`
     - **Purpose**: Updates the animation state and applies movement to the target transform
     - **Usage**: Call in Update loop with deltaTime
     - **Params**: deltaTime - time since last frame
+- `- ApplyArcBounce(float t): void`
+- `- ApplyHalfArc(float t): void`
+- `- ApplyHalfArcHalfBounce(float t): void`
+- `- ApplyLinear(float t): void`
 ---
 
 ## ChipGenerator
@@ -862,7 +914,7 @@
     - **Returns**: True when the booster was newly added
     - false when it was already present.
     - **Notes**: Multiplier becomes the maximum power among active boosters to prevent stacking by sum.
-- `+ Destroy(ICell mainCell, bool force): void`
+- `+ Destroy(ICell mainCell, bool force): float`
     - **Purpose**: Cleans up generator-owned callbacks and subscriptions before the base chip destruction flow runs.
     - **Usage**: Call when removing a ChipGenerator from the field
     - this override must execute before base.Destroy so auto-mode callbacks cannot fire against a chip that is already being removed.
@@ -1048,14 +1100,14 @@
     - plannedRelocations - output list of moves to perform
     - **Returns**: True if a valid state is possible for all chips involved
     - **Notes**: Sorted relocation: larger chips are relocated first to minimize fragmentation
-- `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell): void`
+- `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell, ChipFlightSettings flightSettings): void`
     - **Purpose**: Orchestrates the move of a chip to a new position, potentially relocating others
     - **Usage**: Call when a drag operation ends at a specific cell
     - **Params**: overCell - the cell the mouse is over
     - leftTopCell - the target top-left cell for the chip
     - sourceCell - the original cell of the chip
     - **Notes**: If relocation is impossible, the chip snaps back to its source position
-- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations): void`
+- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
     - **Purpose**: Executes the planned relocations of chips on the field
     - **Usage**: Final step of the relocation process
     - performs atomic field updates
@@ -1090,7 +1142,7 @@
     - **Purpose**: Applies booster influence to a target entity and notifies join effect.
     - **Usage**: Called by PowerBoosterCellSubscriber when a matching target enters observed cells.
     - **Params**: target - chip/entity receiving this booster
-- `+ Destroy(ICell mainCell, bool force): void`
+- `+ Destroy(ICell mainCell, bool force): float`
     - **Purpose**: Ensures booster subscriptions/modifiers are cleared before base chip destruction.
     - **Usage**: Called by chip lifecycle when booster is removed from field.
     - **Params**: mainCell - booster main grid cell at destruction time
@@ -1384,10 +1436,6 @@
     - targetChipSize - size of target chip prior to interaction
 - `- ResetCurrentMergable(): void`
 - `- ResetDragState(): void`
-- `~ TriggerMergeLightEffect(ICell targetCell): void`
-    - **Purpose**: Activates the MergeLight effect on the resulting chip after an interaction.
-    - **Usage**: Called from OnDragEnd after a successful chip interaction.
-    - **Params**: targetCell - main cell where the interaction target chip resides
 - `- UpdateInteractionState(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Checks if merge or container fill is allowed between two cells.
     - **Usage**: Call before attempting merge or placement.
@@ -1411,9 +1459,12 @@
 #### Fields
 - `+- BlockingSettings: EffectBlockingSettings`
 - `+- DestroyingSettings: EffectDestroyingSettings`
+- `+- IsSkipDestroy: bool`
 - `~ animator: Animator`
 - `~ autoSize: AutoSizeType`
 - `~ deactivateOnMove: bool`
+- `~ destroyAfterActivate: bool`
+- `~ destroyDelayAfterActivate: float`
 - `~ dontRepeatTrigger: bool`
 - `~ durationMovePositionDependingOnSize: Vector2`
 - `~ effectId: int`
@@ -1484,6 +1535,9 @@
     - allowRepeat - if true, bypasses the dontRepeatTrigger check for this call
     - **Notes**: Safely handles null animator
     - allows effects to respond to chip-specific events beyond standard Activate/Deactivate
+- `+ SkipDestroy(): void`
+    - **Purpose**: Marks the effect to skip automatic destruction when its owner chip is destroyed, and detaches it from the chip transform hierarchy
+    - **Usage**: Called when an effect needs to outlive the chip, e.g. a merge visual effect played on a destroyed chip
 - `+ TryDestroyEffect(Chip chip, EffectDestroyingSettings settings, EffectDestroyingRuntimeData destroyingData): bool`
     - **Purpose**: Evaluates whether the effect has reached its destruction threshold based on neighboring merge count
     - **Usage**: Called from Chip.HandleDestroyingEffects when effectOfPrioritizingDestroying processes a neighboring merge event
@@ -1924,6 +1978,16 @@
     - **Notes**: Adds chip to container and destroys source chip if successful.
 ---
 
+## FlightType
+**Inherits**: `Enum`
+#### Fields
+- `+ ArcBounce: FlightType`
+- `+ HalfArc: FlightType`
+- `+ HalfArcHalfBounce: FlightType`
+- `+ Linear: FlightType`
+- `+ value__: int`
+---
+
 ## FreeCellFinder
 #### Fields
 - `- fieldGrid: IFieldGrid`
@@ -2029,13 +2093,14 @@
 #### Fields
 - `+- IsAnimating: bool`
 #### Methods
-- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, Action onComplete): void`
+- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, FlightType flightType, Action onComplete): void`
     - **Purpose**: Starts the fly animation for a chip
     - **Usage**: Call when a chip needs to fly back to its cell (e.g. after invalid drag)
     - **Params**: target - the transform to animate
     - startPos - local start position
     - endPos - local target position
     - duration - time in seconds
+    - flightType - type of flight animation
     - onComplete - callback when finished
 - `+ StopAnimation(): void`
     - **Purpose**: Stops the fly animation
@@ -2081,13 +2146,13 @@
     - chipSize - size of the chip being moved
     - plannedRelocations - output list of moves to perform
     - **Returns**: True if the move and all necessary relocations are possible.
-- `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell): void`
+- `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell, ChipFlightSettings flightSettings): void`
     - **Purpose**: Moves a chip to a new cell position, handling potential relocations.
     - **Usage**: Call when a chip is dropped or needs to be moved programmatically.
     - **Params**: overCell - cell under the chip
     - leftTopCell - target anchor cell
     - sourceCell - original anchor cell
-- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations): void`
+- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
     - **Purpose**: Executes pre-planned chip relocations.
     - **Usage**: Call after CanChipMoving returns true to apply the relocations.
     - **Params**: leftTopCell - destination for the primary chip
@@ -2117,7 +2182,7 @@
 > - **Usage**: Implement on MonoBehaviours to receive drag lifecycle callbacks for visual hints (e.g., MergeHint, GroupCounter).
 > - **Notes**: Collected via GetComponents<IDragFeedback>() in DraggableChipLogic.Awake(). OnDragFeedback is only called when the anchor cell changes.
 #### Methods
-- `+ OnDragEndFeedback(Chip chip): void`
+- `+ OnDragEndFeedback(Chip chip, bool interaction): void`
 - `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
 - `+ OnDragStartFeedback(Chip chip): void`
 ---
@@ -2131,6 +2196,7 @@
 - `+- BlockingSettings: EffectBlockingSettings`
 - `+- DestroyingSettings: EffectDestroyingSettings`
 - `+- gameObject: GameObject`
+- `+- IsSkipDestroy: bool`
 #### Methods
 - `+ Activate(Chip chip): bool`
 - `+ Deactivate(Chip chip, bool force): void`
@@ -2141,6 +2207,7 @@
 - `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
 - `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
+- `+ SkipDestroy(): void`
 - `+ TryDestroyEffect(Chip chip, EffectDestroyingSettings settings, EffectDestroyingRuntimeData destroyingData): bool`
 ---
 
@@ -2599,7 +2666,7 @@
 - `- hintedChips: List<Chip>`
 - `- HintsPerFrame: int`
 #### Methods
-- `+ OnDragEndFeedback(Chip chip): void`
+- `+ OnDragEndFeedback(Chip chip, bool interaction): void`
 - `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
 - `+ OnDragStartFeedback(Chip chip): void`
 - `- ActivateHintsGradually(Chip chip): IEnumerator`
@@ -2607,6 +2674,18 @@
     - **Usage**: Started as a coroutine from OnDragStartFeedback.
     - **Params**: chip - the chip being dragged
     - **Notes**: Uses MergeableChipsByData (merge targets) and FillableChipsByData (containers) — both already filter out blocked chips. All hinted chips are tracked in hintedChips for cleanup.
+---
+
+## MergeLightDragFeedback
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Triggers the MergeLight effect on the target chip after a successful interaction.
+> - **Usage**: Attach to the same GameObject as DraggableChipLogic. Automatically collected via IDragFeedback.
+> - **Notes**: Uses the target chip passed via OnDragEndFeedback when interaction is true.
+#### Methods
+- `+ OnDragEndFeedback(Chip chip, bool interaction): void`
+- `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
+- `+ OnDragStartFeedback(Chip chip): void`
 ---
 
 ## MergeResult
