@@ -496,6 +496,9 @@
     - handles activation before storing
 - `- AppearanceDelayCoroutine(float delay): IEnumerator`
 - `- CalculateDestroyDuration(): void`
+    - **Purpose**: Calculates and caches the duration of the destroy animation of the chip by evaluating the animator's clips info
+    - **Usage**: Called automatically during the Chip's initialization in Init() to pre-calculate and store the destroy duration if it is not already set in data
+    - **Notes**: Briefly transitions the animator to the 'Destroy' state and updates it at 0 delta time to retrieve current clip details, then immediately restores the prior animator state. Requires an active Animator with a 'Destroy' state, warning if not found
 - `~ DestroyEffects(float destroyDelay): void`
     - **Purpose**: Destroys all attached effects with a specified delay
     - **Usage**: Called from Destroy() to clean up visual effects with a timing synchronized with GameObject destruction
