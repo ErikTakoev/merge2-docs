@@ -84,7 +84,7 @@
     2. Очищує occupancy в `FieldGrid` та `ChipCollections`.
     3. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`.
     4. Якщо `force` є істиною, або відсутній `Animator`, або немає тригера `"Destroy"`, викликає `FinishDestroy()` негайно та повертає `0f`.
-    5. Інакше надсилає тригер аніматора `AnimatorTrigger.Destroy`, розраховує тривалість анімації (через `data.DestroyDuration` або на основі довжини кліпу з назвою, що містить "destroy") та повертає цю тривалість (`float`), щоб викликач міг затримати подальші дії (наприклад, появу нового чіпа при злитті).
+    5. Інакше надсилає тригер аніматора `AnimatorTrigger.Destroy`, і якщо `data.DestroyDuration` має значення, повертає цю тривалість, в іншому випадку повертає `0f`.
   - **`FinishDestroy()`**: Завершує руйнування об'єкта. Може бути викликаний безпосередньо з `Destroy`, або через Unity Animation Event наприкінці анімації руйнування.
     1. Викликає `DestroyEffects(0f)`.
     2. Знищує GameObject чіпа.
@@ -124,6 +124,7 @@
 
 ### Other Methods
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
+- **`CalculateDestroyDuration()`**: Приватний метод, що викликається в `Init()`. Якщо `data.DestroyDuration` ще не задано і є `Animator`, метод тимчасово перемикає аніматор у стан `"Destroy"` для зчитування довжини анімаційного кліпу, кешує її у `data.DestroyDuration` та відновлює початковий стан аніматора.
 
 ### Extensions for Specialized Chips
 - **`ChipGeneratorRuntimeData`**: Додає стан зарядки, таймери, лічильники перезарядок.

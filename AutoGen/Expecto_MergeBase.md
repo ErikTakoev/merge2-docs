@@ -495,7 +495,7 @@
     - **Notes**: Null-safe: effect is only added if not null
     - handles activation before storing
 - `- AppearanceDelayCoroutine(float delay): IEnumerator`
-- `- CalculateDestroyDuration(): float`
+- `- CalculateDestroyDuration(): void`
 - `~ DestroyEffects(float destroyDelay): void`
     - **Purpose**: Destroys all attached effects with a specified delay
     - **Usage**: Called from Destroy() to clean up visual effects with a timing synchronized with GameObject destruction
@@ -1106,6 +1106,7 @@
     - **Params**: overCell - the cell the mouse is over
     - leftTopCell - the target top-left cell for the chip
     - sourceCell - the original cell of the chip
+    - flightSettings - flight animation configuration for the movement
     - **Notes**: If relocation is impossible, the chip snaps back to its source position
 - `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
     - **Purpose**: Executes the planned relocations of chips on the field
@@ -1114,6 +1115,7 @@
     - **Params**: leftTopCell - destination for the primary chip
     - sourceCell - original spot of the primary chip
     - plannedRelocations - list of pre-calculated chip moves
+    - flightSettings - flight animation configuration for the relocations
     - **Notes**: Temporarily sets dragging state during relocation for visual consistency
 - `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<ICell>`
 ---
@@ -2152,12 +2154,14 @@
     - **Params**: overCell - cell under the chip
     - leftTopCell - target anchor cell
     - sourceCell - original anchor cell
+    - flightSettings - flight animation configuration for the movement
 - `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
     - **Purpose**: Executes pre-planned chip relocations.
     - **Usage**: Call after CanChipMoving returns true to apply the relocations.
     - **Params**: leftTopCell - destination for the primary chip
     - sourceCell - original spot of the primary chip
     - plannedRelocations - list of calculated moves
+    - flightSettings - flight animation configuration for the relocations
 ---
 
 ## IChipSortingLayer
