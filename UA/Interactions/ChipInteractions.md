@@ -4,6 +4,16 @@
 
 Цей розділ описує механізм, за допомогою якого загальна логіка перетягування фішок (`DraggableChipLogic`) делегує виконання специфічних взаємодій (таких як злиття або наповнення контейнера) через інтерфейс `IChipInteractionLogic`, а також керує візуальним зворотним зв'язком під час перетягування через інтерфейс `IDragFeedback`.
 
+## DragInteractionResult
+
+`DragInteractionResult` — перечислення, що описує результат взаємодії після завершення перетягування. Передається у `OnDragEndFeedback` для того, щоб feedback-компоненти могли реагувати по-різному залежно від типу завершеної взаємодії:
+
+| Значення | Опис |
+|---|---|
+| `None` | Взаємодії не відбулось; фішка повернулась на місце (snap-back). |
+| `Partial` | Взаємодія прийнята, але не повністю завершена (наприклад, чіп додано до контейнера, але залишились невиконані вимоги). |
+| `Full` | Взаємодія повністю завершена (злиття або повне заповнення контейнера). |
+
 ## Architecture Overview
 
 Система взаємодій та візуального фідбеку побудована на принципі декупажу (роз'єднання). `DraggableChipLogic` відповідає за фізичне переміщення фішки та виявлення цільових об'єктів під нею, але не містить жорстко закодованої логіки конкретних ігрових взаємодій чи візуальних ефектів.
@@ -25,7 +35,7 @@ IDragFeedback[] feedbacks = GetComponents<IDragFeedback>();
 Під час життєвого циклу перетягування `DraggableChipLogic` сповіщає всі компоненти `IDragFeedback`:
 - **`OnDragStart`**: Викликається `feedback.OnDragStartFeedback(Chip)`. Компоненти фідбеку (наприклад, `MergeHintDragFeedback`) активують відповідні підказки.
 - **`OnDrag` (при зміні якоря)**: Коли фішка переміщується на нову клітинку, викликається `feedback.OnDragFeedback(Chip, prevCell, newCell)`. Використовується для оновлення динамічного фідбеку при зміні позиції.
-- **`OnDragEnd`**: Викликається `feedback.OnDragEndFeedback(Chip)`. Всі візуальні підказки деактивовуються.
+- **`OnDragEnd`**: Викликається `feedback.OnDragEndFeedback(Chip, DragInteractionResult)`. Всі візуальні підказки деактивовуються. `DragInteractionResult` дозволяє feedback-компонентам диференціювати свою реакцію: наприклад, `MergeLightDragFeedback` активує ефект лише при `Full`.
 
 ### 3. Continuous Interaction Checking (OnDrag)
 Під час перетягування у методі `UpdateInteractionState` система постійно перевіряє доступні логіки взаємодії:
@@ -53,7 +63,7 @@ IDragFeedback[] feedbacks = GetComponents<IDragFeedback>();
 Кожен компонент візуального фідбеку реалізує три класичні методи життєвого циклу:
 - `OnDragStartFeedback(Chip chip)`: Початок перетягування.
 - `OnDragFeedback(Chip chip, ICell prevCell, ICell newCell)`: Зміна клітинки-якоря під час перетягування.
-- `OnDragEndFeedback(Chip chip)`: Завершення або скасування перетягування.
+- `OnDragEndFeedback(Chip chip, DragInteractionResult interaction)`: Завершення або скасування перетягування. Параметр `interaction` описує результат — `None`, `Partial` або `Full`.
 
 ## Implementations
 - **[MergeableChipLogic](MergeableChipLogic.md)** — Логіка злиття двох фішок в одну вищого рівня.

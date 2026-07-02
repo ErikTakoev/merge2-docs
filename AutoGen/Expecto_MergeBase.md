@@ -42,6 +42,7 @@
 - [DeferredCell](#deferredcell)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
+- [DragInteractionResult](#draginteractionresult)
 - [Effect](#effect)
 - [EffectBlockerData](#effectblockerdata)
 - [EffectBlockerDefinitionAttribute](#effectblockerdefinitionattribute)
@@ -1441,6 +1442,13 @@
     - targetChipSize - size of target chip prior to interaction
 - `- ResetCurrentMergable(): void`
 - `- ResetDragState(): void`
+- `~ ResolveInteractionResult(Chip targetChip): DragInteractionResult`
+    - **Purpose**: Determines the DragInteractionResult based on the target chip state after ExecuteInteraction.
+    - **Usage**: Called from OnDragEnd after a successful interaction to classify the outcome as Partial or Full.
+    - **Params**: targetChip - the chip that was the target of the interaction before it executed
+    - **Returns**: Partial if the chip is a still-alive ChipContainer with remaining requirements
+    - Full otherwise.
+    - **Notes**: ChipContainer is destroyed when fully filled, so a Unity-null check (implicit bool) distinguishes partial from full fill.
 - `- UpdateInteractionState(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Checks if merge or container fill is allowed between two cells.
     - **Usage**: Call before attempting merge or placement.
@@ -1449,6 +1457,15 @@
     - **Returns**: True if merge or fill is allowed
     - false otherwise.
     - **Notes**: Returns false if no handlers are subscribed.
+---
+
+## DragInteractionResult
+**Inherits**: `Enum`
+#### Fields
+- `+ Full: DragInteractionResult`
+- `+ None: DragInteractionResult`
+- `+ Partial: DragInteractionResult`
+- `+ value__: int`
 ---
 
 ## Effect
@@ -2189,7 +2206,7 @@
 > - **Usage**: Implement on MonoBehaviours to receive drag lifecycle callbacks for visual hints (e.g., MergeHint, GroupCounter).
 > - **Notes**: Collected via GetComponents<IDragFeedback>() in DraggableChipLogic.Awake(). OnDragFeedback is only called when the anchor cell changes.
 #### Methods
-- `+ OnDragEndFeedback(Chip chip, bool interaction): void`
+- `+ OnDragEndFeedback(Chip chip, DragInteractionResult interaction): void`
 - `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
 - `+ OnDragStartFeedback(Chip chip): void`
 ---
@@ -2673,7 +2690,7 @@
 - `- hintedChips: List<Chip>`
 - `- HintsPerFrame: int`
 #### Methods
-- `+ OnDragEndFeedback(Chip chip, bool interaction): void`
+- `+ OnDragEndFeedback(Chip chip, DragInteractionResult interaction): void`
 - `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
 - `+ OnDragStartFeedback(Chip chip): void`
 - `- ActivateHintsGradually(Chip chip): IEnumerator`
@@ -2688,9 +2705,9 @@
 
 > - **Purpose**: Triggers the MergeLight effect on the target chip after a successful interaction.
 > - **Usage**: Attach to the same GameObject as DraggableChipLogic. Automatically collected via IDragFeedback.
-> - **Notes**: Uses the target chip passed via OnDragEndFeedback when interaction is true.
+> - **Notes**: Uses the target chip passed via OnDragEndFeedback when interaction is Full.
 #### Methods
-- `+ OnDragEndFeedback(Chip chip, bool interaction): void`
+- `+ OnDragEndFeedback(Chip chip, DragInteractionResult interaction): void`
 - `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
 - `+ OnDragStartFeedback(Chip chip): void`
 ---
