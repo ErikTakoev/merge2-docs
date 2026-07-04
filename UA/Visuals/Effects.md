@@ -139,7 +139,7 @@
 ### 3. Container Requirements
 **Клас**: `ChipContainerEffect.cs`
 **Реалізує**: `IEffectContainer`
-**Використовується в**: [ChipContainer](../Chips/ChipContainer.md)
+**Використовується в**: [ContainerModule](../Chips/ContainerModule.md)
 
 Відображає Panel з іконками предметів, які необхідні контейнеру для виконання квесту.
 
@@ -158,7 +158,7 @@
   5. Якщо контейнер заповнений (`isFull`), викликає `ClearElements` та деактивує ефект.
 
 ### 4. Generator Charged
-**Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
+**Використовується в**: [GeneratorModule](../Chips/GeneratorModule.md)
 
 Візуальний ефект, що активується, коли генератор повністю зарядився і готовий до створення нової фішки.
 - **Активація**: Коли `IsCharged` стає `true` (через поле `chargedEffect`).
@@ -168,14 +168,14 @@
 ### 5. Generator Charging
 **Клас**: `ChipGeneratorRechargeEffect.cs`
 **Реалізує**: `IEffectGeneratorCharging`
-**Використовується в**: [ChipGenerator](../Chips/ChipGenerator.md)
+**Використовується в**: [GeneratorModule](../Chips/GeneratorModule.md)
 
 Візуалізує процес перезарядки генератора. Зазвичай реалізовано через зміну локальної позиції маски (`maskRectTransform`), що створює ефект заповнення іконки знизу вгору.
 - **Метод `OnCharging(float progress)`**: Отримує значення від 0 до 1 та оновлює візуалізацію.
 
 ### 6. Power Booster Connector Highlight
 **Клас**: `PowerBoosterConnectorCellsHighlightEffect.cs` (наслідує `CellHighlightEffect`)
-**Використовується в**: [ChipPowerBooster](../Chips/ChipPowerBooster.md)
+**Використовується в**: [PowerBoosterModule](../Chips/PowerBoosterModule.md)
 
 Підсвічує клітинки, за якими спостерігає бустер (його `ObservedCellPositions`), показуючи гравцеві зону впливу Power Booster.
 - **Параметри**:
@@ -190,10 +190,10 @@
 
 ### 7. Power Booster Join Links
 **Клас**: `PowerBoosterJoinEffect.cs` (наслідує `Effect`, реалізує `IEffectPowerBoosterJoin`)
-**Використовується в**: [ChipPowerBooster](../Chips/ChipPowerBooster.md)
+**Використовується в**: [PowerBoosterModule](../Chips/PowerBoosterModule.md)
 
 Відповідає за динамічні particle-лінки між бустером і кожною активною ціллю `IPowerBoosterTarget`.
-- **Join API**: `ChipPowerBooster` викликає `OnJoin`/`OnLeave` через контракт `IEffectPowerBoosterJoin` (`EffectPowerBoosterJoinRef`) під час додавання/зняття підсилення.
+- **Join API**: `PowerBoosterModule` викликає `OnJoin`/`OnLeave` через контракт `IEffectPowerBoosterJoin` (`EffectPowerBoosterJoinRef`) під час додавання/зняття підсилення.
 - **JoinPoints**: Ефект використовує `JoinPoints` бустера та цілі, обирає найближчі кандидати, а далі періодично перебіндовує активні лінки через корутіну `ChangeJoinPointsCoroutine` (`changeJoinPointsTime`).
 - **Cleanup**: `OnLeave` і `Deactivate` зупиняють particle systems, планують `Destroy` по `startLifetime` і очищують runtime-словник лінків; `SetMoving(true)` у бустері також викликає `joinEffect.Deactivate(...)`.
 

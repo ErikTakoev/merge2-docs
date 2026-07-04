@@ -1,13 +1,13 @@
-# ChipContainer (Container)
+# ContainerModule (Container)
 
 [← На Головну](../Main.md)
 
-`ChipContainer` — це інтерактивна фішка, яка приймає в себе інші фішки для виконання квестів або замовлень. Вона успадковується від базового класу `Chip` і розширює його функціонал можливістю накопичення предметів.
+Логіка контейнера тепер реалізована за допомогою модульного компонента [ContainerModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/ContainerModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він дозволяє фішці накопичувати інші фішки для виконання квестів або замовлень.
 
 ## Architecture and Responsibility
 
-### 1. `ChipContainer.cs` (Container)
-Клас `ChipContainer` зберігає стан наповнення та керує візуальними ефектами.
+### 1. `ContainerModule.cs` (Container)
+Клас `ContainerModule` зберігає стан наповнення та керує візуальними ефектами, реалізуючи інтерфейс `IChipModule`.
 - **Властивості (Data)**:
   - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, нагорода `NextChipData`), які отримуються через `data.GetSpecialData<ChipContainerData>()`. Також кожна потрібна фішка визначає префаб візуального елемента через власні спеціальні дані `ChipContainerElementData`.
   - `ContainerRequirements`: Публічна властивість тільки для читання (`IReadOnlyDictionary<ContainerInfo, int>`), що надає доступ до поточних вимог контейнера для підсистеми `ChipCollections`.
@@ -18,10 +18,7 @@
   - **[ChipContainerEffect](../Visuals/Effects.md#3-container-requirements)**: Спеціальний ефект, що реалізує `IEffectContainer` та візуалізує необхідні предмети ("бабли") над контейнером. Призначається через `EffectContainerRef` (InterfaceRef).
 
 ### 1.1. `ChipContainerRuntimeData.cs` (Runtime State)
-Розширює базовий `ChipRuntimeData` для зберігання динамічного стану контейнера.
-
-**Успадковані властивості** (від `ChipRuntimeData`):
-- **`IsMoveLocked`**: Індикатор заблокованості (спадкується від базового стану). Впливає на логіку опосередковано через активацію ефекту, конфігурація якого згодом поповнює загальний `BlockingState` (див. [Chip Runtime Data](Chip.md#1-chipcs-base-class)).
+Реалізує маркерний інтерфейс `IChipSpecialRuntimeData` для зберігання динамічного стану контейнера всередині списку `specialRuntimeDatas` у `ChipRuntimeData`.
 
 **Власні властивості**:
 - **`containers`**: Словник (`Dictionary<ContainerInfo, int>`), що відслідковує поточний прогрес заповнення кожної вимоги.
@@ -30,13 +27,13 @@
   - **Завершення**: Коли вимога виконана повністю (лічильник досягає `ContainerInfo.Count`), вона видаляється зі словника. Коли словник порожній — контейнер вважається заповненим.
   - **Конструктори `ContainerInfo`**: Клас має два конструктори — порожній (для Unity-серіалізації в Inspector) та параметризований `ContainerInfo(ChipData requiredChip, int count = 1)` для створення вимог у runtime-коді (наприклад, при клонуванні `ChipData` у тестах або динамічному формуванні вимог контейнера).
 
-**Ініціалізація**: Створюється в `ChipContainer.Init()` на основі даних з `ChipContainerData` (через `GetSpecialData<ChipContainerData>()`). Початкові значення лічильників встановлюються в 0.
+**Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipContainerData` (через `GetSpecialData<ChipContainerData>()`).
 
 ### 2. `FillContainerLogic.cs` (Logic)
 Керує процесом додавання фішок до контейнера через механізм `IChipInteractionLogic`.  
 Детальний опис (CanInteract, ExecuteInteraction, цільові об'єкти) див. [FillContainerLogic](../Interactions/FillContainerLogic.md).
 
-## Key Methods (`ChipContainer.cs`)
+## Key Methods (`ContainerModule.cs`)
 
 ### `IsChipCompatible(Chip chip)`
 Перевіряє, чи відповідає `Data` фішки (прямим посиланням `RequiredChip == data`) хоча б одній із активних вимог у `containerRuntimeData.containers`. Не змінює стан.
@@ -48,8 +45,8 @@
    - Видаляє вимогу зі словника.
    - Відправляє тригер анімації `Recharge`.
    - Викликає `OnFillContainer` з прапорцем `isFull`.
-   - **Завершення**: Якщо всі вимоги виконані, контейнер знищується через `this.Destroy(cell)`, а на його місці створюється `NextChipData` за допомогою `ChipFactory`.
-   - **Часткове виконання**: Якщо вимога виконана, але контейнер має інші активні вимоги, інформує колекції через `chipCollections.OnContainerRequirementsChanged(this, container.Key.RequiredChip)`.
+   - **Завершення**: Якщо всі вимоги виконані, контейнер знищується через `this.chip.Destroy(cell)`, а на його місці створюється `NextChipData` за допомогою `ChipFactory`.
+   - **Часткове виконання**: Якщо вимога виконана, але контейнер має інші активні вимоги, інформує колекції через `chipCollections.OnContainerRequirementsChanged(this, key.RequiredChip)`.
 3. Якщо лічильник ще не повний — просто інкрементує його значення.
 4. **Результат**: Повертає `true`, якщо фішка була успішно прийнята.
 

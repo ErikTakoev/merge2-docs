@@ -1,24 +1,23 @@
-# ChipPowerBooster
+# PowerBoosterModule
 
 [← На Головну](../Main.md)
 
-Чіп-підсилювач (Power Booster) — спеціальний чіп, який модифікує параметри сусідніх чіпів. Наприклад, прискорює зарядку генераторів, що знаходяться поруч.
+Чіп-підсилювач (Power Booster) — логіка підсилення сусідніх чіпів тепер реалізована за допомогою модульного компонента [PowerBoosterModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/PowerBoosterModule.cs), який прикріплюється до GameObject базової фішки `Chip`. Наприклад, він прискорює зарядку генераторів (модулів `GeneratorModule`), що знаходяться поруч.
 
 ## Architecture and Responsibility
 
-### 1. `ChipPowerBooster.cs`
-Наслідує `Chip`. Основний клас бустера.
+### 1. `PowerBoosterModule.cs`
+Реалізує інтерфейс `IChipModule`. Основний клас бустера.
 - **Дані (Configuration)**: Зберігає `ChipPowerBoosterData` з параметром `Power` (множник підсилення), читаючи його через `data.GetSpecialData<ChipPowerBoosterData>()`.
 - **Підписки**: Вимагає компонент `PowerBoosterCellSubscriber` (`[RequireComponent]`), який відстежує сусідні клітинки та збирає активні модифікатори.
 - **BoostedTargets**: Делегує колекцію `HashSet<IPowerBoosterTarget>` до `PowerBoosterCellSubscriber.BoostedTargets`.
-- **Fail-fast перевірки**: В `Init(ChipData)` перевіряє наявність `PowerBoosterCellSubscriber` і `ChipPowerBoosterData`; при відсутності логіка бустера зупиняється з `Debug.LogError`.
+- **Fail-fast перевірки**: В `Init(Chip, ChipData, ChipRuntimeData)` перевіряє наявність `PowerBoosterCellSubscriber` і `ChipPowerBoosterData`; при відсутності логіка бустера зупиняється з `Debug.LogError`.
 - **Ефекти**: Підтримує два опційні ефекти: `connectorCellsHighlightEffect` (підсвітка зони, див. [Visual Effects § 6](../Visuals/Effects.md#6-power-booster-connector-highlight)) і `joinEffect` (`EffectPowerBoosterJoinRef`) для лінків між бустером та цілями (див. [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-join-links)).
 - **Apply/Remove API**: `ApplyPowerBooster(IPowerBoosterTarget, bool reapply)` і `RemovePowerBooster(IPowerBoosterTarget)` оновлюють геймплейний вплив та викликають `joinEffect.Value.OnJoin(...)` / `OnLeave(...)`. При застосуванні перевіряється `BlockingState.CanApplyModifiers`.
-- **`RemoveEffect(int effectId)`** override: Перевіряє, чи `CanApplyModifiers` змінився після `base.RemoveEffect` — якщо так, викликає `OnChangedCell` для re-subscribe і reapply бустерів до сусідів.
+- **`OnEffectRemoved(int effectId)`** (IChipModule): Перевіряє, чи `CanApplyModifiers` змінився після видалення ефекту на чіпі — якщо так, викликає `OnChipChangedCell` для re-subscribe і reapply бустерів до сусідів.
 - **`OnTargetChipEffectRemoved(IPowerBoosterTarget, int effectId)`**: Викликається через `IPowerBoosterTarget.NotifyEffectRemoved`, коли у цілі видаляється ефект. Якщо `chipTarget.BlockingState.CanReceiveModifiers` стає `true`, reapply бустер і join-ефект.
 - **`OnTargetChipMoved(IPowerBoosterTarget, bool value)`**: Реле-callback від цілей, розсилає рух-нотифікацію в `joinEffect.Value.OnTargetChipMoved(...)`. Дозволяє join-візуалізації приховуватись під час переміщення цілі.
-- **Move lifecycle**: `SetMoving(true)` одразу деактивує обидва booster-ефекти, щоб уникати stale-візуалізації під час drag/relocation.
-- **Destroy lifecycle**: `Destroy(Cell mainCell)` спочатку викликає `cellSubscriber.OnChipDestroy(mainCell)`, і лише потім делегує у `base.Destroy(...)`, щоб гарантовано зняти всі бустери до фінального очищення чіпа.
+- **Destroy lifecycle**: Метод `DestroyModule()` очищує та знімає підписку `cellSubscriber.OnChipDestroy(null)`.
 
 ### 2. `ChipPowerBoosterData`
 Серіалізований об'єкт налаштувань бустера.
@@ -28,11 +27,11 @@
 ### 3. `IPowerBoosterTarget` (Interface)
 Інтерфейс для чіпів, які можуть отримувати підсилення від бустера.
 - **`JoinPoints`** (`IReadOnlyList<Transform>`): Якірні точки для join-візуалізації бустера.
-- **`AppliedBoosters`** (`HashSet<ChipPowerBooster>`): Колекція активних бустерів.
+- **`AppliedBoosters`** (`HashSet<PowerBoosterModule>`): Колекція активних бустерів.
 - **`BlockingState`** (`CombinedBlockingState`): Агрегований стан блокувань цілі. Перевіряється бустером через `CanReceiveModifiers` перед застосуванням/reapply.
-- **`ApplyPowerBooster(ChipPowerBooster, bool reapply = false)`**: Застосувати підсилення. Повертає `false`, якщо бустер вже активний (без `reapply`). При `reapply = true` перераховує множник з уврахуванням поточного `BlockingState`.
-- **`RemovePowerBooster(ChipPowerBooster)`**: Зняти підсилення.
-- **`NotifyEffectRemoved(int effectId)`**: Сповіщає всі активні бустери про видалення ефекту. Викликається з `RemoveEffect` цілі, щоб бустери могли reapply, якщо `CanReceiveModifiers` став `true`.
+- **`ApplyPowerBooster(PowerBoosterModule, bool reapply = false)`**: Застосувати підсилення. Повертає `false`, якщо бустер вже активний (без `reapply`). При `reapply = true` перераховує множник з уврахуванням поточного `BlockingState`.
+- **`RemovePowerBooster(PowerBoosterModule)`**: Зняти підсилення.
+- **`NotifyEffectRemoved(int effectId)`**: Сповіщає всі активні бустери про видалення ефекту. Викликається з `RemoveEffect` цілі (або `OnEffectRemoved` її модулів), щоб бустери могли reapply, якщо `CanReceiveModifiers` став `true`.
 
 ### 4. `ChipGenerator.PowerBoosterTarget.cs` (Реалізація)
 Часткова реалізація `IPowerBoosterTarget` у `ChipGenerator` (partial class).
@@ -50,7 +49,7 @@
 - **`pendingWaitCoroutines`**: Словник `Dictionary<IPowerBoosterTarget, Coroutine>` — захист від дублювання та від `OnLeave`-скасування in-flight spawn-coroutine. Null-запис (coroutine завершилась синхронно або ще не збережена ref) безпечно обробляється.
 - **`OnTargetChipMoved`**: Вмикає/вимикає loop particle systems для конкретної цілі під час її руху — прибирає візуальний «дребезг».
 - **Вибір точок**: `GetTopClosest` фільтрує N найближчих anchor-точок з обох сторін; `ShowEffect` або спавнить нову `ParticleSystem`, або переприв'язує існуючу до нового join point.
-- **Cleanup**: `OnLeave` і `Deactivate` зупиняють particle systems, планують їх знищення по lifetime і очищують внутрішній словник активних лінків.
+- **Cleanup**: `OnLeave` і `Deactivate` зупиняють particle systems, планують їх знищення по lifetime і очищують внутрішний словник активних лінків.
 
 ## Subscriber System
 
@@ -85,12 +84,13 @@
 
 Детальніше: [Visual Effects § 6](../Visuals/Effects.md#6-power-booster-connector-highlight) і [Visual Effects § 7](../Visuals/Effects.md#7-power-booster-join-links).
 
-1. **Init**: `ChipFactory` створює бустер → `Init(ChipData)` → `InitEffects()` → ініціалізація ефектів з ключами `EffectConsts.PBoosterConnectorCells` та `EffectConsts.PBoosterJoin` у словнику `effects`.
+1. **Init**: `ChipFactory` створює чіп → `Chip.Init(ChipData)` → опитує та викликає `PowerBoosterModule.Init()` → додає ефекти з ключами `EffectConsts.PBoosterConnectorCells` та `EffectConsts.PBoosterJoin` до словника ефектів чіпа `effects`.
 2. **Placement**: `FieldGrid.SetChipInCell` → `CellSubscriber.OnChipChangedCell` → `SubscribeToNeighbors` (обчислення bounding box + neighbors).
-3. **Observation**: `CellObserverManager` нотифікує `PowerBoosterCellSubscriber.OnObservedCellChipChanged` → idempotent Apply/Remove бустерів + `GetEffect<IEffectPowerBoosterJoin>(...)?OnJoin/OnLeave`.
-4. **Move**: `SetMoving(true)` → обидва booster-ефекти деактивуються через `GetEffect(EffectConsts.PBoosterConnectorCells)?.Deactivate(...)` та `GetEffect(EffectConsts.PBoosterJoin)?.Deactivate(...)` → після drop: `OnChipChangedCell` → re-subscribe → новий набір цілей і join-лінків.
+3. **Observation**: `CellObserverManager` нотифікує `PowerBoosterCellSubscriber.OnObservedCellChipChanged` → idempotent Apply/Remove бустерів через `PowerBoosterModule` + `GetEffect<IEffectPowerBoosterJoin>(...)?OnJoin/OnLeave`.
+4. **Move**: `SetMoving(true)` на чіпі → обидва booster-ефекти деактивуються через `GetEffect(EffectConsts.PBoosterConnectorCells)?.Deactivate(...)` та `GetEffect(EffectConsts.PBoosterJoin)?.Deactivate(...)` → після drop: `OnChipChangedCell` → re-subscribe → новий набір цілей і join-лінків.
 5. **Destroy**: 
-   - Викликається `ChipPowerBooster.Destroy(Cell mainCell)` override.
-   - Спочатку `cellSubscriber.OnChipDestroy(mainCell)` викликає `RemovePowerBooster()` для **всіх** елементів в `boostedTargets` та зупиняє пов'язані join-ефекти через `GetEffect<IEffectPowerBoosterJoin>(...)?OnLeave`.
-   - Потім викликається `base.Destroy(mainCell)`, який очищає occupancy на полі, викликає базовий `ICellSubscriber` cleanup і видаляє об'єкти ефектів.
+   - Викликається `Chip.Destroy(Cell mainCell)`.
+   - При виклику `FinishDestroy()` на чіпі викликається метод `DestroyModule()` модуля `PowerBoosterModule`.
+   - `cellSubscriber.OnChipDestroy(null)` викликає `RemovePowerBooster()` для **всіх** елементів в `boostedTargets` та зупиняє пов'язані join-ефекти через `GetEffect<IEffectPowerBoosterJoin>(...)?OnLeave`.
+   - Базовий чіп очищає occupancy на полі, викликає базовий `ICellSubscriber` cleanup і видаляє об'єкти ефектів.
    - **Результат**: Всі пов'язані цілі отримують очищення підсилення перед знищенням бустера, без "завислих" join-лінків або застарілих станів при merge/еволюції.

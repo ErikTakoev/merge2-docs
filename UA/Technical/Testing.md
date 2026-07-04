@@ -96,7 +96,7 @@
 - **Сценарій**: Клонує `SeedlingContainer_2` через `ChipData.Clone()` та програмно додає другу вимогу (`TomatoSeed_2`) через параметризований конструктор `ContainerInfo`, а також встановлює `NextChipData = TomatoPlant_1`. Послідовно перетягує `BagOfSoil_2` та `TomatoSeed_2` у контейнер. Після першого перетягування перевіряє `AssertFieldConsistency`. Після другого (фінального) — перевіряє, що на полі залишився рівно 1 чіп (результат `TomatoPlant_1`) та цілісність поля.
 
 ### ChipPowerBoosterTests
-Тести функціональності чіпа-підсилювача ([ChipPowerBooster](../Chips/ChipPowerBooster.md)) та системи підписок.
+Тести функціональності чіпа-підсилювача ([PowerBoosterModule](../Chips/PowerBoosterModule.md)) та системи підписок.
 
 #### SpawnAndMovingCheckSubscribe
 - **Мета**: Перевіряє коректність підписок бустера після спавну та серії drag-переміщень.

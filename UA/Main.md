@@ -31,13 +31,13 @@
 - **[Chip (Базовий)](Chips/Chip.md)**
   > **Контекст**: Це базовий ігровий об'єкт (фішка), що підтримує механіку злиття (Merge). Розділ включає опис **правил злиття (ChipMergeData)** як частини `specialDatas`: налаштування партнерів, ваг (Weighted Random) і runtime-доступ через `Chip.MergeData`.
   
-- **[ChipGenerator](Chips/ChipGenerator.md)**
+- **[GeneratorModule](Chips/GeneratorModule.md)**
   > **Контекст**: Чіп-генератор, що створює (спавнить) нові фішки. Працює як State Machine (Зарядка <-> Готовність). Підтримує ручний (Tap) та автоматичний режими, систему ваг (Weighted Random) для вибору результату та лімітовану кількість перезарядок.
 
-- **[ChipContainer](Chips/ChipContainer.md)**
+- **[ContainerModule](Chips/ContainerModule.md)**
   > **Контекст**: Чіп-контейнер, який "споживає" інші фішки для виконання квестів або завдань. Після заповнення зазвичай видає винагороду.
 
-- **[ChipPowerBooster](Chips/ChipPowerBooster.md)**
+- **[PowerBoosterModule](Chips/PowerBoosterModule.md)**
   > **Контекст**: Чіп-підсилювач, який посилює сусідні чіпи (наприклад, прискорює зарядку генераторів), підтримує `JoinPoints` у цілях підсилення та керує двома типами візуалізації: підсвіткою зони впливу і динамічними join-лінками через `IEffectPowerBoosterJoin`.
 
 ### Key Features

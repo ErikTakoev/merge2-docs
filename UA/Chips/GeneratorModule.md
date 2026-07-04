@@ -1,18 +1,20 @@
-# ChipGenerator (Generator)
+# GeneratorModule (Generator)
 
 [← На Головну](../Main.md)
 
-`ChipGenerator` — це спеціалізований компонент, який створює (спавнить) нові фішки на ігровому полі. Він працює як автомат станів (State Machine), що перемикається між заряджанням та готовністю до генерації.
+Логіка генерації тепер реалізована за допомогою модульного компонента [GeneratorModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/GeneratorModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він працює як автомат станів (State Machine), що перемикається між заряджанням та готовністю до генерації.
+
+`GeneratorModule` також реалізує інтерфейс `IPowerBoosterTarget`, що дозволяє прискорювати генерацію сусідніми бустерами.
 
 ## Architecture and Responsibility
 
-### 1. `ChipGenerator.cs` (Main Component)
-Клас `ChipGenerator` керує життєвим циклом генератора, об'єднуючи логіку оновлення та події.
+### 1. `GeneratorModule.cs` (Main Component)
+Клас `GeneratorModule` керує життєвим циклом генератора на чіпі, реалізуючи інтерфейси `IChipModule` та `IPowerBoosterTarget`.
 - **Вхідні дані (Input)**:
-  - **Manual**: Обробляє `OnTap` (клік гравця).
+  - **Manual**: Обробляє `OnTap` через делегування подій з `Chip`.
   - **Auto**: Підписується на `field.OnChangeField`, щоб автоматично спавнити при появі вільного місця.
-- **Ініціалізація даних**: У `Init(ChipData)` читає конфігурацію через `data.GetSpecialData<ChipGeneratorData>()`. Якщо `ChipGeneratorData` відсутній, логіка генератора не запускається.
-- **Update Loop**: У методі `Update` керує таймером перезарядки.
+- **Ініціалізація даних**: У `Init(Chip, ChipData, ChipRuntimeData)` читає конфігурацію через `data.GetSpecialData<ChipGeneratorData>()`. Якщо `ChipGeneratorData` відсутній, логіка генератора не запускається.
+- **Update Loop**: У методі `Update` керує таймером перезарядки, масштабуючи час на множник швидкості `powerMultiplier`.
 - **Залежності**:
   - `IFreeCellFinder`: Логіка пошуку найближчої вільної клітинки.
   - `ChipFactory`: Фабрика для створення нових об'єктів.
@@ -23,10 +25,7 @@
 - **Вибір фішок**: Використовує механізм **Weighted Random** для обрання типу (див. [MergeableChipLogic](../Interactions/MergeableChipLogic.md#result-calculation-weighted-random))
 
 ### 3. `ChipGeneratorRuntimeData.cs` (Runtime State)
-Розширює базовий `ChipRuntimeData` для зберігання динамічного стану генератора.
-
-**Успадковані властивості** (від `ChipRuntimeData`):
-- **`EffectEnables`** (`HashSet<int>`): Набір активних blocker-ефектів (з `EffectConsts`/`EffectConsts.Blockers`). Впливає на логіку опосередковано через активацію відповідних ефектів, конфігурація яких згодом поповнює загальний `BlockingState` (див. [Chip Runtime Data](Chip.md#1-chipcs-base-class)).
+Реалізує маркерний інтерфейс `IChipSpecialRuntimeData` для зберігання динамічного стану генератора всередині списку `specialRuntimeDatas` у `ChipRuntimeData`.
 
 **Власні властивості**:
 - **`IsCharged`**: Чи готовий генератор до створення нової фішки. Коли `true`, генератор може спавнити чіп (вручну або автоматично).
@@ -38,8 +37,7 @@
   - `ChargingTime` — при повній перезарядці (коли `ChargeCount` досяг 0).
   - `GenerationInterval` — при короткій затримці між генераціями в рамках одного циклу.
 
-**Ініціалізація**: Створюється в конструкторі на основі `ChipGeneratorData` (отриманого через `GetSpecialData<ChipGeneratorData>()`), встановлюючи початкові значення з налаштувань.
-6. **Update Visual**: Виклик `UpdateVisual()` для синхронізації ефектів після зміни стану заряду.
+**Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipGeneratorData` (отриманого через `GetSpecialData<ChipGeneratorData>()`).
 
 ### Recharge
 1. **Update**: У кожному кадрі збільшується `ChargingTimeLeft` до досягнення `CurrentTargetChargingTime`.

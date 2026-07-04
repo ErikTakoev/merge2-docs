@@ -91,11 +91,31 @@
     
     Під час знищення ефектів через `DestroyEffects` перевіряється властивість ефекту `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект не знищується разом із чіпом (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
   
-### Extensions for Specialized Chips
-Спеціалізовані чіпи розширюють `InitEffects()` для додавання власних ефектів:
-- **`ChipGenerator.InitEffects()`**: Додає `GeneratorCharging` та `GeneratorCharged` ефекти
-- **`ChipContainer.InitEffects()`**: Додає `ContainerRequirements` ефект, реалізує `IEffectContainer`
-- **`ChipPowerBooster.InitEffects()`**: Додає `PBoosterConnectorCells` та `PBoosterJoin` ефекти
+## Модульна архітектура та Композиція (IChipModule)
+
+Починаючи з версії Merge Toolkit, реалізовано перехід від успадкування спеціалізованих чіпів до композиційного підходу. Клас [Chip](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/Chip.cs) тепер виступає як контейнер (хост), а спеціалізована логіка винесена в окремі модулі, що реалізують інтерфейс [IChipModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/Interfaces/IChipModule.cs):
+- **`ContainerModule`**: Керує контейнерами та вимогами заповнення.
+- **`GeneratorModule`**: Керує логікою генерації та підсиленням швидкості.
+- **`PowerBoosterModule`**: Керує логікою підсилювачів та зв'язками з цілями.
+
+### Делегування життєвого циклу модулям
+Клас `Chip` автоматично збирає всі компоненти `IChipModule` на своєму GameObject за допомогою `GetComponents<IChipModule>()` і делегує їм виклики у ключових точках життєвого циклу:
+- **`Init`**: Ініціалізація кожного модуля з передачею посилань на `Chip`, `ChipData` та `ChipRuntimeData`.
+- **`InitRuntimeData`**: Реєстрація спеціалізованих даних стану в модулях.
+- **`OnTap`**: Передача події тапу користувача.
+- **`OnDragStart`, `OnDrag`, `OnDragEnd`**: Передача подій перетягування.
+- **`OnChangedCell`**: Передача подій зміни поточної клітинки на полі.
+- **`FinishDestroy`**: Очищення ресурсів модуля перед повним видаленням GameObject чіпа (метод `DestroyModule`).
+
+### Керування ефектами модулів
+Методи `AddEffect` та `RemoveEffect` класу `Chip` тепер мають область видимості `public virtual` (замість `protected virtual`), що дозволяє модулям керувати власними ефектами.
+- При виклику `UpdateVisual` на чіпі, він додатково викликає `module.UpdateVisual()` для кожного зареєстрованого модуля.
+- При видаленні ефекту через `RemoveEffect` викликається `module.OnEffectRemoved(effectId)`.
+
+### Спеціалізовані рантайм-дані (IChipSpecialRuntimeData)
+Клас `ChipRuntimeData` тепер містить список поліморфних даних стану:
+- **`specialRuntimeDatas`** (`List<IChipSpecialRuntimeData>` з атрибутом `[SerializeReference]`).
+- **`GetSpecialRuntimeData<T>()`**: Допоміжний метод для отримання конкретного типу даних стану для модуля (наприклад, `ChipGeneratorRuntimeData` або `ChipContainerRuntimeData`).
 
 ### Movement State Management
 Система розрізняє **стан перетягування користувачем** та **візуальний стан переміщення**:
@@ -125,10 +145,6 @@
 ### Other Methods
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
 - **`CalculateDestroyDuration()`**: Приватний метод, що викликається в `Init()`. Якщо `data.DestroyDuration` ще не задано і є `Animator`, метод тимчасово перемикає аніматор у стан `"Destroy"` для зчитування довжини анімаційного кліпу, кешує її у `data.DestroyDuration` та відновлює початковий стан аніматора.
-
-### Extensions for Specialized Chips
-- **`ChipGeneratorRuntimeData`**: Додає стан зарядки, таймери, лічильники перезарядок.
-- **`ChipContainerRuntimeData`**: Додає словник прогресу заповнення контейнера.
 
 
 ### Merge System

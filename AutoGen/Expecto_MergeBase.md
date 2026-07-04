@@ -10,7 +10,6 @@
 - [Chip](#chip)
 - [ChipChangedEvent](#chipchangedevent)
 - [ChipCollections](#chipcollections)
-- [ChipContainer](#chipcontainer)
 - [ChipContainerData](#chipcontainerdata)
 - [ChipContainerEffect](#chipcontainereffect)
 - [ChipContainerElementData](#chipcontainerelementdata)
@@ -23,14 +22,12 @@
 - [ChipFactory](#chipfactory)
 - [ChipFlightSettings](#chipflightsettings)
 - [ChipFlyAnimation](#chipflyanimation)
-- [ChipGenerator](#chipgenerator)
 - [ChipGeneratorData](#chipgeneratordata)
 - [ChipGeneratorRechargeEffect](#chipgeneratorrechargeeffect)
 - [ChipGeneratorRuntimeData](#chipgeneratorruntimedata)
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
 - [ChipMovingLogic](#chipmovinglogic)
-- [ChipPowerBooster](#chippowerbooster)
 - [ChipPowerBoosterData](#chippowerboosterdata)
 - [ChipRemovedEventArgs](#chipremovedeventargs)
 - [ChipRuntimeData](#chipruntimedata)
@@ -39,6 +36,7 @@
 - [ChipSortingLayer](#chipsortinglayer)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ContainerInfo](#containerinfo)
+- [ContainerModule](#containermodule)
 - [DeferredCell](#deferredcell)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
@@ -69,6 +67,7 @@
 - [FillContainerLogic](#fillcontainerlogic)
 - [FlightType](#flighttype)
 - [FreeCellFinder](#freecellfinder)
+- [GeneratorModule](#generatormodule)
 - [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
 - [IChipChangeNotifier](#ichipchangenotifier)
@@ -76,9 +75,11 @@
 - [IChipFinder](#ichipfinder)
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
+- [IChipModule](#ichipmodule)
 - [IChipMovingLogic](#ichipmovinglogic)
 - [IChipSortingLayer](#ichipsortinglayer)
 - [IChipSpecialData](#ichipspecialdata)
+- [IChipSpecialRuntimeData](#ichipspecialruntimedata)
 - [IDragFeedback](#idragfeedback)
 - [IEffect](#ieffect)
 - [IEffectBlockingSettings](#ieffectblockingsettings)
@@ -109,6 +110,7 @@
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
+- [PowerBoosterModule](#powerboostermodule)
 - [ScenarioEventHandler](#scenarioeventhandler)
 - [ShadowEffect](#shadoweffect)
 - [SortingLayerData](#sortinglayerdata)
@@ -355,6 +357,14 @@
 - `~ scenarioEventHandler: IScenarioEventHandler`
 - `~ transformNode: Transform`
 #### Methods
+- `+ AddEffect(IEffect effect, int effectHash, bool activate, bool deactivate): void`
+    - **Purpose**: Adds an effect to the effects dictionary and optionally activates it
+    - **Usage**: Call from InitEffects or from chip modules to register effects with their EffectConsts keys
+    - **Params**: effect - The effect instance to add
+    - effectHash - EffectConsts hash value
+    - activate - Whether to immediately activate the effect
+    - **Notes**: Null-safe: effect is only added if not null
+    - handles activation before storing
 - `+ CanMoving(): bool`
     - **Purpose**: Checks whether the chip can currently be moved by the player
     - **Usage**: Called by DraggableChipLogic before allowing drag operations
@@ -453,6 +463,11 @@
     - **Usage**: Override in derived classes to implement custom tap behavior
     - receives tap position in world coordinates
     - **Params**: position - the world position where the chip was tapped
+- `+ RemoveEffect(int effectId): void`
+    - **Purpose**: Removes a destroying effect from the chip after it reaches destruction threshold
+    - **Usage**: Called from HandleDestroyingEffects when TryDestroyEffect returns true or from chip modules
+    - **Params**: effectId - The unique hash/ID of the effect to remove
+    - **Notes**: Deactivates the effect, removes it from dictionary, and updates the priority selection
 - `+ ResetTrigger(string triggerName): void`
 - `+ SendTrigger(AnimatorTrigger trigger, bool allowRepeat): void`
 - `+ SendTrigger(string trigger, bool allowRepeat): void`
@@ -487,14 +502,6 @@
     - **Usage**: Call after modifying runtimeData.EffectEnables to synchronize visual effects
     - **Notes**: Iterates blockersData.Blockers and activates effects whose EffectId is in EffectEnables
     - also activates CellHighlight unless hidden by BlockingState.HideEffectIds
-- `~ AddEffect(IEffect effect, int effectHash, bool activate, bool deactivate): void`
-    - **Purpose**: Adds an effect to the effects dictionary and optionally activates it
-    - **Usage**: Call from InitEffects to register effects with their EffectConsts keys
-    - **Params**: effect - The effect instance to add
-    - effectHash - EffectConsts hash value
-    - activate - Whether to immediately activate the effect
-    - **Notes**: Null-safe: effect is only added if not null
-    - handles activation before storing
 - `- AppearanceDelayCoroutine(float delay): IEnumerator`
 - `- CalculateDestroyDuration(): void`
     - **Purpose**: Calculates and caches the duration of the destroy animation of the chip by evaluating the animator's clips info
@@ -533,11 +540,6 @@
     - **Usage**: Called from SetMoving when a chip starts or ends visual movement
     - **Params**: isMoving - true if movement started, false if it ended
 - `~ PostInitEffects(): void`
-- `~ RemoveEffect(int effectId): void`
-    - **Purpose**: Removes a destroying effect from the chip after it reaches destruction threshold
-    - **Usage**: Called from HandleDestroyingEffects when TryDestroyEffect returns true
-    - **Params**: effectId - The unique hash/ID of the effect to remove
-    - **Notes**: Deactivates the effect, removes it from dictionary, and updates the priority selection
 - `- UpdatePrioritizingDestroyingEffect(): void`
     - **Purpose**: Selects the effect with the highest DestroyingSettings.Priority as the active destroying target
     - **Usage**: Called after InitDestroyingEffectsData and after RemoveEffect to reselect the next priority
@@ -580,7 +582,7 @@
     - **Purpose**: Re-evaluates a chip's presence in MergeableChipsByData and FillableChipsByData after its BlockingState or cell's IsBlocked flag changes.
     - **Usage**: Called by Chip.RemoveEffect after a blocker effect is destroyed, and by LockedAreaManager when a cell's IsBlocked flag changes.
     - **Params**: chip - the chip whose eligibility may have changed
-- `+ OnContainerRequirementsChanged(ChipContainer container, ChipData fulfilledRequirement): void`
+- `+ OnContainerRequirementsChanged(ContainerModule container, ChipData fulfilledRequirement): void`
     - **Purpose**: Removes a container from the specific key in FillableChipsByData that was just fulfilled.
     - **Usage**: Called by ChipContainer.TryAddChip when one requirement is completed but the container is not yet full. The fulfilled ChipData key is passed directly — no dictionary iteration needed.
     - **Params**: container - the container whose requirement changed
@@ -589,68 +591,12 @@
     - **Purpose**: Removes a chip from the collection and cleans up empty data entries. Also removes it from all filtered sub-collections.
     - **Usage**: Called by Chip.Destroy just before the chip GameObject is destroyed
     - **Params**: chip - the chip instance to remove
-- `- AddContainerToFillable(ChipContainer container): void`
+- `- AddContainerToFillable(ContainerModule container): void`
 - `- AddToDict(Dictionary<ChipData, List<Chip>> dict, ChipData key, Chip chip): void`
 - `- IsChipMergeable(Chip chip): bool`
-- `- IsContainerFillable(ChipContainer container): bool`
-- `- RemoveContainerFromFillable(ChipContainer container): void`
+- `- IsContainerFillable(ContainerModule container): bool`
+- `- RemoveContainerFromFillable(ContainerModule container): void`
 - `- RemoveFromDict(Dictionary<ChipData, List<Chip>> dict, ChipData key, Chip chip): void`
----
-
-## ChipContainer
-**Inherits**: `Chip`
-
-> - **Purpose**: Represents a chip that can contain other chips, managing their addition and triggering effects when filled
-> - **Usage**: Use as a base class for chips that act as containers for other chips
-> - Call Init with ChipData to initialize
-> - Use TryAddChip to attempt to add a chip
-> - **Params**: data - ChipData for initialization
-> - chip - Chip to check or add
-> - containers - runtime state of container requirements
-> - **Returns**: IsChipCompatible and TryAddChip return true if the chip can be added or is compatible, false otherwise
-> - **Notes**: Handles container fill logic and triggers effects when full
-> - Removes itself and spawns a new chip if all containers are filled
-> - Uses event OnFillContainer for notification
-> - Requires proper ChipData with ChipContainerData
-#### Fields
-- `+- ContainerRequirements: IReadOnlyDictionary<ContainerInfo, int>`
-- `~ chipContainerData: ChipContainerData`
-- `- chipFactory: ChipFactory`
-- `- containerEffect: EffectContainerRef`
-    - **Purpose**: Visual effect reference for container item display
-    - obtained from Inspector via InterfaceRef
-    - **Usage**: Used in InitEffects to instantiate and add the effect to the effects dictionary with EffectConsts.ContainerRequirements key
-    - **Notes**: Assigned via inspector
-    - effect is stored in dictionary for lifetime management
-- `~ containerRuntimeData: ChipContainerRuntimeData`
-- `- OnFillContainer: FillContainerDelegate`
-#### Methods
-- `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
-- `+ InitRuntimeData(ChipData data, ChipRuntimeData& runtimeData): void`
-- `+ IsChipCompatible(Chip chip): bool`
-    - **Purpose**: Checks if a given chip is compatible with any of the container's remaining requirements
-    - **Usage**: Called by interaction logic to determine if a chip can be dropped into this container
-    - **Params**: chip - The chip to check for compatibility
-    - **Returns**: True if the chip matches a required ChipType or ChipId
-    - false otherwise
-    - **Notes**: Does not modify the container's state
-    - only performs a check against current requirements
-- `+ SetMoving(bool value): void`
-    - **Purpose**: Updates sorting order and visual state during movement
-    - **Usage**: Called from SetMoving(true/false) when movement starts or ends
-    - **Params**: value - true if starting movement, false if ending
-    - **Notes**: Delegates to base.SetMoving then refreshes visuals when stopping
-- `+ TryAddChip(Chip chip): bool`
-    - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic.
-    - **Usage**: Called by interaction logic when a chip is dropped onto the container.
-    - **Params**: chip - The chip being added.
-    - **Returns**: True if the chip was successfully added
-    - otherwise False.
-    - **Notes**: Side effects: Updates internal container state
-    - Triggers OnFillContainer event
-    - If full, destroys parent Cell content and spawns NextChipData result.
-- `+ UpdateVisual(): void`
-- `~ InitEffects(): void`
 ---
 
 ## ChipContainerData
@@ -695,7 +641,6 @@
 ---
 
 ## ChipContainerRuntimeData
-**Inherits**: `ChipRuntimeData`
 
 > - **Purpose**: Extends ChipRuntimeData to store runtime state specific to container chips, tracking fill progress for each container requirement
 > - **Usage**: Used by ChipContainer to track which items have been added and how many remain
@@ -864,128 +809,6 @@
 - `- ApplyLinear(float t): void`
 ---
 
-## ChipGenerator
-**Inherits**: `Chip`
-
-> - **Purpose**: Represents a chip that can generate other chips, supporting automatic/manual modes and recharge cycles.
-> - **Usage**: Attach to a cell. Handles generation, charging, recharges, evolution to NextChipData, or destruction.
-> - **Notes**: Manages recharge counts. If TotalRecharges > 0, it recharges N times before evolution/destruction.
-#### Fields
-- `+- AppliedBoosters: HashSet<ChipPowerBooster>`
-- `+- JoinPoints: IReadOnlyList<Transform>`
-- `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
-- `- chargedEffect: EffectRef`
-    - **Purpose**: Visual effect active when the generator is fully charged and ready to generate chips.
-    - **Usage**: Assigned via inspector as EffectRef
-    - used in InitEffects to add to effects dictionary
-    - accessed via GetEffect(EffectConsts.GeneratorCharged)
-    - **Notes**: Optional
-    - targets IEffect interface
-    - provides visual feedback for readiness.
-- `- chipFactory: ChipFactory`
-- `- field: IFieldEventHandler`
-- `- findFreePlaceForChip: IFreeCellFinder`
-- `- generatorData: ChipGeneratorData`
-    - **Purpose**: Stores static configuration for the chip generator.
-    - **Usage**: Initialized in Init from ChipData. Used for generation logic.
-    - **Notes**: Should not be null. Affects generator mode and chip creation.
-- `~ generatorRuntimeData: ChipGeneratorRuntimeData`
-    - **Purpose**: Stores runtime state for the chip generator.
-    - **Usage**: Initialized in Init. Tracks charge, waiting state, and charge count.
-    - **Notes**: Critical for generator logic and state transitions.
-- `- isAutoGeneration: bool`
-    - **Purpose**: Indicates if the generator operates in auto mode.
-    - **Usage**: Set in Init from generatorData. Controls event subscriptions and tap behavior.
-    - **Notes**: Affects event handling and chip generation triggers.
-- `- OnCharging: Action<float>`
-- `~ powerMultiplier: float`
-    - **Purpose**: Current generation speed multiplier contributed by nearby power boosters.
-    - **Usage**: Updated when boosters are applied/removed
-    - consumed by Update() charging logic to scale Time.deltaTime.
-    - **Notes**: Defaults to 1f (no boost) and tracks the highest active booster power.
-- `- rechargeEffect: EffectGeneratorChargingRef`
-    - **Purpose**: Effect component for visual feedback during charging (recharge cycle).
-    - **Usage**: Assigned via inspector as EffectGeneratorChargingRef
-    - used in InitEffects to add to effects dictionary
-    - accessed via GetEffect(EffectConsts.GeneratorCharging)
-    - **Notes**: Must not be null if charging visualization is required
-    - targets IEffectGeneratorCharging interface.
-#### Methods
-- `+ ApplyPowerBooster(ChipPowerBooster chipPowerBooster, bool reapply): bool`
-    - **Purpose**: Applies a booster to the generator and recalculates effective multiplier.
-    - **Usage**: Called when booster subscriber detects this generator entering observed range.
-    - **Params**: chipPowerBooster - booster to register as active
-    - **Returns**: True when the booster was newly added
-    - false when it was already present.
-    - **Notes**: Multiplier becomes the maximum power among active boosters to prevent stacking by sum.
-- `+ Destroy(ICell mainCell, bool force): float`
-    - **Purpose**: Cleans up generator-owned callbacks and subscriptions before the base chip destruction flow runs.
-    - **Usage**: Call when removing a ChipGenerator from the field
-    - this override must execute before base.Destroy so auto-mode callbacks cannot fire against a chip that is already being removed.
-    - **Params**: mainCell - the generator main cell used by base destruction to clear occupancy
-    - **Notes**: Resets OnCharging delegates and unsubscribes from field.OnChangeField in auto mode, then delegates to base.Destroy for grid/effect/GameObject cleanup.
-- `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the chip generator with provided data and sets up event subscriptions.
-    - **Usage**: Call when creating or resetting a ChipGenerator instance.
-    - **Params**: data - ChipData for initialization, must contain valid ChipGeneratorData.
-    - **Notes**: Handles event subscriptions, effect activation, and runtime state setup.
-- `+ InitRuntimeData(ChipData data, ChipRuntimeData& runtimeData): void`
-- `+ NotifyEffectRemoved(int effectId): void`
-    - **Purpose**: Notifies all active boosters that an effect has been removed from this generator.
-    - **Usage**: Called from RemoveEffect
-    - allows boosters to re-evaluate their influence if they were previously blocked.
-    - **Params**: effectId - the ID of the effect that was removed
-- `+ OnTap(Vector2 position): void`
-    - **Purpose**: Handles tap input for manual chip generation.
-    - **Usage**: Call when the player taps the generator in manual mode.
-    - **Params**: position - Tap position in world coordinates.
-    - **Notes**: No effect in auto mode or if not charged. Uses TryGenerateChip for logic.
-- `+ RemovePowerBooster(ChipPowerBooster chipPowerBooster): void`
-    - **Purpose**: Removes a booster and recalculates multiplier from remaining active boosters.
-    - **Usage**: Called when booster subscriber detects this generator leaving observed range or booster destruction.
-    - **Params**: chipPowerBooster - booster to remove
-    - **Notes**: Resets multiplier to 1f when no boosters remain
-    - logs warning if removal is requested for a non-registered booster.
-- `+ SetMoving(bool value): void`
-    - **Purpose**: Updates movement state and notifies all active boosters of the movement change.
-    - **Usage**: Called by the movement system when the generator starts or stops moving.
-    - **Params**: value - true if starting movement, false if stopping
-    - **Notes**: Ensures boosters can update their visual links during generator relocation.
-- `+ UpdateVisual(): void`
-    - **Purpose**: Updates the visual state of the generator, including charge and move-locked effects
-    - **Usage**: Overridden to manage generator-specific effects (charging vs. charged)
-    - called by base or when charging state changes
-    - **Notes**: Synchronizes activation state of charging and charged effects based on generatorRuntimeData.IsCharged
-- `~ InitEffects(): void`
-    - **Purpose**: Initializes generator-specific effects including charged and recharge visual feedback
-    - **Usage**: Called from Init via InitEffects chain
-    - adds generator-specific effects to the effects dictionary
-    - **Notes**: Calls base.InitEffects() first to ensure standard effects are initialized before adding generator effects
-- `- OnFieldChanged(): void`
-    - **Purpose**: Handles field change events for auto-generation mode.
-    - **Usage**: Automatically called when the field changes if in auto mode.
-    - **Notes**: Triggers chip generation if waiting for space.
-- `- RecalculatePowerMultiplier(ChipPowerBooster chipPowerBooster): bool`
-    - **Purpose**: Recalculates the effective power multiplier based on active boosters and blocking state
-    - **Usage**: Called from ApplyPowerBooster after adding or reapplying a booster
-    - **Params**: chipPowerBooster - the booster that triggered the recalculation
-    - **Returns**: True if the multiplier was applied
-    - false if CanReceiveModifiers is blocked
-    - **Notes**: When CanReceiveModifiers is false, resets multiplier to 1f regardless of active boosters
-- `~ RemoveEffect(int effectId): void`
-    - **Purpose**: Extends base effect removal to notify all active boosters about the change
-    - **Usage**: Called when a destroying effect reaches its threshold on this generator
-    - **Notes**: After base removal and blocking state update, calls NotifyEffectRemoved so boosters can reapply if previously blocked
-- `- TryGenerateChip(): void`
-    - **Purpose**: Attempts to generate a new chip, managing charge state, recharges, and generator lifecycle.
-    - **Usage**: Call when generator is charged. Triggered by tap (manual) or field change (auto).
-    - **Notes**: Decrements ChargeCount. Checks GenerationInterval if ChargeCount > 0. Uses 'onlyAround' search only if IsAutoGeneration is true.
-- `- Update(): void`
-    - **Purpose**: Manages charging, state transitions, and triggers chip generation in auto mode.
-    - **Usage**: Called every frame by Unity. Handles charging timer and triggers effects.
-    - **Notes**: Handles both auto and manual modes. Triggers animation and effect changes.
----
-
 ## ChipGeneratorData
 
 > - **Purpose**: Configuration data for chip generators, defining generation weights, charge settings, and recharge cycles.
@@ -1030,7 +853,6 @@
 ---
 
 ## ChipGeneratorRuntimeData
-**Inherits**: `ChipRuntimeData`
 
 > - **Purpose**: Stores runtime state for a chip generator, tracking its charge status and remaining recharges.
 > - **Usage**: Created and managed by ChipGenerator. Used to persist state during gameplay.
@@ -1124,78 +946,6 @@
 - `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<ICell>`
 ---
 
-## ChipPowerBooster
-**Inherits**: `Chip`
-
-> - **Purpose**: Chip that boosts nearby IPowerBoosterTarget entities and controls linked booster-specific effects.
-> - **Usage**: Attach to booster chip prefabs together with PowerBoosterCellSubscriber to auto-apply/remove boosters as neighbor composition changes.
-> - **Notes**: Coordinates numeric power boost state and optional join/highlight effects for movement and destruction lifecycles.
-#### Fields
-- `+- BoostedTargets: HashSet<IPowerBoosterTarget>`
-- `+- Power: float`
-- `~ cellSubscriber: PowerBoosterCellSubscriber`
-- `~ chipPowerBoosterData: ChipPowerBoosterData`
-- `~ connectorCellsHighlightEffect: EffectRef`
-    - **Purpose**: Optional effect reference that visualizes currently observed booster coverage cells.
-    - **Usage**: Initialized in InitEffects and toggled by movement/visual updates
-    - **Notes**: When missing, booster still functions but no connector cell highlighting is shown.
-- `~ joinEffect: EffectPowerBoosterJoinRef`
-    - **Purpose**: Optional effect reference that draws dynamic join links between booster and modified generators.
-    - **Usage**: Receives OnJoin/OnLeave callbacks when modifiers are applied or removed
-    - **Notes**: Deactivated when booster starts moving to prevent stale visual links.
-#### Methods
-- `+ ApplyPowerBooster(IPowerBoosterTarget target, bool reapply): void`
-    - **Purpose**: Applies booster influence to a target entity and notifies join effect.
-    - **Usage**: Called by PowerBoosterCellSubscriber when a matching target enters observed cells.
-    - **Params**: target - chip/entity receiving this booster
-- `+ Destroy(ICell mainCell, bool force): float`
-    - **Purpose**: Ensures booster subscriptions/modifiers are cleared before base chip destruction.
-    - **Usage**: Called by chip lifecycle when booster is removed from field.
-    - **Params**: mainCell - booster main grid cell at destruction time
-    - **Notes**: Explicitly invokes subscriber cleanup before base.Destroy to release modifier links deterministically.
-- `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes booster-specific dependencies and validates booster data payload.
-    - **Usage**: Called after creation
-    - must run before boost application logic and effect usage.
-    - **Params**: data - chip data expected to contain ChipPowerBoosterData
-    - **Notes**: Caches PowerBoosterCellSubscriber and ChipPowerBoosterData
-    - logs errors and exits early when required components/data are missing.
-- `+ OnTargetChipEffectRemoved(IPowerBoosterTarget chipTarget, int effectId): void`
-    - **Purpose**: Reapplies booster influence when a target's blocking state changes due to effect removal
-    - **Usage**: Called by IPowerBoosterTarget.NotifyEffectRemoved on each active booster when a target effect is removed
-    - **Params**: chipTarget - target entity whose effect was removed
-    - effectId - ID of the removed effect
-    - **Notes**: Only reapplies if the target now has CanReceiveModifiers true
-    - triggers joinEffect.OnJoin if reapply succeeds
-- `+ OnTargetChipMoved(IPowerBoosterTarget chipTarget, bool value): void`
-    - **Purpose**: Relays target movement notifications to the active join effect.
-    - **Usage**: Called by target entities when they start or stop moving.
-    - **Params**: chipTarget - the moving target
-    - value - true if move began, false if it ended
-    - **Notes**: Allows join link visuals to stay synchronized or hide during target relocation.
-- `+ RemovePowerBooster(IPowerBoosterTarget target): void`
-    - **Purpose**: Removes booster influence from a target entity and notifies join effect.
-    - **Usage**: Called by PowerBoosterCellSubscriber when a matching target leaves observed cells or gets removed.
-    - **Params**: target - chip/entity losing this booster
-- `+ SetMoving(bool value): void`
-    - **Purpose**: Handles movement-state transitions and immediately deactivates booster-only effects on move start.
-    - **Usage**: Called by drag/movement flows with true on start and false on stop.
-    - **Params**: value - true to start moving, false to stop
-    - **Notes**: Always delegates sorting/notification behavior to base.SetMoving first.
-- `+ UpdateVisual(): void`
-    - **Purpose**: Updates booster visual state while preserving base chip visuals.
-    - **Usage**: Called when runtime state changes and when movement state toggles.
-    - **Notes**: Connector cell highlight is active only while the booster is stationary.
-- `~ InitEffects(): void`
-    - **Purpose**: Initializes optional booster effects in addition to base chip effects.
-    - **Usage**: Called from base Init flow.
-    - **Notes**: Adds connectorCellsHighlightEffect and joinEffect to effects dictionary via AddEffect with their respective EffectConsts keys.
-- `~ RemoveEffect(int effectId): void`
-    - **Purpose**: Re-evaluates booster influence when an effect is removed, potentially re-enabling blocked modifiers
-    - **Usage**: Called from base.RemoveEffect after an extra effect is destroyed and blocking state changes
-    - **Notes**: If CanApplyModifiers becomes true after removal, triggers OnChangedCell to re-subscribe and reapply modifiers to neighbors
----
-
 ## ChipPowerBoosterData
 #### Fields
 - `++ Power: float`
@@ -1226,9 +976,11 @@
     - **Usage**: Populated from FieldChipData.ExtraEffectIds during level load or at runtime
     - queried by Chip.InitEffects and UpdateVisual to determine which extra effects to instantiate and activate
     - **Notes**: Serialized via effectEnablesArray for save/load support
+- `+- SpecialRuntimeDatas: List<IChipSpecialRuntimeData>`
 - `- effectDestroyingDataArray: EffectDestroyingRuntimeData[]`
 - `- effectEnablesArray: int[]`
 #### Methods
+- `+ GetSpecialRuntimeData(): T`
 - `+ OnAfterDeserialize(): void`
 - `+ OnBeforeSerialize(): void`
 ---
@@ -1302,6 +1054,39 @@
 - `+- Count: int`
 - `+- RequiredChip: ChipData`
 - `- cachedElementPrefab: GameObject`
+---
+
+## ContainerModule
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Modular component attached to a Chip that manages container requirements, progress tracking, and fulfillment
+> - **Usage**: Attach to chip prefabs that act as containers
+> - implements IChipModule
+> - **Notes**: Triggers next chip creation or destruction when all container requirements are satisfied
+#### Fields
+- `+- Chip: Chip`
+- `+- ContainerRequirements: IReadOnlyDictionary<ContainerInfo, int>`
+- `~- containers: Dictionary<ContainerInfo, int>`
+- `- chipCollections: IChipCollections`
+- `~ chipContainerData: ChipContainerData`
+- `- chipFactory: ChipFactory`
+- `- containerEffect: EffectContainerRef`
+- `~ containerRuntimeData: ChipContainerRuntimeData`
+- `~ data: ChipData`
+- `- OnFillContainer: FillContainerDelegate`
+#### Methods
+- `+ DestroyModule(): void`
+- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
+- `+ IsChipCompatible(Chip chip): bool`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnDrag(Vector2 position, ICell anchorCell): void`
+- `+ OnDragEnd(): void`
+- `+ OnDragStart(): void`
+- `+ OnEffectRemoved(int effectId): void`
+- `+ OnTap(): void`
+- `+ TryAddChip(Chip chip): bool`
+- `+ UpdateVisual(): void`
 ---
 
 ## DeferredCell
@@ -2028,6 +1813,52 @@
 - `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<ICell> excludedCellsSet, HashSet<Chip> movingChipsSet): bool`
 ---
 
+## GeneratorModule
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Modular component attached to a Chip that handles chip generation, charging, recharges, and evolution
+> - **Usage**: Attach to chip prefabs that act as generators
+> - implements IChipModule and IPowerBoosterTarget
+> - **Notes**: Supports manual and auto modes, coordinates visual feedback via charged and charging effects, and scales generation speed based on booster multipliers
+#### Fields
+- `+- AppliedBoosters: HashSet<PowerBoosterModule>`
+- `+- BlockingState: CombinedBlockingState`
+- `+- IsMoving: bool`
+- `+- JoinPoints: IReadOnlyList<Transform>`
+- `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
+- `- chargedEffect: EffectRef`
+- `- chip: Chip`
+- `- chipFactory: ChipFactory`
+- `- data: ChipData`
+- `- field: IFieldEventHandler`
+- `- fieldGrid: IFieldGrid`
+- `- findFreePlaceForChip: IFreeCellFinder`
+- `- generatorData: ChipGeneratorData`
+- `- generatorRuntimeData: ChipGeneratorRuntimeData`
+- `- isAutoGeneration: bool`
+- `- OnCharging: Action<float>`
+- `~ powerMultiplier: float`
+- `- rechargeEffect: EffectGeneratorChargingRef`
+#### Methods
+- `+ ApplyPowerBooster(PowerBoosterModule booster, bool reapply): bool`
+- `+ DestroyModule(): void`
+- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
+- `+ NotifyEffectRemoved(int effectId): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnDrag(Vector2 position, ICell anchorCell): void`
+- `+ OnDragEnd(): void`
+- `+ OnDragStart(): void`
+- `+ OnEffectRemoved(int effectId): void`
+- `+ OnTap(): void`
+- `+ RemovePowerBooster(PowerBoosterModule booster): void`
+- `+ UpdateVisual(): void`
+- `- OnFieldChanged(): void`
+- `- RecalculatePowerMultiplier(): void`
+- `- TryGenerateChip(): void`
+- `- Update(): void`
+---
+
 ## ICell
 
 > - **Purpose**: Contract for a single cell in the game grid that can hold a chip.
@@ -2098,7 +1929,7 @@
 #### Methods
 - `+ AddChip(Chip chip): void`
 - `+ OnChipBlockingChanged(Chip chip): void`
-- `+ OnContainerRequirementsChanged(ChipContainer container, ChipData fulfilledRequirement): void`
+- `+ OnContainerRequirementsChanged(ContainerModule container, ChipData fulfilledRequirement): void`
 - `+ RemoveChip(Chip chip): void`
 ---
 
@@ -2154,6 +1985,25 @@
     - should only be called after successful CanInteract validation.
 ---
 
+## IChipModule
+
+> - **Purpose**: Interface for all modular components attached to a Chip GameObject that extend its capabilities
+> - **Usage**: Implement this interface for modular components (e.g. GeneratorModule, ContainerModule, PowerBoosterModule)
+> - Chip automatically queries and manages components implementing this interface
+> - **Notes**: Supports runtime initialization, visual updates, tap/drag input, and cell relocation lifecycles
+#### Methods
+- `+ DestroyModule(): void`
+- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnDrag(Vector2 position, ICell anchorCell): void`
+- `+ OnDragEnd(): void`
+- `+ OnDragStart(): void`
+- `+ OnEffectRemoved(int effectId): void`
+- `+ OnTap(): void`
+- `+ UpdateVisual(): void`
+---
+
 ## IChipMovingLogic
 
 > - **Purpose**: Interface for chip movement and relocation logic.
@@ -2198,6 +2048,12 @@
 ---
 
 ## IChipSpecialData
+---
+
+## IChipSpecialRuntimeData
+
+> - **Purpose**: Marker interface for special runtime data objects held inside ChipRuntimeData
+> - **Usage**: Implement on specific module runtime state classes (e.g., ChipGeneratorRuntimeData, ChipContainerRuntimeData)
 ---
 
 ## IDragFeedback
@@ -2451,15 +2307,15 @@
 > - **Purpose**: Contract for entities that can be influenced by ChipPowerBooster instances.
 > - **Usage**: Implemented by chips (for example ChipGenerator) that expose join points and manage active boosters.
 #### Fields
-- `+- AppliedBoosters: HashSet<ChipPowerBooster>`
+- `+- AppliedBoosters: HashSet<PowerBoosterModule>`
 - `+- BlockingState: CombinedBlockingState`
 - `+- IsMoving: bool`
 - `+- JoinPoints: IReadOnlyList<Transform>`
 #### Methods
-- `+ ApplyPowerBooster(ChipPowerBooster chipPowerBooster, bool reapply): bool`
+- `+ ApplyPowerBooster(PowerBoosterModule powerBoosterModule, bool reapply): bool`
     - **Purpose**: Adds a booster to this entity.
     - **Usage**: Called when booster observation detects this entity in range.
-    - **Params**: chipPowerBooster - booster to apply
+    - **Params**: powerBoosterModule - booster to apply
     - **Returns**: True if the booster was added
     - false if it was already active.
 - `+ NotifyEffectRemoved(int effectId): void`
@@ -2467,10 +2323,10 @@
     - **Usage**: Called by Chip.Effects when an effect is removed
     - allows boosters to re-evaluate influence.
     - **Params**: effectId - identifier of the removed effect
-- `+ RemovePowerBooster(ChipPowerBooster chipPowerBooster): void`
+- `+ RemovePowerBooster(PowerBoosterModule powerBoosterModule): void`
     - **Purpose**: Removes a booster from this entity.
     - **Usage**: Called when booster observation no longer includes this entity or booster is removed.
-    - **Params**: chipPowerBooster - booster to remove
+    - **Params**: powerBoosterModule - booster to remove
 ---
 
 ## IScenarioEventHandler
@@ -2758,7 +2614,7 @@
 > - **Notes**: Tracks unique booster targets in boostedTargets to prevent duplicate apply/remove calls.
 #### Fields
 - `+- BoostedTargets: HashSet<IPowerBoosterTarget>`
-- `~ chipPowerBooster: ChipPowerBooster`
+- `~ powerBoosterModule: PowerBoosterModule`
 #### Methods
 - `+ OnChipChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Re-evaluates all booster links after the booster itself is relocated.
@@ -2772,10 +2628,6 @@
     - **Params**: mainCell - the booster's current cell
     - **Notes**: Ensures all targets are notified of booster removal to prevent stale visual links or modifiers.
 - `+ OnObservedCellChipChanged(ChipChangedEvent evt): void`
-    - **Purpose**: Updates booster links when neighboring chips change, ensuring consistent application/removal.
-    - **Usage**: Invoked by CellObserverManager
-    - uses boostedTargets set for idempotency.
-    - **Params**: evt - event containing old/new chips on the observed cell
 - `~ Awake(): void`
 - `- ClearAllTargets(): void`
 ---
@@ -2891,6 +2743,41 @@
     - joinEffectData - existing effect data to update (null creates a new record)
     - **Returns**: Effect data instance containing selected endpoints and the particle system instance.
 - `- WaitStopMovingAndShowEffects(IPowerBoosterTarget target): IEnumerator`
+---
+
+## PowerBoosterModule
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Modular component attached to a Chip that boosts nearby IPowerBoosterTarget entities and manages link effects
+> - **Usage**: Attach to booster chip prefabs together with PowerBoosterCellSubscriber
+> - implements IChipModule
+> - **Notes**: Exposes numeric power boost state and manages line-drawing join links and connector cell highlight visuals
+#### Fields
+- `+- BoostedTargets: HashSet<IPowerBoosterTarget>`
+- `+- Power: float`
+- `~ cellSubscriber: PowerBoosterCellSubscriber`
+- `- chip: Chip`
+- `~ chipPowerBoosterData: ChipPowerBoosterData`
+- `~ connectorCellsHighlightEffect: EffectRef`
+- `- data: ChipData`
+- `- fieldGrid: IFieldGrid`
+- `~ joinEffect: EffectPowerBoosterJoinRef`
+- `- wasCanApplyModifiers: bool`
+#### Methods
+- `+ ApplyPowerBooster(IPowerBoosterTarget target, bool reapply): void`
+- `+ DestroyModule(): void`
+- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnDrag(Vector2 position, ICell anchorCell): void`
+- `+ OnDragEnd(): void`
+- `+ OnDragStart(): void`
+- `+ OnEffectRemoved(int effectId): void`
+- `+ OnTap(): void`
+- `+ OnTargetChipEffectRemoved(IPowerBoosterTarget chipTarget, int effectId): void`
+- `+ OnTargetChipMoved(IPowerBoosterTarget chipTarget, bool value): void`
+- `+ RemovePowerBooster(IPowerBoosterTarget target): void`
+- `+ UpdateVisual(): void`
 ---
 
 ## ScenarioEventHandler
