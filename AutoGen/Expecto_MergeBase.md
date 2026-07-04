@@ -1077,8 +1077,22 @@
 #### Methods
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+    - **Purpose**: Initializes the container module with chip data and runtime state
+    - **Usage**: Called during chip initialization
+    - sets up event handlers and links the container effect requirements
+    - **Params**: chip - parent Chip component
+    - data - static ChipData configuration
+    - runtimeData - persisted runtime state wrapper
+    - **Notes**: Retrieves container-specific special data and sets up visual requirements feedback
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
 - `+ IsChipCompatible(Chip chip): bool`
+    - **Purpose**: Checks if a given chip is compatible with any of the container's remaining requirements
+    - **Usage**: Called by interaction logic to determine if a chip can be dropped into this container
+    - **Params**: chip - the chip to check for compatibility
+    - **Returns**: True if the chip matches a required ChipData configuration
+    - false otherwise
+    - **Notes**: Does not modify the container's state
+    - only performs a read-only check against current requirements
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `+ OnDrag(Vector2 position, ICell anchorCell): void`
 - `+ OnDragEnd(): void`
@@ -1086,6 +1100,14 @@
 - `+ OnEffectRemoved(int effectId): void`
 - `+ OnTap(): void`
 - `+ TryAddChip(Chip chip): bool`
+    - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic
+    - **Usage**: Called by interaction logic when a chip is dropped onto the container
+    - **Params**: chip - the chip being added
+    - **Returns**: True if the chip was successfully added
+    - otherwise False
+    - **Notes**: Side effects: Updates internal container progress
+    - Triggers OnFillContainer event
+    - If all requirements are met, destroys parent Cell content and spawns NextChipData result
 - `+ UpdateVisual(): void`
 ---
 
@@ -1841,8 +1863,22 @@
 - `- rechargeEffect: EffectGeneratorChargingRef`
 #### Methods
 - `+ ApplyPowerBooster(PowerBoosterModule booster, bool reapply): bool`
+    - **Purpose**: Applies a booster influence to the generator and recalculates the charging speed multiplier
+    - **Usage**: Called when booster observation detects this generator in active range
+    - **Params**: booster - the PowerBoosterModule instance
+    - reapply - if true, allows reapplying even if already present
+    - **Returns**: True if the booster was newly added
+    - false otherwise
+    - **Notes**: Recalculates power multiplier using maximum power among all active boosters
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+    - **Purpose**: Initializes the generator module with static chip data and runtime state
+    - **Usage**: Called during chip initialization
+    - registers effects on the chip, registers charging callback, and subscribes to field events if auto-mode
+    - **Params**: chip - the parent Chip component
+    - data - static configuration
+    - runtimeData - persistent runtime state wrapper
+    - **Notes**: Triggers the initial visual update
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
 - `+ NotifyEffectRemoved(int effectId): void`
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
@@ -1852,10 +1888,17 @@
 - `+ OnEffectRemoved(int effectId): void`
 - `+ OnTap(): void`
 - `+ RemovePowerBooster(PowerBoosterModule booster): void`
+    - **Purpose**: Removes a booster influence and recalculates the charging speed multiplier
+    - **Usage**: Called when booster observation detects this generator leaving its active range
+    - **Params**: booster - the PowerBoosterModule to remove
+    - **Notes**: Resets speed multiplier to 1f if no boosters remain
 - `+ UpdateVisual(): void`
 - `- OnFieldChanged(): void`
 - `- RecalculatePowerMultiplier(): void`
 - `- TryGenerateChip(): void`
+    - **Purpose**: Attempts to generate a new chip based on generator configuration and availability of space
+    - **Usage**: Triggers on user tap (manual mode) or charging cycle completion (auto mode)
+    - **Notes**: Finds the nearest free cell. Decrements remaining charge count, and handles recharges/evolution when the cycle is completed.
 - `- Update(): void`
 ---
 
@@ -2765,8 +2808,19 @@
 - `- wasCanApplyModifiers: bool`
 #### Methods
 - `+ ApplyPowerBooster(IPowerBoosterTarget target, bool reapply): void`
+    - **Purpose**: Applies booster influence to a target entity and triggers the join effect
+    - **Usage**: Called by PowerBoosterCellSubscriber when a matching target enters observed cells
+    - **Params**: target - the target entity receiving this booster
+    - reapply - if true, allows reapplying even if already present
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+    - **Purpose**: Initializes the power booster module with chip data and runtime state
+    - **Usage**: Called during chip initialization
+    - checks dependencies and registers highlight/join effects on the chip
+    - **Params**: chip - the parent Chip component
+    - data - static ChipData configuration
+    - runtimeData - persistent runtime state wrapper
+    - **Notes**: Logs errors and returns early if PowerBoosterCellSubscriber or ChipPowerBoosterData are missing
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `+ OnDrag(Vector2 position, ICell anchorCell): void`
@@ -2777,6 +2831,9 @@
 - `+ OnTargetChipEffectRemoved(IPowerBoosterTarget chipTarget, int effectId): void`
 - `+ OnTargetChipMoved(IPowerBoosterTarget chipTarget, bool value): void`
 - `+ RemovePowerBooster(IPowerBoosterTarget target): void`
+    - **Purpose**: Removes booster influence from a target entity and triggers the join effect leave notification
+    - **Usage**: Called by PowerBoosterCellSubscriber when a matching target leaves observed cells or gets removed
+    - **Params**: target - the target entity losing this booster
 - `+ UpdateVisual(): void`
 ---
 
