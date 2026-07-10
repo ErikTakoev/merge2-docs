@@ -7,6 +7,8 @@
 - [CellHighlightEffect](#cellhighlighteffect)
 - [CellObserverManager](#cellobservermanager)
 - [CellSubscriber](#cellsubscriber)
+- [ChargingEffect](#chargingeffect)
+- [ChargingEffectRef](#chargingeffectref)
 - [Chip](#chip)
 - [ChipChangedEvent](#chipchangedevent)
 - [ChipCollections](#chipcollections)
@@ -23,7 +25,6 @@
 - [ChipFlightSettings](#chipflightsettings)
 - [ChipFlyAnimation](#chipflyanimation)
 - [ChipGeneratorData](#chipgeneratordata)
-- [ChipGeneratorRechargeEffect](#chipgeneratorrechargeeffect)
 - [ChipGeneratorRuntimeData](#chipgeneratorruntimedata)
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
@@ -34,6 +35,8 @@
 - [ChipSelectorAttribute](#chipselectorattribute)
 - [ChipSelectorDrawer](#chipselectordrawer)
 - [ChipSortingLayer](#chipsortinglayer)
+- [ChipWaitEvolutionData](#chipwaitevolutiondata)
+- [ChipWaitEvolutionRuntimeData](#chipwaitevolutionruntimedata)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ContainerInfo](#containerinfo)
 - [ContainerModule](#containermodule)
@@ -53,7 +56,6 @@
 - [EffectDestroyingRuntimeData](#effectdestroyingruntimedata)
 - [EffectDestroyingSettings](#effectdestroyingsettings)
 - [EffectExtraData](#effectextradata)
-- [EffectGeneratorChargingRef](#effectgeneratorchargingref)
 - [EffectPowerBoosterJoinRef](#effectpowerboosterjoinref)
 - [EffectRef](#effectref)
 - [EffectSelectorAttribute](#effectselectorattribute)
@@ -70,6 +72,7 @@
 - [GeneratorModule](#generatormodule)
 - [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
+- [IChargingEffect](#ichargingeffect)
 - [IChipChangeNotifier](#ichipchangenotifier)
 - [IChipCollections](#ichipcollections)
 - [IChipFinder](#ichipfinder)
@@ -84,7 +87,6 @@
 - [IEffect](#ieffect)
 - [IEffectBlockingSettings](#ieffectblockingsettings)
 - [IEffectContainer](#ieffectcontainer)
-- [IEffectGeneratorCharging](#ieffectgeneratorcharging)
 - [IEffectPowerBoosterJoin](#ieffectpowerboosterjoin)
 - [IFieldEventHandler](#ifieldeventhandler)
 - [IFieldGrid](#ifieldgrid)
@@ -116,6 +118,7 @@
 - [SortingLayerData](#sortinglayerdata)
 - [UnlockAreaNode](#unlockareanode)
 - [VisualField](#visualfield)
+- [WaitEvolutionModule](#waitevolutionmodule)
 - [WaitForAreaUnlockedNode](#waitforareaunlockednode)
 - [WaitForChipCreatedNode](#waitforchipcreatednode)
 - [WaitForChipEffectUnlockedNode](#waitforchipeffectunlockednode)
@@ -313,6 +316,31 @@
     - **Notes**: Supports multi-cell chips: iterates the expanded bounding box (origin-1 .. origin+size) and excludes cells owned by the chip itself. Skips out-of-bounds positions.
 ---
 
+## ChargingEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: Visual effect handler for ChipGenerator, managing charging progress and activation states.
+> - **Usage**: Attached to ChipGenerator prefab
+> - referenced by ChipGenerator to visualize charging.
+> - **Notes**: Updates maskRectTransform based on charging progress.
+#### Fields
+- `- arrowTransform: Transform`
+- `- EraseLevelId: int`
+- `- stopwatchMaterial: Material`
+- `- stopwatchSpriteRenderer: SpriteRenderer`
+#### Methods
+- `+ Init(Chip chip, int effectHash): void`
+- `+ OnCharging(float progress): void`
+    - **Purpose**: Updates the visual state of charging based on progress
+    - **Usage**: Called via event from ChipGenerator during update loop
+    - **Params**: progress - value between 0 and 1 indicating charge percentage
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
+---
+
+## ChargingEffectRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
+---
+
 ## Chip
 **Inherits**: `MonoBehaviour`
 
@@ -338,6 +366,7 @@
 - `+- SortingLayer: IChipSortingLayer`
 - `~ chipChangeNotifier: IChipChangeNotifier`
 - `~ chipCollections: IChipCollections`
+- `~ deferredUpdateVisual: bool`
 - `~ dontRepeatTrigger: bool`
 - `~ effectOfPrioritizingDestroying: IEffect`
 - `~ effects: Dictionary<int, IEffect>`
@@ -373,12 +402,7 @@
     - false if movement is locked
     - **Notes**: Based on runtimeData.IsMoveLocked
     - prevents drag-and-drop when locked
-- `+ Destroy(ICell mainCell, bool force): float`
-    - **Purpose**: Initiates the destruction of the chip by clearing grid/collection references and starting the destruction animation.
-    - **Usage**: Call to remove the chip from the field grid. The actual GameObject destruction happens in FinishDestroy, either immediately or triggered by animator event.
-    - **Params**: mainCell - the chip's main occupied cell
-    - force - if true, bypasses animation and destroys immediately
-    - **Notes**: Clears grid occupancy and collections first. If force is true, or animator is missing/does not have Destroy trigger, FinishDestroy is called immediately. Otherwise, sends the Destroy animator trigger.
+- `+ Destroy(ICell mainCell, bool force, AnimatorTrigger destroyTrigger): void`
 - `+ FinishDestroy(): void`
     - **Purpose**: Completes the destruction process by destroying attached effects and the GameObject itself.
     - **Usage**: Called immediately if force is true, or triggered via a Unity Animation Event at the end of the destroy animation.
@@ -476,7 +500,6 @@
     - **Params**: trigger - the animator trigger name to fire
     - allowRepeat - if true, bypasses the dontRepeatTrigger check
     - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state. Prevents redundant triggers if dontRepeatTrigger is enabled.
-- `+ SetAppearanceDelay(float delay): void`
 - `+ SetDragging(bool value): void`
     - **Purpose**: Sets the drag state of the chip and ensures visual consistency
     - **Usage**: Called by DraggableChipLogic when user drag starts (true) or ends (false)
@@ -497,16 +520,12 @@
     - on move-start it enqueues a chip-change event with NewChip=null for the current cell so observer-based systems can immediately react to temporary chip departure
     - calls UpdateVisual when movement ends
 - `+ SetRotationZ(float zAngle): void`
+- `+ StopDeferredUpdateVisual(): void`
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the chip based on its runtime data
     - **Usage**: Call after modifying runtimeData.EffectEnables to synchronize visual effects
     - **Notes**: Iterates blockersData.Blockers and activates effects whose EffectId is in EffectEnables
     - also activates CellHighlight unless hidden by BlockingState.HideEffectIds
-- `- AppearanceDelayCoroutine(float delay): IEnumerator`
-- `- CalculateDestroyDuration(): void`
-    - **Purpose**: Calculates and caches the duration of the destroy animation of the chip by evaluating the animator's clips info
-    - **Usage**: Called automatically during the Chip's initialization in Init() to pre-calculate and store the destroy duration if it is not already set in data
-    - **Notes**: Briefly transitions the animator to the 'Destroy' state and updates it at 0 delta time to retrieve current clip details, then immediately restores the prior animator state. Requires an active Animator with a 'Destroy' state, warning if not found
 - `~ DestroyEffects(float destroyDelay): void`
     - **Purpose**: Destroys all attached effects with a specified delay
     - **Usage**: Called from Destroy() to clean up visual effects with a timing synchronized with GameObject destruction
@@ -727,7 +746,7 @@
 - `~ resolver: IObjectResolver`
 - `~ scenarioEventHandler: IScenarioEventHandler`
 #### Methods
-- `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings, Nullable<float> appearanceDelay): Chip`
+- `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings): Chip`
     - **Purpose**: Instantiates and initializes a new chip on the specified cell
     - **Usage**: Call when spawning a new chip on the field (e.g., from container, generator, or initialization)
     - **Params**: cell - target cell to place the chip on
@@ -735,9 +754,8 @@
     - parentWorldPosition - optional start position for flight animation
     - runtimeDataInitializer - optional delegate to modify runtime state before initialization
     - flightSettings - flight animation configuration
-    - appearanceDelay - optional animation delay in seconds
     - **Returns**: The initialized Chip instance, or null if creation failed
-- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings, Nullable<float> appearanceDelay): Chip`
+- `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings): Chip`
     - **Purpose**: Instantiates and initializes a new chip at the specified grid coordinates
     - **Usage**: Convenience wrapper around the cell-based CreateChip method
     - **Params**: cellPosition - target grid coordinates
@@ -745,7 +763,6 @@
     - parentWorldPosition - optional start position
     - runtimeDataInitializer - optional delegate
     - flightSettings - flight animation configuration
-    - appearanceDelay - optional delay
     - **Returns**: The initialized Chip instance
 - `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid, IChipCollections chipCollections, IScenarioEventHandler scenarioEventHandler): void`
     - **Purpose**: Wires all dependencies required by the factory before any chip can be created.
@@ -828,28 +845,6 @@
 - `+ TotalRecharges: int`
 #### Methods
 - `+ GenerateChipData(): ChipData`
----
-
-## ChipGeneratorRechargeEffect
-**Inherits**: `Effect`
-
-> - **Purpose**: Visual effect handler for ChipGenerator, managing charging progress and activation states.
-> - **Usage**: Attached to ChipGenerator prefab
-> - referenced by ChipGenerator to visualize charging.
-> - **Notes**: Updates maskRectTransform based on charging progress.
-#### Fields
-- `- EraseLevelId: int`
-- `- maskMaterial: Material`
-- `- maskSpriteRenderer: SpriteRenderer`
-#### Methods
-- `+ Activate(Chip chip): bool`
-- `+ Deactivate(Chip chip, bool force): void`
-- `+ Init(Chip chip, int effectHash): void`
-- `+ OnCharging(float progress): void`
-    - **Purpose**: Updates the visual state of charging based on progress
-    - **Usage**: Called via event from ChipGenerator during update loop
-    - **Params**: progress - value between 0 and 1 indicating charge percentage
-- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
 
 ## ChipGeneratorRuntimeData
@@ -1019,6 +1014,28 @@
     - **Usage**: Called from Chip.SetMoving(true/false) when movement starts or ends
     - **Params**: value - true if starting movement (increases order), false if stopping (restores order)
     - **Notes**: Uses AdditionallyWhenMoving offset defined in inspector for each renderer
+---
+
+## ChipWaitEvolutionData
+
+> - **Purpose**: Configuration data for chip wait-evolution, defining the time to evolve, next chips with weights, and booster influence toggle.
+> - **Usage**: Used in ChipData specialDatas list. Queried by WaitEvolutionModule in Init.
+> - **Notes**: Evolves into a weighted random chip from NextChips array or gets destroyed if empty.
+#### Fields
+- `+ EvolveTime: float`
+- `+ IsAffectedByBoosters: bool`
+- `+ NextChips: EvolutionTarget[]`
+#### Methods
+- `+ GetRandomNextChip(): ChipData`
+---
+
+## ChipWaitEvolutionRuntimeData
+
+> - **Purpose**: Stores runtime state for a chip wait-evolution, tracking the remaining time until evolution.
+> - **Usage**: Created and managed by WaitEvolutionModule. Used to persist state during gameplay.
+> - **Notes**: Updated during update ticks as time progress.
+#### Fields
+- `+ TimeLeft: float`
 ---
 
 ## CombinedBlockingState
@@ -1514,10 +1531,6 @@
 - `+- Prefab: GameObject`
 ---
 
-## EffectGeneratorChargingRef
-**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
----
-
 ## EffectPowerBoosterJoinRef
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
@@ -1860,7 +1873,7 @@
 - `- isAutoGeneration: bool`
 - `- OnCharging: Action<float>`
 - `~ powerMultiplier: float`
-- `- rechargeEffect: EffectGeneratorChargingRef`
+- `- rechargeEffect: ChargingEffectRef`
 #### Methods
 - `+ ApplyPowerBooster(PowerBoosterModule booster, bool reapply): bool`
     - **Purpose**: Applies a booster influence to the generator and recalculates the charging speed multiplier
@@ -1946,6 +1959,11 @@
     - **Purpose**: Called once per changed cell after all frame changes have been collected and flushed.
     - **Usage**: Handle local chip/cell logic updates here.
     - **Params**: evt - event data containing cell and chip state
+---
+
+## IChargingEffect
+#### Methods
+- `+ OnCharging(float progress): void`
 ---
 
 ## IChipChangeNotifier
@@ -2162,15 +2180,6 @@
 > - **Notes**: Extends IEffect with UpdateElements method.
 #### Methods
 - `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
----
-
-## IEffectGeneratorCharging
-
-> - **Purpose**: Interface for ChipGenerator specific charging effects
-> - **Usage**: Implemented by ChipGeneratorRechargeEffect to visualize charging progress. Used by ChipGenerator.
-> - **Notes**: Extends IEffect with OnCharging method.
-#### Methods
-- `+ OnCharging(float progress): void`
 ---
 
 ## IEffectPowerBoosterJoin
@@ -2927,6 +2936,47 @@
     - **Params**: fieldData - configuration specifying grid size and other settings.
 - `+ OnFieldSizeChanged(Vector2Int newSize): void`
 - `- ApplyEffects(): void`
+---
+
+## WaitEvolutionModule
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Modular component attached to a Chip that handles evolution over time, showing progress effect, and reacting to boosters.
+> - **Usage**: Attach to chip prefabs that evolve after a delay
+> - implements IChipModule and IPowerBoosterTarget
+> - **Notes**: Supports evolution into weighted random chips or destruction, respects chip movement/drag deferral, and handles booster speed scale toggling.
+#### Fields
+- `+- AppliedBoosters: HashSet<PowerBoosterModule>`
+- `+- BlockingState: CombinedBlockingState`
+- `+- IsMoving: bool`
+- `+- JoinPoints: IReadOnlyList<Transform>`
+- `- chargingEffect: ChargingEffectRef`
+- `- chip: Chip`
+- `- chipFactory: ChipFactory`
+- `- data: ChipData`
+- `- evolutionData: ChipWaitEvolutionData`
+- `- evolutionRuntimeData: ChipWaitEvolutionRuntimeData`
+- `- fieldGrid: IFieldGrid`
+- `- OnCharging: Action<float>`
+- `- powerMultiplier: float`
+- `- startDeactivateChargingEffect: bool`
+#### Methods
+- `+ ApplyPowerBooster(PowerBoosterModule powerBoosterModule, bool reapply): bool`
+- `+ DestroyModule(): void`
+- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
+- `+ NotifyEffectRemoved(int effectId): void`
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnDrag(Vector2 position, ICell anchorCell): void`
+- `+ OnDragEnd(): void`
+- `+ OnDragStart(): void`
+- `+ OnEffectRemoved(int effectId): void`
+- `+ OnTap(): void`
+- `+ RemovePowerBooster(PowerBoosterModule powerBoosterModule): void`
+- `+ UpdateVisual(): void`
+- `- ExecuteEvolution(): void`
+- `- RecalculatePowerMultiplier(): void`
+- `- Update(): void`
 ---
 
 ## WaitForAreaUnlockedNode

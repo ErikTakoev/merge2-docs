@@ -79,12 +79,12 @@
   - `HandleDestroyingEffects()` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
   - `RemoveEffect(int effectId)` деактивує ефект, видаляє з словника та `EffectEnables`, прибирає блок з `BlockingState`, обирає наступний пріоритетний ефект, і оновлює візуал.
 - Процес знищення чіпа підтримує анімації руйнування та є двохетапним:
-  - **`Destroy(ICell mainCell, bool force)`**: Ініціює процес знищення. Повертає `float` (тривалість анімації руйнування).
+  - **`Destroy(ICell mainCell, bool force, AnimatorTrigger destroyTrigger = AnimatorTrigger.Destroy)`**: Ініціює процес знищення.
     1. Перевіряє, чи чіп уже знищується (`IsDestroying`).
     2. Очищує occupancy в `FieldGrid` та `ChipCollections`.
     3. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`.
-    4. Якщо `force` є істиною, або відсутній `Animator`, або немає тригера `"Destroy"`, викликає `FinishDestroy()` негайно та повертає `0f`.
-    5. Інакше надсилає тригер аніматора `AnimatorTrigger.Destroy`, і якщо `data.DestroyDuration` має значення, повертає цю тривалість, в іншому випадку повертає `0f`.
+    4. Якщо `force` є істиною або відсутній `Animator`, викликає `FinishDestroy()` негайно.
+    5. Інакше надсилає вказаний тригер аніматора `destroyTrigger`.
   - **`FinishDestroy()`**: Завершує руйнування об'єкта. Може бути викликаний безпосередньо з `Destroy`, або через Unity Animation Event наприкінці анімації руйнування.
     1. Викликає `DestroyEffects(0f)`.
     2. Знищує GameObject чіпа.
@@ -144,8 +144,6 @@
 
 ### Other Methods
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
-- **`CalculateDestroyDuration()`**: Приватний метод, що викликається в `Init()`. Якщо `data.DestroyDuration` ще не задано і є `Animator`, метод тимчасово перемикає аніматор у стан `"Destroy"` для зчитування довжини анімаційного кліпу, кешує її у `data.DestroyDuration` та відновлює початковий стан аніматора.
-
 
 ### Merge System
 Реалізує логіку сумісності та процес злиття двох фішок через механізм `IChipInteractionLogic`.  

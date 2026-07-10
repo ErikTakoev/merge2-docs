@@ -166,11 +166,11 @@
 - **Тип**: Використовує базовий клас `Effect`. Зазвичай це cyclic idle-анімація (світіння, пульсація), що показує гравцеві готовність об'єкта до взаємодії.
 
 ### 5. Generator Charging
-**Клас**: `ChipGeneratorRechargeEffect.cs`
-**Реалізує**: `IEffectGeneratorCharging`
-**Використовується в**: [GeneratorModule](../Chips/GeneratorModule.md)
+**Клас**: `ChargingEffect.cs`
+**Реалізує**: `IChargingEffect`
+**Використовується в**: [GeneratorModule](../Chips/GeneratorModule.md), [WaitEvolutionModule](../Chips/WaitEvolutionModule.md)
 
-Візуалізує процес перезарядки генератора. Зазвичай реалізовано через зміну локальної позиції маски (`maskRectTransform`), що створює ефект заповнення іконки знизу вгору.
+Візуалізує процес заряджання таймера (генератора або модуля очікування еволюції). Відображає прогрес у вигляді таймера-секундоміра (через зміну параметра матеріалу `_GrayProgress` та обертання стрілки-вказівника `arrowTransform`).
 - **Метод `OnCharging(float progress)`**: Отримує значення від 0 до 1 та оновлює візуалізацію.
 
 ### 6. Power Booster Connector Highlight

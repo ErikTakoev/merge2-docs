@@ -47,14 +47,14 @@
 ## Effects and Visualization
 Генератор керує двома ефектами, які зберігаються в `effects` словнику з ключами від `EffectConsts`:
 
-- **`EffectConsts.GeneratorCharging`**: Звертання через `GetEffect<IEffectGeneratorCharging>(EffectConsts.GeneratorCharging)`
-  - Реалізація: [ChipGeneratorRechargeEffect](../Visuals/Effects.md#5-generator-charging)
+- **`EffectConsts.GeneratorCharging`**: Звертання через `GetEffect<IChargingEffect>(EffectConsts.GeneratorCharging)`
+  - Реалізація: [ChargingEffect](../Visuals/Effects.md#5-generator-charging)
   - Відображає прогрес перезарядки. Активний, коли `IsCharged` = `false`.
-  - Реалізує інтерфейс `IEffectGeneratorCharging`, його метод `OnCharging(float progress)` оновлює маску перезарядки.
+  - Реалізує інтерфейс `IChargingEffect`, його метод `OnCharging(float progress)` оновлює маску перезарядки та повертає стрілку.
   
 - **`EffectConsts.GeneratorCharged`**: Звертання через `GetEffect(EffectConsts.GeneratorCharged)`
   - Реалізація: базовий `Effect`
   - Активний, коли `IsCharged` = `true` та чіп не перетягується.
   - Зазвичай це cyclic idle-анімація (світіння, пульсація), що показує гравцеві готовність об'єкта.
 
-- **Animator**: Використовує тригери `Generate` (при спавні) та `Recharge` (при завершенні зарядки).
+- **Animator**: Використовує тригери `Generate` (при спавні), `Recharge` (при завершенні зарядки), `EvolutionDestroy` (при руйнуванні генератора під час еволюції) та `EvolutionSpawn` (при створенні еволюційованого чіпа на місці зношеного генератора).
