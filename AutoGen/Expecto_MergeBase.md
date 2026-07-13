@@ -26,6 +26,8 @@
 - [ChipFlyAnimation](#chipflyanimation)
 - [ChipGeneratorData](#chipgeneratordata)
 - [ChipGeneratorRuntimeData](#chipgeneratorruntimedata)
+- [ChipLiftController](#chipliftcontroller)
+- [ChipLiftControllerRef](#chipliftcontrollerref)
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
 - [ChipMovingLogic](#chipmovinglogic)
@@ -78,6 +80,7 @@
 - [IChipFinder](#ichipfinder)
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
+- [IChipLiftController](#ichipliftcontroller)
 - [IChipModule](#ichipmodule)
 - [IChipMovingLogic](#ichipmovinglogic)
 - [IChipSortingLayer](#ichipsortinglayer)
@@ -97,6 +100,7 @@
 - [IMergeLifetimeScope](#imergelifetimescope)
 - [IPowerBoosterTarget](#ipowerboostertarget)
 - [IScenarioEventHandler](#iscenarioeventhandler)
+- [IShadowEffect](#ishadoweffect)
 - [IVisualField](#ivisualfield)
 - [LockedAreaEffect](#lockedareaeffect)
 - [LockedAreaManager](#lockedareamanager)
@@ -115,6 +119,7 @@
 - [PowerBoosterModule](#powerboostermodule)
 - [ScenarioEventHandler](#scenarioeventhandler)
 - [ShadowEffect](#shadoweffect)
+- [ShadowEffectRef](#shadoweffectref)
 - [SortingLayerData](#sortinglayerdata)
 - [UnlockAreaNode](#unlockareanode)
 - [VisualField](#visualfield)
@@ -319,10 +324,9 @@
 ## ChargingEffect
 **Inherits**: `Effect`
 
-> - **Purpose**: Visual effect handler for ChipGenerator, managing charging progress and activation states.
-> - **Usage**: Attached to ChipGenerator prefab
-> - referenced by ChipGenerator to visualize charging.
-> - **Notes**: Updates maskRectTransform based on charging progress.
+> - **Purpose**: Visual effect handler for chip charging progress, displaying a rotating stopwatch hand and updating material progress.
+> - **Usage**: Attached to chip prefabs that support charging (generators, wait-evolution) and referenced via IChargingEffect contract.
+> - **Notes**: Updates the stopwatch material property _GrayProgress and rotates the arrow transform based on the charging progress.
 #### Fields
 - `- arrowTransform: Transform`
 - `- EraseLevelId: int`
@@ -332,7 +336,7 @@
 - `+ Init(Chip chip, int effectHash): void`
 - `+ OnCharging(float progress): void`
     - **Purpose**: Updates the visual state of charging based on progress
-    - **Usage**: Called via event from ChipGenerator during update loop
+    - **Usage**: Called via event from ChipGenerator or WaitEvolutionModule during update loop
     - **Params**: progress - value between 0 and 1 indicating charge percentage
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
@@ -361,6 +365,7 @@
 - `+- FlightSettings: ChipFlightSettings`
 - `+- IsDestroying: bool`
 - `+- IsMoving: bool`
+- `+- LiftController: IChipLiftController`
 - `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
 - `+- SortingLayer: IChipSortingLayer`
@@ -382,6 +387,7 @@
     - allows detection of user-initiated drag vs system movement
 - `- lastTrigger: string`
 - `~ lastTriggerName: string`
+- `- liftControllerRef: ChipLiftControllerRef`
 - `~ resolver: IObjectResolver`
 - `~ scenarioEventHandler: IScenarioEventHandler`
 - `~ transformNode: Transform`
@@ -403,6 +409,12 @@
     - **Notes**: Based on runtimeData.IsMoveLocked
     - prevents drag-and-drop when locked
 - `+ Destroy(ICell mainCell, bool force, AnimatorTrigger destroyTrigger): void`
+    - **Purpose**: Initiates the destruction of the chip by clearing grid/collection references and starting the specified destruction animation trigger.
+    - **Usage**: Call to remove the chip from the field grid. The actual GameObject destruction happens in FinishDestroy, either immediately or triggered by animator event.
+    - **Params**: mainCell - the chip's main occupied cell
+    - force - if true, bypasses animation and destroys immediately
+    - destroyTrigger - the animator trigger to use for the destruction animation
+    - **Notes**: Clears grid occupancy and collections first. If force is true or animator is missing, FinishDestroy is called immediately. Otherwise, sends the specified animator trigger.
 - `+ FinishDestroy(): void`
     - **Purpose**: Completes the destruction process by destroying attached effects and the GameObject itself.
     - **Usage**: Called immediately if force is true, or triggered via a Unity Animation Event at the end of the destroy animation.
@@ -521,6 +533,9 @@
     - calls UpdateVisual when movement ends
 - `+ SetRotationZ(float zAngle): void`
 - `+ StopDeferredUpdateVisual(): void`
+    - **Purpose**: Allows updating visual state after initial setup by toggling off the visual update deferral flag and forcing a visual refresh.
+    - **Usage**: Call after completing initialization or state setup where initial rendering was deferred to prevent redundant visual updates.
+    - **Notes**: Toggles deferredUpdateVisual to false and immediately calls UpdateVisual.
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates the visual state of the chip based on its runtime data
     - **Usage**: Call after modifying runtimeData.EffectEnables to synchronize visual effects
@@ -816,14 +831,14 @@
     - flightType - type of flight animation
     - onComplete - callback when finished
 - `+ StopAnimation(): void`
-- `+ Update(float deltaTime): void`
+- `+ Update(float deltaTime): float`
     - **Purpose**: Updates the animation state and applies movement to the target transform
     - **Usage**: Call in Update loop with deltaTime
     - **Params**: deltaTime - time since last frame
-- `- ApplyArcBounce(float t): void`
-- `- ApplyHalfArc(float t): void`
-- `- ApplyHalfArcHalfBounce(float t): void`
-- `- ApplyLinear(float t): void`
+- `- ApplyArcBounce(float t): float`
+- `- ApplyHalfArc(float t): float`
+- `- ApplyHalfArcHalfBounce(float t): float`
+- `- ApplyLinear(float t): float`
 ---
 
 ## ChipGeneratorData
@@ -862,6 +877,30 @@
 - `+ IsCharged: bool`
 - `+ IsWaitingForSpace: bool`
 - `+ RechargesLeft: int`
+---
+
+## ChipLiftController
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Manages chip lift height animations using coroutines as a separate MonoBehaviour component
+> - **Usage**: Attach to chip prefab
+> - handles fast lift height transitions and updates the shadow effect directly
+#### Fields
+- `++ LiftHeight: float`
+- `- liftCoroutine: Coroutine`
+- `- shadowEffect: IShadowEffect`
+#### Methods
+- `+ Init(Chip chip): void`
+- `+ StartFastLiftHeight(): void`
+- `+ StartFastLowerLiftHeight(): void`
+- `+ StartLiftCoroutine(float fromValue, float toValue, float duration): void`
+- `+ StopLiftCoroutine(): void`
+- `- LiftCoroutine(float fromValue, float toValue, float duration): IEnumerator`
+- `- OnDestroy(): void`
+---
+
+## ChipLiftControllerRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
 ## ChipMergeAvailableEffect
@@ -1027,6 +1066,9 @@
 - `+ NextChips: EvolutionTarget[]`
 #### Methods
 - `+ GetRandomNextChip(): ChipData`
+    - **Purpose**: Selects a random target chip from the next available evolution options based on their configured probability weights.
+    - **Usage**: Called during evolution execution to determine which chip type to spawn next.
+    - **Returns**: The selected ChipData config, or null if there are no next chips or if cumulative weight is zero.
 ---
 
 ## ChipWaitEvolutionRuntimeData
@@ -1304,6 +1346,7 @@
 > - supports both chip-based and cell-based effects
 #### Fields
 - `+- BlockingSettings: EffectBlockingSettings`
+- `+- Chip: Chip`
 - `+- DestroyingSettings: EffectDestroyingSettings`
 - `+- IsSkipDestroy: bool`
 - `~ animator: Animator`
@@ -1962,6 +2005,10 @@
 ---
 
 ## IChargingEffect
+
+> - **Purpose**: Interface for chip charging visual effects, used to update charging progress indicator.
+> - **Usage**: Implemented by visual effects like ChargingEffect to receive progress updates from generator or evolution modules.
+> - **Notes**: Provides a single OnCharging method receiving normalized progress.
 #### Methods
 - `+ OnCharging(float progress): void`
 ---
@@ -2019,7 +2066,7 @@
 - `+ StopAnimation(): void`
     - **Purpose**: Stops the fly animation
     - **Usage**: Call when a chip needs to stop the animation
-- `+ Update(float deltaTime): void`
+- `+ Update(float deltaTime): float`
     - **Purpose**: Updates the animation state
     - **Usage**: Call in Update loop
     - **Params**: deltaTime - time since last frame
@@ -2044,6 +2091,21 @@
     - targetCell - destination cell for the interaction
     - **Notes**: Modifies game state
     - should only be called after successful CanInteract validation.
+---
+
+## IChipLiftController
+
+> - **Purpose**: Interface for managing chip lift height, including coroutine transitions and state
+> - **Usage**: Implemented by ChipLiftController
+> - accessed by Chip, Cell, and DraggableChipLogic
+#### Fields
+- `++ LiftHeight: float`
+#### Methods
+- `+ Init(Chip chip): void`
+- `+ StartFastLiftHeight(): void`
+- `+ StartFastLowerLiftHeight(): void`
+- `+ StartLiftCoroutine(float fromValue, float toValue, float duration): void`
+- `+ StopLiftCoroutine(): void`
 ---
 
 ## IChipModule
@@ -2392,6 +2454,11 @@
 - `+ RaiseChipCreated(Chip chip, ICell cell): void`
 - `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
 - `+ RaiseChipRemoved(Chip chip): void`
+---
+
+## IShadowEffect
+#### Methods
+- `+ OnHeightChanged(float height): void`
 ---
 
 ## IVisualField
@@ -2874,21 +2941,29 @@
 > - **Notes**: Does not deactivate on move to ensure the shadow remains visible during dragging
 #### Fields
 - `- additionallyWhenMoving: int`
-- `- autoScale: bool`
-- `- autoShadowSprite: bool`
-- `- autoSortingLayer: bool`
 - `- cashedLayerOrder: int`
+- `- initialLocalPosition: Vector3`
+- `- initialLocalScale: Vector3`
+- `- isInitialized: bool`
+- `- shadowOffsetPerOneHeight: Vector3`
 - `- shadowRenderer: SpriteRenderer`
+- `- shadowScalePerOneHeight: float`
 #### Methods
 - `+ Activate(Chip chip): bool`
 - `+ Deactivate(Chip chip, bool force): void`
 - `+ Init(Chip chip, int effectId): void`
+- `+ OnHeightChanged(float height): void`
 - `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
     - **Purpose**: Reacts to chip movement by sending appropriate animator triggers
     - **Usage**: Called by Chip.NotifyEffectsOnMovingStateChanged
     - sends 'Move' when isMoving is true, and 'Stop' otherwise
     - **Params**: chip - owner chip
     - isMoving - current movement state
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
+---
+
+## ShadowEffectRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
 ## SortingLayerData
@@ -2899,7 +2974,7 @@
 #### Fields
 - `+ AdditionallyWhenMoving: int`
 - `+ CachedOrder: int`
-- `+ Renderer: Renderer`
+- `+ Renderer: SpriteRenderer`
 ---
 
 ## UnlockAreaNode
@@ -2962,9 +3037,23 @@
 - `- startDeactivateChargingEffect: bool`
 #### Methods
 - `+ ApplyPowerBooster(PowerBoosterModule powerBoosterModule, bool reapply): bool`
+    - **Purpose**: Registers a power booster affecting this module and triggers recalculation of the evolution speed.
+    - **Usage**: Called by PowerBoosterModule when a booster is placed nearby or cell observers detect proximity changes.
+    - **Params**: powerBoosterModule - the booster component to apply
+    - reapply - if true, bypasses modifier receptivity checks
+    - **Returns**: True if the booster was successfully added to the active set, false otherwise
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+    - **Purpose**: Initializes the module references, sets up wait evolution data and links the charging progress effect.
+    - **Usage**: Called automatically by Chip during its initialization phase for each attached chip module.
+    - **Params**: chip - the parent Chip component
+    - data - configuration settings of the chip
+    - runtimeData - mutable state of the chip
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
+    - **Purpose**: Initializes the special runtime data structure for wait evolution if it does not already exist.
+    - **Usage**: Called before module initialization to prepare the initial state for the chip's runtime data collection.
+    - **Params**: data - configuration settings of the chip
+    - runtimeData - mutable state container of the chip
 - `+ NotifyEffectRemoved(int effectId): void`
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `+ OnDrag(Vector2 position, ICell anchorCell): void`
@@ -2973,8 +3062,14 @@
 - `+ OnEffectRemoved(int effectId): void`
 - `+ OnTap(): void`
 - `+ RemovePowerBooster(PowerBoosterModule powerBoosterModule): void`
+    - **Purpose**: Deregisters a power booster from this module and recalculates the evolution speed.
+    - **Usage**: Called by PowerBoosterModule when it is moved away or destroyed.
+    - **Params**: powerBoosterModule - the booster component to remove
 - `+ UpdateVisual(): void`
 - `- ExecuteEvolution(): void`
+    - **Purpose**: Performs the evolution process by destroying the current chip and spawning the next weighted random chip in the same cell.
+    - **Usage**: Called internally when wait evolution timer expires and the chip is not moving or dragged.
+    - **Notes**: If no next chip configuration is determined, the current chip is just destroyed.
 - `- RecalculatePowerMultiplier(): void`
 - `- Update(): void`
 ---

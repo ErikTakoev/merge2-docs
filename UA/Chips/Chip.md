@@ -28,6 +28,7 @@
 - **Visual Management**:
   - **SortingLayer** (`IChipSortingLayer`): Керує шарами сортування декількох рендерерів чіпа, забезпечуючи коректне відображення під час руху.
   - **AnimationNode** (`Transform`): Посилання на вузол анімації фішки, куди прикріплюються візуальні ефекти (типу `ParentChipAnimationNode`), що мають рухатися разом із фішкою.
+  - **LiftController** (`IChipLiftController`): Об'єкт керування висотою підйому фішки (наприклад, під час перетягування). Отримує посилання через серіалізоване поле `liftControllerRef`.
 - **Others**:
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  
@@ -130,6 +131,13 @@
   - Сповіщає всі ефекти через метод `OnMovingStateChanged(chip, isMoving)`.
   - На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
+
+#### Chip Lift Management (Керування висотою підйому)
+Висота підйому фішки над полем делегується окремому компоненту `IChipLiftController`:
+- При початку перетягування у `DraggableChipLogic` викликається `Chip.LiftController?.StartFastLiftHeight()`, що плавно піднімає фішку.
+- При завершенні перетягування викликається `Chip.LiftController?.StopLiftCoroutine()`.
+- Під час польоту фішки (наприклад, snap back або релокація) висота підйому розраховується в `ChipFlyAnimation` і передається напряму: `chip.LiftController.LiftHeight = height`.
+- Зміна висоти підйому автоматично транслюється ефекту тіні через метод `IShadowEffect.OnHeightChanged(height)`.
 
 ### Flight Settings (Налаштування польоту)
 Кожен чіп містить налаштування польоту `FlightSettings` типу `ChipFlightSettings` (структура), що визначає параметри переміщення фішки по сітці поля:

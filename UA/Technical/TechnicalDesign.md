@@ -74,6 +74,10 @@
   - **Призначення**: Пошук сусідніх чіпів навколо клітинки з урахуванням розміру чіпа.
   - **Відповідальність**: Allocation-free ітерація по 4 границях bounding box чіпа, збір унікальних сусідів через `HashSet<Chip>`. Використовується `DraggableChipLogic` для `NotifyNeighborsOfInteraction`.
 
+- **`IChipLiftController`** -> `ChipLiftController`
+  - **Призначення**: Керування висотою підйому фішки (Lift Height) над полем.
+  - **Відповідальність**: Запуск та зупинка корутин плавного підйому та опускання фішки, збереження поточного значення висоти та оновлення ефекту тіні (`IShadowEffect`). Використовується в `Chip`, `Cell` та `DraggableChipLogic`.
+
 ### Camera & Visual Field
 - **`IMergeCamera`** -> `MergeCamera` (2D) / `IsoMergeCamera` (Isometric)
   - **Призначення**: Абстракція камери для підтримки різних типів проекцій (2D та ізометрична).
@@ -94,8 +98,9 @@
 - **`IEffectContainer`**: Спеціалізований інтерфейс для візуалізації `ChipContainer`, розширює `IEffect` методом `UpdateElements`.
 - **`IEffectGeneratorCharging`**: Спеціалізований інтерфейс для візуалізації зарядки `ChipGenerator`, розширює `IEffect` методом `OnCharging`.
 - **`IEffectPowerBoosterJoin`**: Спеціалізований інтерфейс для join-візуалізації бустера (`OnJoin`, `OnLeave`, `Show`) між `ChipPowerBooster` та `IPowerBoosterTarget`.
+- **`IShadowEffect`**: Спеціалізований інтерфейс для постійного ефекту тіні під фішкою, розширює `IEffect` методом `OnHeightChanged` для динамічної зміни зміщення та масштабу тіні.
 - **`IChipSortingLayer`**: Контракт для управління шарами сортування (Sorting Layers) декількох рендерерів фішки. Дозволяє автоматично коригувати `sortingOrder` під час переміщення (drag), щоб фішка візуально знаходилася над полем.
-- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerRef`, `EffectPowerBoosterJoinRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
+- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerRef`, `EffectPowerBoosterJoinRef`, `ChipLiftControllerRef`, `ShadowEffectRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
 
 ## Interaction Strategies
 Використовуємо патерн "Стратегія". Логіка того, як фішки взаємодіють між собою під час перетягування, винесена в окремі компоненти:
