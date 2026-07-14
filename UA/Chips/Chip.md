@@ -139,6 +139,13 @@
 - Під час польоту фішки (наприклад, snap back або релокація) висота підйому розраховується в `ChipFlyAnimation` і передається напряму: `chip.LiftController.LiftHeight = height`.
 - Зміна висоти підйому автоматично транслюється ефекту тіні через метод `IShadowEffect.OnHeightChanged(height)`.
 
+##### Blending висоти підйому в анімацію польоту
+Коли фішка починає летіти, її поточна висота підйому (`chip.LiftController?.LiftHeight ?? 0f`) передається у `ChipFlyAnimation.StartAnimation` як параметр `initialLiftHeight`. Це забезпечує плавний перехід між висотою, на яку фішку підняв гравець під час drag, і дуговою траєкторією польоту:
+- **Linear**: висота плавно зменшується від `initialLiftHeight` до `0` через `Mathf.Lerp`.
+- **ArcBounce / HalfArcHalfBounce / HalfArc**: у фазі дуги поточна висота = `Mathf.Max(arcCurve, fadeLine)`, де `fadeLine = Mathf.Lerp(initialLiftHeight, 0f, tArc)`. Це не дає фішці "провалитися" нижче вихідного підйому.
+
+Якщо фішка не була підняти (наприклад, при автоматичній релокації), `initialLiftHeight = 0f` і поведінка не відрізняється від базової.
+
 ### Flight Settings (Налаштування польоту)
 Кожен чіп містить налаштування польоту `FlightSettings` типу `ChipFlightSettings` (структура), що визначає параметри переміщення фішки по сітці поля:
 - **`Duration`**: Тривалість польоту в секундах.

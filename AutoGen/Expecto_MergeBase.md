@@ -816,12 +816,13 @@
 - `- ARC_PHASE: float`
 - `- currentFlightType: FlightType`
 - `- elapsedTime: float`
+- `- initialLiftHeight: float`
 - `- onCompleteCallback: Action`
 - `- startPosition: Vector3`
 - `- targetPosition: Vector3`
 - `- targetTransform: Transform`
 #### Methods
-- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, FlightType flightType, Action onComplete): void`
+- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, FlightType flightType, float initialLiftHeight, Action onComplete): void`
     - **Purpose**: Starts the fly animation for a chip
     - **Usage**: Call when a chip needs to fly back to its cell (e.g. after invalid drag or swap)
     - **Params**: target - the transform to animate
@@ -829,12 +830,14 @@
     - endPos - local target position
     - duration - time in seconds
     - flightType - type of flight animation
+    - initialLiftHeight - current lift height at animation start used to smoothly blend into arc curve without exceeding arcHeight
     - onComplete - callback when finished
 - `+ StopAnimation(): void`
 - `+ Update(float deltaTime): float`
-    - **Purpose**: Updates the animation state and applies movement to the target transform
+    - **Purpose**: Updates the animation state and applies movement to the target transform, returning flight height offset
     - **Usage**: Call in Update loop with deltaTime
     - **Params**: deltaTime - time since last frame
+    - **Returns**: The current height offset of the flight animation for this frame
 - `- ApplyArcBounce(float t): float`
 - `- ApplyHalfArc(float t): float`
 - `- ApplyHalfArcHalfBounce(float t): float`
@@ -2054,7 +2057,7 @@
 #### Fields
 - `+- IsAnimating: bool`
 #### Methods
-- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, FlightType flightType, Action onComplete): void`
+- `+ StartAnimation(Transform target, Vector3 startPos, Vector3 endPos, float duration, FlightType flightType, float initialLiftHeight, Action onComplete): void`
     - **Purpose**: Starts the fly animation for a chip
     - **Usage**: Call when a chip needs to fly back to its cell (e.g. after invalid drag)
     - **Params**: target - the transform to animate
@@ -2062,14 +2065,16 @@
     - endPos - local target position
     - duration - time in seconds
     - flightType - type of flight animation
+    - initialLiftHeight - current lift height at animation start used to smoothly blend into arc curve without exceeding arcHeight
     - onComplete - callback when finished
 - `+ StopAnimation(): void`
     - **Purpose**: Stops the fly animation
     - **Usage**: Call when a chip needs to stop the animation
 - `+ Update(float deltaTime): float`
-    - **Purpose**: Updates the animation state
+    - **Purpose**: Updates the animation state and calculates/applies movement
     - **Usage**: Call in Update loop
     - **Params**: deltaTime - time since last frame
+    - **Returns**: The current height offset of the flying animation at this frame
 ---
 
 ## IChipInteractionLogic
@@ -2102,10 +2107,24 @@
 - `++ LiftHeight: float`
 #### Methods
 - `+ Init(Chip chip): void`
+    - **Purpose**: Initializes the controller with the parent chip reference and retrieves its shadow effect
+    - **Usage**: Called automatically during Chip.Awake / initialization
+    - **Params**: chip - the parent Chip component
 - `+ StartFastLiftHeight(): void`
+    - **Purpose**: Starts a quick lift height animation (typically from current height to 0.1f over 0.2s)
+    - **Usage**: Called when the user begins dragging the chip to lift it off the board
 - `+ StartFastLowerLiftHeight(): void`
+    - **Purpose**: Starts a quick lower height animation (typically from current height to 0f over 0.1s)
+    - **Usage**: Called when dragging ends or during custom drop animations to return the chip to the board surface
 - `+ StartLiftCoroutine(float fromValue, float toValue, float duration): void`
+    - **Purpose**: Starts a smooth lerp animation for the chip's lift height using a coroutine
+    - **Usage**: Called to animate lift height transitions
+    - **Params**: fromValue - starting lift height
+    - toValue - target lift height
+    - duration - animation duration in seconds
 - `+ StopLiftCoroutine(): void`
+    - **Purpose**: Stops any active lift height animation coroutine
+    - **Usage**: Called to interrupt current height animations (e.g. on drag end or destruction)
 ---
 
 ## IChipModule
@@ -2457,8 +2476,14 @@
 ---
 
 ## IShadowEffect
+
+> - **Purpose**: Interface representing a shadow effect that responds to changes in the chip's lift height
+> - **Usage**: Implemented by ShadowEffect and accessed by ChipLiftController or Cell to update shadow offset/scale dynamically
 #### Methods
 - `+ OnHeightChanged(float height): void`
+    - **Purpose**: Updates the shadow's local position and scale based on the chip's current lift height
+    - **Usage**: Called dynamically when the chip is lifted (dragged) or is in a flight animation
+    - **Params**: height - the current height value of the chip
 ---
 
 ## IVisualField
@@ -2953,6 +2978,10 @@
 - `+ Deactivate(Chip chip, bool force): void`
 - `+ Init(Chip chip, int effectId): void`
 - `+ OnHeightChanged(float height): void`
+    - **Purpose**: Updates the shadow sprite renderer's local position and scale to visually simulate height changes
+    - **Usage**: Implements IShadowEffect.OnHeightChanged
+    - modifies localPosition based on shadowOffsetPerOneHeight and localScale based on shadowScalePerOneHeight
+    - **Params**: height - the current height value of the chip
 - `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
     - **Purpose**: Reacts to chip movement by sending appropriate animator triggers
     - **Usage**: Called by Chip.NotifyEffectsOnMovingStateChanged
