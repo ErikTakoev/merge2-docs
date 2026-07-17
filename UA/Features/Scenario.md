@@ -91,32 +91,69 @@ namespace Expecto.MergeBase
 
 ---
 
-## 4. Реалізація ScenarioEventHandler (VContainer)
+## 4. Реалізація ScenarioEventHandler
 
-Клас `ScenarioEventHandler` є C# синглтоном і реєструється у `Merge2LifetimeScope` та `IsoMergeLifetimeScope`:
+Клас `ScenarioEventHandler` є C# синглтоном і реєструється у `Merge2LifetimeScope` та `IsoMergeLifetimeScope` як реалізація `IScenarioEventHandler`:
 
 ```csharp
 builder.Register<ScenarioEventHandler>(Lifetime.Singleton).As<IScenarioEventHandler>();
 ```
 
-Під час ініціалізації (`Merge2Initializer` та `IsoMergeInitializer`):
-1. `ChipFactory` отримує посилання на `IScenarioEventHandler` за допомогою методу `Init()`.
-2. Менеджер заблокованих зон `LockedAreaManager` отримує залежність через DI.
-3. Посилання на `ILockedAreaManager` реєструється у локальних `Variables` компонента `ScriptMachine` (GameObject), що дозволяє UVS вузлам взаємодіяти із менеджером зон.
+Він відповідає за C# події (`OnChipCreated`, `OnChipRemoved`, `OnChipEffectUnlocked`, `OnAreaUnlocked`) та не має жодних залежностей від Unity Visual Scripting.
 
 ---
 
-## 5. Інтеграція з Visual Scripting
+## 5. Інтеграція з Visual Scripting (UVS)
+
+Вся інтеграція з Unity Visual Scripting винесена в окрему збірку `MergeBase.VScripting.asmdef` (у папці `Assets/Expecto/MergeBase/VScripting`), що дозволяє тримати ядро Merge повністю незалежним від пакета `com.unity.visualscripting`.
+
+Для підключення UVS використовується додатковий дочірній контейнер залежностей `MergeBaseVScriptingLifetimeScope`, який:
+1. Реєструє посилання на сцену `ScriptMachine`.
+2. Реєструє адаптер `VScriptingScenarioEventBridge` як `Singleton`.
+3. Реєструє точку входу `MergeBaseVScriptingInitializer`.
+
+### 5.1 Адаптер подій (VScriptingScenarioEventBridge)
+
+Адаптер підписується на події `IScenarioEventHandler` і транслює їх в `EventBus` Visual Scripting:
+
+```csharp
+public void Initialize()
+{
+	scenarioEventHandler.OnChipCreated += (chip) =>
+		EventBus.Trigger("OnChipCreated", new ChipCreatedEventArgs { Chip = chip });
+
+	scenarioEventHandler.OnChipRemoved += (chip) =>
+		EventBus.Trigger("OnChipRemoved", new ChipRemovedEventArgs { Chip = chip });
+
+	scenarioEventHandler.OnChipEffectUnlocked += (chip, id) =>
+		EventBus.Trigger("OnChipEffectUnlocked", new ChipEffectUnlockedEventArgs { Chip = chip, EffectId = id });
+
+	scenarioEventHandler.OnAreaUnlocked += (areaId) =>
+		EventBus.Trigger("OnAreaUnlocked", new AreaUnlockedEventArgs { AreaId = areaId });
+}
+```
+
+### 5.2 Точка ініціалізації (MergeBaseVScriptingInitializer)
+
+Під час старту сцени ініціалізатор:
+1. Викликає `bridge.Initialize()` для підписки на івенти та перенаправлення їх в UVS.
+2. Реєструє посилання на `ILockedAreaManager` у локальних `Variables` об'єкта `ScriptMachine`, що дозволяє кастомним UVS-вузлам (наприклад, `UnlockAreaNode`) викликати методи менеджера зон:
+
+```csharp
+Variables.Object(scriptMachine.gameObject).Set("LockedAreaManager", lockedAreaManager);
+```
+
+### 5.3 Кастомні вузли сценаріїв (Custom UVS Units)
 
 Для створення сюжетів у UVS реалізовано кастомні вузли подій та дій:
 
-### Вузли подій (UVS Event Units):
+#### Вузли подій (UVS Event Units):
 - **`Wait For Chip Created` (`WaitForChipCreatedNode`)**: Призупиняє виконання графу, доки не буде створено чіп (опціонально порівнюється з очікуваним `ChipData`).
 - **`Wait For Chip Removed` (`WaitForChipRemovedNode`)**: Призупиняє виконання, доки чіп певного типу не буде знищено.
 - **`Wait For Chip Effect Unlocked` (`WaitForChipEffectUnlockedNode`)**: Очікує зняття конкретного ефекту-блокатора з чіпа.
 - **`Wait For Area Unlocked` (`WaitForAreaUnlockedNode`)**: Очікує розблокування певної зони сітки.
 
-### Вузли дій (UVS Action Units):
+#### Вузли дій (UVS Action Units):
 - **`Unlock Area` (`UnlockAreaNode`)**: Команда на розблокування зони з вказаним ID (із можливістю форсованого відкриття `forceUnlock`).
 
 ---

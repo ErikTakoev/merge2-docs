@@ -914,7 +914,6 @@
 > - Activated by Chip when another compatible chip is dragged over it
 > - **Notes**: Handles auto-sizing and positioning based on chip size
 #### Fields
-- `- autoPosition: bool`
 - `- isActive: bool`
 #### Methods
 - `+ Activate(Chip chip): bool`
@@ -1128,7 +1127,6 @@
 #### Fields
 - `+- Chip: Chip`
 - `+- ContainerRequirements: IReadOnlyDictionary<ContainerInfo, int>`
-- `~- containers: Dictionary<ContainerInfo, int>`
 - `- chipCollections: IChipCollections`
 - `~ chipContainerData: ChipContainerData`
 - `- chipFactory: ChipFactory`
@@ -2565,7 +2563,7 @@
 > - **Purpose**: Main initializer for the Merge2 game module using VContainer.
 > - **Usage**: Registered in VContainer lifetime scope
 > - automatically called on game start.
-> - **Notes**: Wires up dependencies, connects input events, and initializes field and chips.
+> - **Notes**: Wires up dependencies, connects input events, and initializes field and chips. Visual Scripting setup is handled separately by MergeBaseVScriptingInitializer.
 #### Fields
 - `- chipCollections: IChipCollections`
 - `- chipFactory: ChipFactory`
@@ -2576,7 +2574,6 @@
 - `- lockedAreaManager: ILockedAreaManager`
 - `- resolver: IObjectResolver`
 - `- scenarioEventHandler: IScenarioEventHandler`
-- `- scriptMachine: ScriptMachine`
 #### Methods
 - `+ Initialize(): void`
     - **Purpose**: Initializes the Merge2 module by setting up all dependencies and creating the field.
@@ -2590,7 +2587,6 @@
 #### Fields
 - `++ FieldData: FieldData`
 - `++ MergeSettings: MergeSettings`
-- `- scriptMachine: ScriptMachine`
 #### Methods
 - `~ Awake(): void`
 - `~ Configure(IContainerBuilder builder): void`
@@ -2940,11 +2936,10 @@
 
 ## ScenarioEventHandler
 
-> - **Purpose**: Bridges Merge2 chip lifecycle events to both C# subscribers and Unity Visual Scripting EventBus listeners.
+> - **Purpose**: Dispatches key board-state transitions (chip created, removed, effect unlocked, area unlocked) to C# subscribers.
 > - **Usage**: Registered as Singleton via VContainer
 > - Raise* methods are called by ChipFactory (OnChipCreated), Chip.Destroy (OnChipRemoved), Chip.RemoveEffect (OnChipEffectUnlocked), and LockedAreaManager.UnlockArea (OnAreaUnlocked).
-> - **Notes**: Each Raise* method fires the corresponding C# event and then calls EventBus.Trigger with a typed EventArgs struct. UVS Wait-nodes register on EventBus
-> - C# subscribers bind to the event delegates directly.
+> - **Notes**: Fires only C# events. Unity Visual Scripting EventBus forwarding is handled by VScriptingScenarioEventBridge in MergeBase.VScripting assembly (compiled only when com.unity.visualscripting is installed).
 #### Fields
 - `- OnAreaUnlocked: Action<int>`
 - `- OnChipCreated: Action<Chip>`
