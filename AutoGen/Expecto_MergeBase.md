@@ -2544,7 +2544,7 @@
     - **Purpose**: Associates a spawned visual effect with its locked-area state
     - **Usage**: Called by LockedAreaEffect.Init after the level visual prefab is instantiated
     - **Params**: effect - effect component representing a single locked area visual
-    - **Notes**: Immediately synchronizes visual state so late registrations still match current lock state
+    - **Notes**: Immediately synchronizes visual state so late registrations still match current lock state. Disables the effect's game object if the corresponding LockedAreaId is not found in the field data.
 - `+ UnlockArea(int areaId, bool force): void`
     - **Purpose**: Opens a locked area and materializes any deferred chips inside it
     - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
