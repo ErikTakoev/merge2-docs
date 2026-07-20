@@ -2,7 +2,7 @@
 
 [← На Головну](../Main.md)
 
-Логіка контейнера тепер реалізована за допомогою модульного компонента [ContainerModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/ContainerModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він дозволяє фішці накопичувати інші фішки для виконання квестів або замовлень.
+Логіка контейнера тепер реалізована за допомогою модульного компонента [ContainerModule](../../../Core/Scripts/Chips/ContainerModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він дозволяє фішці накопичувати інші фішки для виконання квестів або замовлень.
 
 ## Architecture and Responsibility
 
@@ -15,7 +15,7 @@
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
   - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
 - **Ефекти**:
-  - **[ChipContainerEffect](../Visuals/Effects.md#3-container-requirements)**: Спеціальний ефект, що реалізує `IEffectContainer` та візуалізує необхідні предмети ("бабли") над контейнером. Призначається через `EffectContainerRef` (InterfaceRef).
+  - **[ContainerHintEffect](../Visuals/Effects.md#3-container-requirements)**: Спеціальний ефект, що реалізує `IEffectContainerHint` та візуалізує необхідні предмети ("бабли") над контейнером, а також показує візуальні підказки. Призначається через `EffectContainerHintRef` (InterfaceRef).
 
 ### 1.1. `ChipContainerRuntimeData.cs` (Runtime State)
 Реалізує маркерний інтерфейс `IChipSpecialRuntimeData` для зберігання динамічного стану контейнера всередині списку `specialRuntimeDatas` у `ChipRuntimeData`.
@@ -52,12 +52,12 @@
 
 ## Visual Effects
 
-### ChipContainerEffect.cs
-Спеціалізований ефект, що реалізує `IEffectContainer` для візуалізації вимог контейнера. Керує Panel над фішкою, в якій відображаються потрібні предмети.
+### ContainerHintEffect.cs
+Спеціалізований ефект, що реалізує `IEffectContainerHint` для візуалізації вимог контейнера та відтворення візуальних підказок. Керує Panel над фішкою, в якій відображаються потрібні предмети.
 
 Ефект зберігається в словнику `effects` з ключем `EffectConsts.ContainerRequirements` та доступний через:
 ```csharp
-var containerEffect = GetEffect<IEffectContainer>(EffectConsts.ContainerRequirements);
+var containerEffect = GetEffect<IEffectContainerHint>(EffectConsts.ContainerRequirements);
 containerEffect?.UpdateElements(this, containers, false);
 ```
 
@@ -69,5 +69,5 @@ containerEffect?.UpdateElements(this, containers, false);
 2. **Move**: Система через `FillContainerLogic.CanInteract` постійно перевіряє сумісність при наведенні на контейнери.
 3. **Check**: Контейнер через `IsChipCompatible` підтверджує, що фішка йому потрібна.
 4. **Drop**: При відпусканні викликається `ExecuteInteraction` -> `TryAddChip`.
-5. **Update**: Контейнер видаляє/змінює вимоги, `ChipContainerEffect` оновлює "бабли" (або ховає їх, якщо вимога виконана).
+5. **Update**: Контейнер видаляє/змінює вимоги, `ContainerHintEffect` оновлює "бабли" (або ховає їх, якщо вимога виконана).
 6. **Complete**: Якщо вимог не залишилось, контейнер замінюється на нову фішку (result).

@@ -6,7 +6,7 @@
 
 ---
 
-## 1. Створення нової гри
+## 1. Creating a New Game
 
 Перед розширенням рекомендується створити чисту структуру проєкту. Детальна інструкція знаходиться у [Quick Start → Create New Merge Game (Clean Project)](Quick_Start.md#create-new-merge-game-clean-project).
 
@@ -20,11 +20,11 @@
 
 ---
 
-## 2. Розширення через VContainer (Dependency Injection)
+## 2. Extension via VContainer (Dependency Injection)
 
 Проєкт використовує **VContainer** для керування залежностями. Точка конфігурації — клас `Merge2LifetimeScope`, який наслідує `LifetimeScope`.
 
-### Як це працює
+### How It Works
 
 У методі `Configure(IContainerBuilder builder)` реєструються всі сервіси та дані:
 
@@ -52,7 +52,7 @@ protected override void Configure(IContainerBuilder builder)
 }
 ```
 
-### Ключові інтерфейси
+### Key Interfaces
 
 | Інтерфейс | Реалізація | Призначення |
 |---|---|---|
@@ -64,7 +64,7 @@ protected override void Configure(IContainerBuilder builder)
 | `IChipFlyAnimation` | `ChipFlyAnimation` | Анімація "польоту" чіпа до цільової позиції |
 | `IChipInteractionLogic` | `MergeableChipLogic`, `FillContainerLogic` | Стратегія взаємодії між фішками (merge, fill container) |
 
-### Рекомендований підхід: створення власного LifetimeScope
+### Recommended Approach: Creating Custom LifetimeScope
 
 > [!IMPORTANT]
 > Рекомендується **не змінювати** `Merge2LifetimeScope` напряму. Замість цього створіть **власний клас**, який наслідує `LifetimeScope`, та скопіюйте конфігурацію з `Merge2LifetimeScope` як базу. Після цього замінюйте або додавайте реалізації за потребою.
@@ -112,7 +112,7 @@ public class MyGameLifetimeScope : LifetimeScope
 
 Після цього замініть компонент `Merge2LifetimeScope` на `MyGameLifetimeScope` на сцені.
 
-### Рекомендований підхід: створення власного Initializer
+### Recommended Approach: Creating Custom Initializer
 
 > [!IMPORTANT]
 > Аналогічно до `Merge2LifetimeScope`, рекомендується створити **власний клас ініціалізатора** замість зміни `Merge2Initializer`. Скопіюйте його як базу та розширюйте за потребою.
@@ -161,7 +161,7 @@ public class MyGameInitializer : IInitializable
 builder.RegisterEntryPoint<MyGameInitializer>();
 ```
 
-### Як додати свій сервіс
+### How to Add Custom Service
 
 1. **Створіть інтерфейс** (за потреби) та **реалізацію**.
 2. **Зареєструйте у `Merge2LifetimeScope`**:
@@ -180,7 +180,7 @@ builder.RegisterEntryPoint<MyGameInitializer>();
    }
    ```
 
-### Як додати нову взаємодію (IChipInteractionLogic)
+### How to Add Custom Interaction (IChipInteractionLogic)
 
 Щоб додати новий тип взаємодії між фішками (крім merge та fill container):
 
@@ -206,11 +206,11 @@ builder.RegisterEntryPoint<MyGameInitializer>();
 
 ---
 
-## 3. Розширення Chip
+## 3. Extending Chip
 
 Базовий клас `Chip` надає набір віртуальних методів, які можна перекрити для створення нових типів фішок. Існуючі приклади: `ChipGenerator`, `ChipContainer`.
 
-### Крок 1 — Створити похідний клас
+### Step 1 — Create Derived Class
 
 ```csharp
 public class MyChip : Chip
@@ -220,7 +220,7 @@ public class MyChip : Chip
 }
 ```
 
-### Крок 2 — Перекрити `Init` для ініціалізації
+### Step 2 — Override `Init` for Initialization
 
 ```csharp
 public override void Init(ChipData data, ChipRuntimeData runtimeData)
@@ -236,7 +236,7 @@ public override void Init(ChipData data, ChipRuntimeData runtimeData)
 > [!TIP]
 > Рекомендовано викликати `GetSpecialData<T>()` лише один раз під час `Init` і кешувати результат у полі чіпа. Не викликайте його повторно в `Update` або інших гарячих ділянках логіки.
 
-### Крок 3 — Додати специфічні ефекти через `InitEffects`
+### Step 3 — Add Specific Effects via `InitEffects`
 
 ```csharp
 protected override void InitEffects()
@@ -252,7 +252,7 @@ protected override void InitEffects()
 }
 ```
 
-### Крок 4 — Розширити RuntimeData (за потреби)
+### Step 4 — Extend RuntimeData (Optional)
 
 Якщо новому чіпу потрібен додатковий runtime стан:
 
@@ -274,7 +274,7 @@ public override void InitRuntimeData(ChipData data, ref ChipRuntimeData runtimeD
 }
 ```
 
-### Ключові віртуальні методи Chip
+### Key Virtual Methods of Chip
 
 | Метод | Коли використовувати |
 |---|---|
@@ -293,14 +293,14 @@ public override void InitRuntimeData(ChipData data, ref ChipRuntimeData runtimeD
 
 ---
 
-## 4. Розширення ефектів
+## 4. Extending Effects
 
 Системи ефектів побудована на інтерфейсі `IEffect` та базовому класі `Effect`. Детальний опис всіх ефектів: [Visual Effects](Visuals/Effects.md).
 
 > [!TIP]
-> Немає жорсткої прив'язки до конкретних реалізацій ефектів. Чіп прив'язується до **інтерфейсу** ефекту, а не до його реалізації. Усі вбудовані ефекти (Highlight, MergeAvailable, MoveLocked тощо) підключаються через **префаби**, тому їх можна легко **замінити** власною реалізацією або **розширити**, створивши похідний клас. Достатньо створити новий префаб з вашим компонентом, що реалізує `IEffect`, `IEffectContainer`, `IEffectGeneratorCharging` або власний інтерфейс, що наслідує `IEffect`.
+> Немає жорсткої прив'язки до конкретних реалізацій ефектів. Чіп прив'язується до **інтерфейсу** ефекту, а не до його реалізації. Усі вбудовані ефекти (Highlight, MergeAvailable, MoveLocked тощо) підключаються через **префаби**, тому їх можна легко **замінити** власною реалізацією або **розширити**, створивши похідний клас. Достатньо створити новий префаб з вашим компонентом, що реалізує `IEffect`, `IEffectContainerHint`, `IEffectGeneratorCharging` або власний інтерфейс, що наслідує `IEffect`.
 
-### Кастомні ID Ефектів та Інтеграція в Інспектор
+### Custom Effect IDs & Inspector Integration
 
 Щоб визначити власні кастомні ефекти без зміни базового файлу `EffectConsts.cs`, настійно рекомендується створити окремий файл з константами у вашому проєкті.
 
@@ -327,7 +327,7 @@ public static class MyEffectConsts
 [SerializeField] private int mySelectedEffectId;
 ```
 
-### Варіант A — Наслідування від `Effect` (рекомендований)
+### Option A — Inheriting from `Effect` (Recommended)
 
 Базовий клас `Effect` — це потужна система, яка автоматизує більшість типових задач для візуальних ефектів:
 - **Автоматичне масштабування (`AutoSize`)**: Ефект може автоматично змінювати свій `localScale` під розмір чіпа (1x1, 2x2 тощо), використовуючи різні стратегії (`ScaleByChipSize`, `ScaleByMaxChipSize`).
@@ -363,7 +363,7 @@ public class MyCustomEffect : Effect
 }
 ```
 
-### Варіант B — Реалізація `IEffect` напряму
+### Option B — Implementing `IEffect` Directly
 
 Для ефектів, які не потребують Animator або стандартної логіки `Effect`:
 
@@ -387,13 +387,14 @@ public class MyPureEffect : MonoBehaviour, IEffect
 }
 ```
 
-### Спеціалізовані інтерфейси ефектів
+### Specialized Effect Interfaces
 
 Для ефектів з розширеним контрактом існують спеціалізовані інтерфейси:
 
 | Інтерфейс | Метод | Призначення |
 |---|---|---|
-| `IEffectContainer` | `UpdateElements(...)` | Візуалізація вмісту контейнерів |
+| `IEffectHint` | `Hint(bool force)` | Відображення візуальних підказок |
+| `IEffectContainerHint` | `UpdateElements(...)` | Візуалізація вмісту контейнерів з підказками |
 | `IEffectGeneratorCharging` | `OnCharging(float progress)` | Відображення прогресу зарядки |
 | `IEffectPowerBoosterJoin` | `OnJoin(IPowerBoosterTarget)` / `OnLeave(IPowerBoosterTarget)` | Відображення зв'язку з бустером |
 
@@ -407,12 +408,12 @@ public class MyPureEffect : MonoBehaviour, IEffect
    ```
 3. Використовуйте `MyEffectRef` як серіалізоване поле у чіпі.
 
-### Підключення ефекту до чіпа
+### Connecting Effect to Chip
 
 1. **Через ChipData.specialDatas**: Для blocker-ефектів або інших додаткових ефектів додайте дані `ChipExtraEffectsData` у `specialDatas` і заповніть список `Blockers` або `OtherEffects`.
 2. **Через InitEffects**: У похідному класі `Chip` створіть ефект через `InstantiateEffect<T>(prefab)` та додайте його за допомогою `AddEffect`.
 
-### Сповіщення ефектів
+### Effect Notifications
 
 Ефекти, додані до `effects`, автоматично отримують сповіщення через наступні методи `IEffect`:
 
@@ -426,11 +427,11 @@ public class MyPureEffect : MonoBehaviour, IEffect
 
 ---
 
-## 5. Рекомендації по створенню нової механіки
+## 5. Guidelines for Creating New Mechanics
 
 Коли ви хочете додати новий тип чіпу (наприклад, чіп, що прискорює сусідні генератори), рекомендується дотримуватися наступного алгоритму:
 
-### Крок 1 — Налаштування ChipData
+### Step 1 — Setting Up ChipData
 
 Починайте з визначення даних. Бажано не захаращувати базовий `ChipData`.
 1. Створіть окремий serializable-клас для параметрів вашої механіки (наприклад, `ExtensionChipData`), який реалізує `IChipSpecialData`.
@@ -456,7 +457,7 @@ public class ChipGeneratorDataEx : ChipGeneratorData
 }
 ```
 
-### Крок 2 — Створення тестів
+### Step 2 — Creating Tests
 
 Перш ніж писати логіку самого чіпа, напишіть прості **тести**, які описують очікувану поведінку. Це дозволить вам ітерувати набагато швидше, не перезапускаючи всю гру.
 
@@ -464,19 +465,19 @@ public class ChipGeneratorDataEx : ChipGeneratorData
 1. **Прискорення по часу**: Засікти час, за який заряджається сусідній генератор з прискорювачем і без нього. Він має бути меншим згідно з вашими налаштуваннями.
 2. **Скасування при переміщенні**: Якщо перенести генератор (або прискорювач) в іншу частину поля, де немає прискорювача (або генератора) — прискорення повинно зупинитися.
 
-### Крок 3 — Реалізація Chip
+### Step 3 — Implementing Chip
 
 Створіть свій клас, наслідуючись від `Chip` або вже існуючих спеціалізованих класів:
 - `ChipGenerator` — якщо чіп має щось створювати.
 - `ChipContainer` — якщо чіп має щось зберігати всередині.
 - `Chip` — для унікальної базової логіки.
 
-### Крок 4 — Створення ефектів
+### Step 4 — Creating Effects
 
 Розробіть візуальну частину:
 1. Створіть префаби ефектів, реалізуючи `IEffect` (або використовуйте `Effect`).
 2. Підключіть їх через `InitEffects` у вашому коді чіпа.
 
-### Крок 5 — Постійна перевірка
+### Step 5 — Continuous Verification
 
 Протягом усієї розробки запускайте тести. Це гарантує, що нова механіка не зламала існуючі (регресія) і працює згідно з вашим початковим дизайном.

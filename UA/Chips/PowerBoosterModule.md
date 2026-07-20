@@ -2,7 +2,7 @@
 
 [← На Головну](../Main.md)
 
-Чіп-підсилювач (Power Booster) — логіка підсилення сусідніх чіпів тепер реалізована за допомогою модульного компонента [PowerBoosterModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/PowerBoosterModule.cs), який прикріплюється до GameObject базової фішки `Chip`. Наприклад, він прискорює зарядку генераторів (модулів `GeneratorModule`), що знаходяться поруч.
+Чіп-підсилювач (Power Booster) — логіка підсилення сусідніх чіпів тепер реалізована за допомогою модульного компонента [PowerBoosterModule](../../../Core/Scripts/Chips/PowerBoosterModule.cs), який прикріплюється до GameObject базової фішки `Chip`. Наприклад, він прискорює зарядку генераторів (модулів `GeneratorModule`), що знаходяться поруч.
 
 ## Architecture and Responsibility
 

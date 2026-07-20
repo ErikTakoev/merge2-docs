@@ -95,12 +95,13 @@
 ## Visual Effects System
 Візуальні ефекти для фішок реалізовані через систему інтерфейсів для гнучкості та розділення логіки.
 - **`IEffect`**: Базовий інтерфейс для всіх ефектів фішок (активація, тригери, зміна комірок).
-- **`IEffectContainer`**: Спеціалізований інтерфейс для візуалізації `ChipContainer`, розширює `IEffect` методом `UpdateElements`.
+- **`IEffectHint`**: Спеціалізований інтерфейс для відтворення візуальних підказок (Hint) на фішках.
+- **`IEffectContainerHint`**: Спеціалізований інтерфейс для візуалізації `ContainerModule`, розширює `IEffectHint` методом `UpdateElements`.
 - **`IEffectGeneratorCharging`**: Спеціалізований інтерфейс для візуалізації зарядки `ChipGenerator`, розширює `IEffect` методом `OnCharging`.
 - **`IEffectPowerBoosterJoin`**: Спеціалізований інтерфейс для join-візуалізації бустера (`OnJoin`, `OnLeave`, `Show`) між `ChipPowerBooster` та `IPowerBoosterTarget`.
 - **`IShadowEffect`**: Спеціалізований інтерфейс для постійного ефекту тіні під фішкою, розширює `IEffect` методом `OnHeightChanged` для динамічної зміни зміщення та масштабу тіні.
 - **`IChipSortingLayer`**: Контракт для управління шарами сортування (Sorting Layers) декількох рендерерів фішки. Дозволяє автоматично коригувати `sortingOrder` під час переміщення (drag), щоб фішка візуально знаходилася над полем.
-- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerRef`, `EffectPowerBoosterJoinRef`, `ChipLiftControllerRef`, `ShadowEffectRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
+- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerHintRef`, `EffectHintRef`, `EffectPowerBoosterJoinRef`, `ChipLiftControllerRef`, `ShadowEffectRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
 
 ## Interaction Strategies
 Використовуємо патерн "Стратегія". Логіка того, як фішки взаємодіють між собою під час перетягування, винесена в окремі компоненти:

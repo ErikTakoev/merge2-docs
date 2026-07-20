@@ -33,7 +33,7 @@
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  
   Для повного каталогу див. [Visual Effects](../Visuals/Effects.md). Детальніше про логіку блокувань та руйнування див. [Chip Effect Blockers](../Features/ChipEffectBlockers.md).
-- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`).
+- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`).
 
 ## Effect Management
 
@@ -47,7 +47,7 @@
   ```
 - **`GetEffect<T>(int effectHash) where T : IEffect`**: Типізований доступ до ефекту з приведенням типу. Часто використовується для спеціалізованих інтерфейсів:
   ```csharp
-  var containerEffect = GetEffect<IEffectContainer>(EffectConsts.ContainerRequirements);
+  var containerEffect = GetEffect<IEffectContainerHint>(EffectConsts.ContainerRequirements);
   containerEffect?.UpdateElements(this, containers, false);
   ```
 
@@ -66,7 +66,7 @@
   AddEffect(effect, EffectConsts.CellHighlight, true);
   ```
 
-### Ефект-константи (EffectConsts)
+### Effect Constants (EffectConsts)
 Вся система ефектів використовує централізовані цілочисельні константи, що визначені у [EffectConsts.cs](../../../Core/Scripts/Chips/Effects/EffectConsts.cs):
 - **Базові ефекти (1-7)**: `MergeAvailable`, `CellHighlight`, `ContainerRequirements`, `GeneratorCharged`, `GeneratorCharging`, `PBoosterConnectorCells`, `PBoosterJoin`
 - **Blocker-ефекти (101+)** — `EffectConsts.Blockers`: `BoxEffect` (101), `ChainsEffect` (102), `MoveLockedEffect` (103)
@@ -85,21 +85,23 @@
     2. Очищує occupancy в `FieldGrid` та `ChipCollections`.
     3. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`.
     4. Якщо `force` є істиною або відсутній `Animator`, викликає `FinishDestroy()` негайно.
-    5. Інакше надсилає вказаний тригер аніматора `destroyTrigger`.
+    5. Інакше надсилає вказаний тригер аніматора `destroyTrigger` (наприклад, `AnimatorTrigger.Destroy` чи `AnimatorTrigger.TapEvolutionDestroy`).
   - **`FinishDestroy()`**: Завершує руйнування об'єкта. Може бути викликаний безпосередньо з `Destroy`, або через Unity Animation Event наприкінці анімації руйнування.
     1. Викликає `DestroyEffects(0f)`.
     2. Знищує GameObject чіпа.
     
     Під час знищення ефектів через `DestroyEffects` перевіряється властивість ефекту `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект не знищується разом із чіпом (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
   
-## Модульна архітектура та Композиція (IChipModule)
+## Modular Architecture and Composition (IChipModule)
 
-Починаючи з версії Merge Toolkit, реалізовано перехід від успадкування спеціалізованих чіпів до композиційного підходу. Клас [Chip](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/Chip.cs) тепер виступає як контейнер (хост), а спеціалізована логіка винесена в окремі модулі, що реалізують інтерфейс [IChipModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/Interfaces/IChipModule.cs):
+Починаючи з версії Merge Toolkit, реалізовано перехід від успадкування спеціалізованих чіпів до композиційного підходу. Клас [Chip](../../../Core/Scripts/Chips/Chip.cs) тепер виступає як контейнер (хост), а спеціалізована логіка винесена в окремі модулі, що реалізують інтерфейс [IChipModule](../../../Core/Scripts/Chips/Interfaces/IChipModule.cs):
 - **`ContainerModule`**: Керує контейнерами та вимогами заповнення.
 - **`GeneratorModule`**: Керує логікою генерації та підсиленням швидкості.
 - **`PowerBoosterModule`**: Керує логікою підсилювачів та зв'язками з цілями.
+- **`WaitEvolutionModule`**: Керує автоматичною еволюцією чіпа з часом, відстежуючи час очікування і замінюючи поточний чіп на інший.
+- **`TapEvolutionModule`**: Керує еволюцією чіпа при натисканні (тапі), створюючи випадковий наступний чіп на основі налаштованих ваг та програючи відповідні візуальні ефекти (тригери анімації `TapEvolutionSpawn` та `TapEvolutionDestroy`).
 
-### Делегування життєвого циклу модулям
+### Lifecycle Delegation to Modules
 Клас `Chip` автоматично збирає всі компоненти `IChipModule` на своєму GameObject за допомогою `GetComponents<IChipModule>()` і делегує їм виклики у ключових точках життєвого циклу:
 - **`Init`**: Ініціалізація кожного модуля з передачею посилань на `Chip`, `ChipData` та `ChipRuntimeData`.
 - **`InitRuntimeData`**: Реєстрація спеціалізованих даних стану в модулях.
@@ -108,12 +110,12 @@
 - **`OnChangedCell`**: Передача подій зміни поточної клітинки на полі.
 - **`FinishDestroy`**: Очищення ресурсів модуля перед повним видаленням GameObject чіпа (метод `DestroyModule`).
 
-### Керування ефектами модулів
+### Module Effects Management
 Методи `AddEffect` та `RemoveEffect` класу `Chip` тепер мають область видимості `public virtual` (замість `protected virtual`), що дозволяє модулям керувати власними ефектами.
 - При виклику `UpdateVisual` на чіпі, він додатково викликає `module.UpdateVisual()` для кожного зареєстрованого модуля.
 - При видаленні ефекту через `RemoveEffect` викликається `module.OnEffectRemoved(effectId)`.
 
-### Спеціалізовані рантайм-дані (IChipSpecialRuntimeData)
+### Specialized Runtime Data (IChipSpecialRuntimeData)
 Клас `ChipRuntimeData` тепер містить список поліморфних даних стану:
 - **`specialRuntimeDatas`** (`List<IChipSpecialRuntimeData>` з атрибутом `[SerializeReference]`).
 - **`GetSpecialRuntimeData<T>()`**: Допоміжний метод для отримання конкретного типу даних стану для модуля (наприклад, `ChipGeneratorRuntimeData` або `ChipContainerRuntimeData`).
@@ -132,21 +134,21 @@
   - На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
-#### Chip Lift Management (Керування висотою підйому)
+#### Chip Lift Management
 Висота підйому фішки над полем делегується окремому компоненту `IChipLiftController`:
 - При початку перетягування у `DraggableChipLogic` викликається `Chip.LiftController?.StartFastLiftHeight()`, що плавно піднімає фішку.
 - При завершенні перетягування викликається `Chip.LiftController?.StopLiftCoroutine()`.
 - Під час польоту фішки (наприклад, snap back або релокація) висота підйому розраховується в `ChipFlyAnimation` і передається напряму: `chip.LiftController.LiftHeight = height`.
 - Зміна висоти підйому автоматично транслюється ефекту тіні через метод `IShadowEffect.OnHeightChanged(height)`.
 
-##### Blending висоти підйому в анімацію польоту
+##### Blending Lift Height into Flight Animation
 Коли фішка починає летіти, її поточна висота підйому (`chip.LiftController?.LiftHeight ?? 0f`) передається у `ChipFlyAnimation.StartAnimation` як параметр `initialLiftHeight`. Це забезпечує плавний перехід між висотою, на яку фішку підняв гравець під час drag, і дуговою траєкторією польоту:
 - **Linear**: висота плавно зменшується від `initialLiftHeight` до `0` через `Mathf.Lerp`.
 - **ArcBounce / HalfArcHalfBounce / HalfArc**: у фазі дуги поточна висота = `Mathf.Max(arcCurve, fadeLine)`, де `fadeLine = Mathf.Lerp(initialLiftHeight, 0f, tArc)`. Це не дає фішці "провалитися" нижче вихідного підйому.
 
 Якщо фішка не була підняти (наприклад, при автоматичній релокації), `initialLiftHeight = 0f` і поведінка не відрізняється від базової.
 
-### Flight Settings (Налаштування польоту)
+### Flight Settings
 Кожен чіп містить налаштування польоту `FlightSettings` типу `ChipFlightSettings` (структура), що визначає параметри переміщення фішки по сітці поля:
 - **`Duration`**: Тривалість польоту в секундах.
 - **`FlightDelay`**: Затримка перед початком польоту.

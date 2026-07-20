@@ -2,7 +2,7 @@
 
 [← На Головну](../Main.md)
 
-Логіка генерації тепер реалізована за допомогою модульного компонента [GeneratorModule](file:///Users/eriktakoev/Projects/MergeToolkit/merge2-unity/Assets/Expecto/MergeBase/Core/Scripts/Chips/GeneratorModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він працює як автомат станів (State Machine), що перемикається між заряджанням та готовністю до генерації.
+Логіка генерації тепер реалізована за допомогою модульного компонента [GeneratorModule](../../../Core/Scripts/Chips/GeneratorModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він працює як автомат станів (State Machine), що перемикається між заряджанням та готовністю до генерації.
 
 `GeneratorModule` також реалізує інтерфейс `IPowerBoosterTarget`, що дозволяє прискорювати генерацію сусідніми бустерами.
 

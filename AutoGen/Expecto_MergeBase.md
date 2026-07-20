@@ -13,7 +13,6 @@
 - [ChipChangedEvent](#chipchangedevent)
 - [ChipCollections](#chipcollections)
 - [ChipContainerData](#chipcontainerdata)
-- [ChipContainerEffect](#chipcontainereffect)
 - [ChipContainerElementData](#chipcontainerelementdata)
 - [ChipContainerRuntimeData](#chipcontainerruntimedata)
 - [ChipCreatedEventArgs](#chipcreatedeventargs)
@@ -37,9 +36,11 @@
 - [ChipSelectorAttribute](#chipselectorattribute)
 - [ChipSelectorDrawer](#chipselectordrawer)
 - [ChipSortingLayer](#chipsortinglayer)
+- [ChipTapEvolutionData](#chiptapevolutiondata)
 - [ChipWaitEvolutionData](#chipwaitevolutiondata)
 - [ChipWaitEvolutionRuntimeData](#chipwaitevolutionruntimedata)
 - [CombinedBlockingState](#combinedblockingstate)
+- [ContainerHintEffect](#containerhinteffect)
 - [ContainerInfo](#containerinfo)
 - [ContainerModule](#containermodule)
 - [DeferredCell](#deferredcell)
@@ -53,11 +54,12 @@
 - [EffectBlockerSelectorDrawer](#effectblockerselectordrawer)
 - [EffectBlockingSettings](#effectblockingsettings)
 - [EffectConsts](#effectconsts)
-- [EffectContainerRef](#effectcontainerref)
+- [EffectContainerHintRef](#effectcontainerhintref)
 - [EffectDefinitionAttribute](#effectdefinitionattribute)
 - [EffectDestroyingRuntimeData](#effectdestroyingruntimedata)
 - [EffectDestroyingSettings](#effectdestroyingsettings)
 - [EffectExtraData](#effectextradata)
+- [EffectHintRef](#effecthintref)
 - [EffectPowerBoosterJoinRef](#effectpowerboosterjoinref)
 - [EffectRef](#effectref)
 - [EffectSelectorAttribute](#effectselectorattribute)
@@ -72,6 +74,7 @@
 - [FlightType](#flighttype)
 - [FreeCellFinder](#freecellfinder)
 - [GeneratorModule](#generatormodule)
+- [HintEffect](#hinteffect)
 - [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
 - [IChargingEffect](#ichargingeffect)
@@ -89,7 +92,8 @@
 - [IDragFeedback](#idragfeedback)
 - [IEffect](#ieffect)
 - [IEffectBlockingSettings](#ieffectblockingsettings)
-- [IEffectContainer](#ieffectcontainer)
+- [IEffectContainerHint](#ieffectcontainerhint)
+- [IEffectHint](#ieffecthint)
 - [IEffectPowerBoosterJoin](#ieffectpowerboosterjoin)
 - [IFieldEventHandler](#ifieldeventhandler)
 - [IFieldGrid](#ifieldgrid)
@@ -121,6 +125,7 @@
 - [ShadowEffect](#shadoweffect)
 - [ShadowEffectRef](#shadoweffectref)
 - [SortingLayerData](#sortinglayerdata)
+- [TapEvolutionModule](#tapevolutionmodule)
 - [UnlockAreaNode](#unlockareanode)
 - [VisualField](#visualfield)
 - [WaitEvolutionModule](#waitevolutionmodule)
@@ -495,8 +500,8 @@
     - default implementation handles effect destruction logic
     - **Notes**: Called from DraggableChipLogic.NotifyNeighborsOfInteraction after a successful interaction
 - `+ OnTap(Vector2 position): void`
-    - **Purpose**: Called when the chip is tapped by the user
-    - **Usage**: Override in derived classes to implement custom tap behavior
+    - **Purpose**: Called when the chip is tapped by the user, invoking OnTap on all attached modules and effects.
+    - **Usage**: Override in derived classes to implement custom tap behavior or call base to execute modules/effects
     - receives tap position in world coordinates
     - **Params**: position - the world position where the chip was tapped
 - `+ RemoveEffect(int effectId): void`
@@ -637,32 +642,6 @@
 #### Fields
 - `+ containers: ContainerInfo[]`
 - `+ NextChipData: ChipData`
----
-
-## ChipContainerEffect
-**Inherits**: `Effect`
-
-> - **Purpose**: Visual effect controller for ChipContainer, managing spawned elements inside the container
-> - **Usage**: Attached to ChipContainer prefab
-> - calls UpdateElements when container state changes
-> - **Params**: chip - owner chip
-> - containers - current state of containers
-> - isFull - completion flag
-> - **Notes**: Instantiates and positions element prefabs based on ContainerInfo
-> - Handles activation/deactivation animations
-#### Fields
-- `- layoutForElements: Transform`
-#### Methods
-- `+ Activate(Chip chip): bool`
-- `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
-    - **Purpose**: Updates the visual representation of container requirements based on current state.
-    - **Usage**: Called by ChipContainer when an item is added or the container initializes.
-    - **Params**: chip - owner chip
-    - containers - current remaining requirements
-    - isFull - true if all requirements are met.
-    - **Notes**: Dynamically instantiates UI elements (bubbles) and resizes the background panel. Deactivates effect if isFull is true.
-- `- ClearElements(): void`
-- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
 
 ## ChipContainerElementData
@@ -1057,6 +1036,20 @@
     - **Notes**: Uses AdditionallyWhenMoving offset defined in inspector for each renderer
 ---
 
+## ChipTapEvolutionData
+
+> - **Purpose**: Configuration data for chip tap-evolution, defining the next chips with weights.
+> - **Usage**: Used in ChipData specialDatas list. Queried by TapEvolutionModule in Init.
+> - **Notes**: Evolves into a weighted random chip from NextChips array or gets destroyed if empty when tapped.
+#### Fields
+- `+ NextChips: EvolutionTarget[]`
+#### Methods
+- `+ GetRandomNextChip(): ChipData`
+    - **Purpose**: Selects a random target chip from the next available evolution options based on their configured probability weights.
+    - **Usage**: Called during tap evolution execution to determine which chip type to spawn next.
+    - **Returns**: The selected ChipData config, or null if there are no next chips or if cumulative weight is zero.
+---
+
 ## ChipWaitEvolutionData
 
 > - **Purpose**: Configuration data for chip wait-evolution, defining the time to evolve, next chips with weights, and booster influence toggle.
@@ -1109,6 +1102,33 @@
 - `~ Reset(): void`
 ---
 
+## ContainerHintEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: Visual effect controller for ChipContainer, managing spawned elements and displaying visual hints.
+> - **Usage**: Attached to ChipContainer prefab
+> - implements IEffectContainerHint
+> - **Notes**: Triggers Hint animation on spawn (Activate), cell change (OnChangedCell), and tap (OnTap).
+#### Fields
+- `- delay: float`
+- `- hintCoroutine: Coroutine`
+- `- layoutForElements: Transform`
+#### Methods
+- `+ Activate(Chip chip): bool`
+- `+ Deactivate(Chip chip, bool force): void`
+- `+ Hint(bool force): void`
+    - **Purpose**: Triggers the 'Hint' animator trigger to show a visual container hint, optionally forcing it immediately.
+    - **Usage**: Called automatically on activation, cell change, or tap. Pass force=true to trigger immediately.
+    - **Notes**: Stops any active hint coroutine. If force is true, triggers immediately
+    - otherwise, schedules a new coroutine with the configured delay.
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnTap(): void`
+- `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
+- `- ClearElements(): void`
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
+- `- HintCoroutine(): IEnumerator`
+---
+
 ## ContainerInfo
 #### Fields
 - `+- ContainerElementPrefab: GameObject`
@@ -1130,7 +1150,7 @@
 - `- chipCollections: IChipCollections`
 - `~ chipContainerData: ChipContainerData`
 - `- chipFactory: ChipFactory`
-- `- containerEffect: EffectContainerRef`
+- `- containerEffect: EffectContainerHintRef`
 - `~ containerRuntimeData: ChipContainerRuntimeData`
 - `~ data: ChipData`
 - `- OnFillContainer: FillContainerDelegate`
@@ -1417,6 +1437,9 @@
     - isMoving - true if the chip started moving, false if it stopped
     - **Notes**: Supports automatic hiding of effects during drag/move to prevent visual noise
     - uses deactivateOnMove and restoreStateAfterMove flags
+- `+ OnTap(): void`
+    - **Purpose**: Called when the chip is tapped
+    - **Usage**: Override in derived classes to implement custom tap reaction visual effects
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
     - **Purpose**: Sends a custom animation trigger to the effect's animator
     - **Usage**: Call to trigger custom animations on the effect
@@ -1526,6 +1549,7 @@
 - `+ PBoosterConnectorCells: int`
 - `+ PBoosterJoin: int`
 - `+ ShadowEffect: int`
+- `+ TapHint: int`
 - `- blockerNameToId: Dictionary<string, int>`
 - `- nameToId: Dictionary<string, int>`
 #### Methods
@@ -1534,7 +1558,7 @@
 - `+ GetNameByIdEditorOnly(int id): string`
 ---
 
-## EffectContainerRef
+## EffectContainerHintRef
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
@@ -1573,6 +1597,10 @@
 - `+- DeactivateOnStart: bool`
 - `+- EffectId: int`
 - `+- Prefab: GameObject`
+---
+
+## EffectHintRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
 ## EffectPowerBoosterJoinRef
@@ -1959,6 +1987,28 @@
 - `- Update(): void`
 ---
 
+## HintEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: Visual effect handler for displaying hints on chips.
+> - **Usage**: Attached to chip prefabs and referenced via IEffectHint contract
+> - plays a trigger 'Hint' on the animator.
+> - **Notes**: Implements IEffectHint to provide a Hint method that fires a visual hint.
+#### Fields
+- `- delay: float`
+- `- hintCoroutine: Coroutine`
+#### Methods
+- `+ Deactivate(Chip chip, bool force): void`
+- `+ Hint(bool force): void`
+    - **Purpose**: Triggers the 'Hint' animator trigger to show a visual hint, optionally forcing it to display immediately.
+    - **Usage**: Called automatically when a chip is spawned or moved, or on demand to display hints. Pass force=true to trigger immediately.
+    - **Notes**: Stops any active hint coroutine. If force is true, triggers immediately
+    - otherwise, schedules a new coroutine with the configured delay.
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
+- `- HintCoroutine(): IEnumerator`
+---
+
 ## ICell
 
 > - **Purpose**: Contract for a single cell in the game grid that can hold a chip.
@@ -2226,6 +2276,9 @@
 - `+ OnInteractionOverCellChanged(ICell prevCell, ICell currentCell, ICell underCell): void`
 - `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
 - `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
+- `+ OnTap(): void`
+    - **Purpose**: Called on the visual effect when the owner chip is tapped.
+    - **Usage**: Called automatically by the Chip component's OnTap method to notify all active effects.
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
 - `+ SkipDestroy(): void`
 - `+ TryDestroyEffect(Chip chip, EffectDestroyingSettings settings, EffectDestroyingRuntimeData destroyingData): bool`
@@ -2252,13 +2305,22 @@
 - `+- IsLittleChip: bool`
 ---
 
-## IEffectContainer
+## IEffectContainerHint
 
-> - **Purpose**: Interface for ChipContainer specific visual effects
-> - **Usage**: Implemented by ChipContainerEffect to handle bubble container visuals. Used by ChipContainer.
-> - **Notes**: Extends IEffect with UpdateElements method.
+> - **Purpose**: Interface for ChipContainer specific visual effects, extending hint functionality
+> - **Usage**: Implemented by ContainerHintEffect to handle container visuals. Used by ChipContainer.
+> - **Notes**: Extends IEffectHint with UpdateElements method.
 #### Methods
 - `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
+---
+
+## IEffectHint
+
+> - **Purpose**: Interface for hint visual effects, used to trigger visual hints on demand.
+> - **Usage**: Implemented by visual effects that can show hints, typically using animation triggers.
+> - **Notes**: Provides a Hint method to fire a visual hint trigger.
+#### Methods
+- `+ Hint(bool force): void`
 ---
 
 ## IEffectPowerBoosterJoin
@@ -2999,6 +3061,49 @@
 - `+ AdditionallyWhenMoving: int`
 - `+ CachedOrder: int`
 - `+ Renderer: SpriteRenderer`
+---
+
+## TapEvolutionModule
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Modular component attached to a Chip that handles evolution on user tap, spawning a weighted random next chip and playing visual effects on spawn and cell change.
+> - **Usage**: Attach to chip prefabs that evolve on tap
+> - implements IChipModule
+> - **Notes**: Evolves into a weighted random chip, respects chip movement/drag deferral, and plays a configured effect on spawn and cell changes.
+#### Fields
+- `- chip: Chip`
+- `- chipFactory: ChipFactory`
+- `- data: ChipData`
+- `- evolutionData: ChipTapEvolutionData`
+- `- fieldGrid: IFieldGrid`
+- `- hintEffect: EffectHintRef`
+- `- resolver: IObjectResolver`
+#### Methods
+- `+ DestroyModule(): void`
+- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
+    - **Purpose**: Initializes the module references, sets up tap evolution data, and registers the hint effect.
+    - **Usage**: Called automatically by Chip during its initialization phase for each attached chip module.
+    - **Params**: chip - the parent Chip component
+    - data - configuration settings of the chip
+    - runtimeData - mutable state of the chip
+- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
+    - **Purpose**: Initializes the special runtime data structure for tap evolution if needed.
+    - **Usage**: Called before module initialization to prepare the initial state for the chip's runtime data collection.
+    - **Params**: data - configuration settings of the chip
+    - runtimeData - mutable state container of the chip
+- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnDrag(Vector2 position, ICell anchorCell): void`
+- `+ OnDragEnd(): void`
+- `+ OnDragStart(): void`
+- `+ OnEffectRemoved(int effectId): void`
+- `+ OnTap(): void`
+    - **Purpose**: Handles tap input by checking permissions, and initiating tap evolution if allowed.
+    - **Usage**: Called automatically when the parent chip is tapped by the user.
+- `+ UpdateVisual(): void`
+- `- ExecuteTapEvolution(): void`
+    - **Purpose**: Performs tap evolution by destroying the current chip and spawning the next weighted random chip in the same cell.
+    - **Usage**: Called internally when the chip is tapped and not moving or being dragged.
+    - **Notes**: If no next chip configuration is determined, the current chip is just destroyed.
 ---
 
 ## UnlockAreaNode
