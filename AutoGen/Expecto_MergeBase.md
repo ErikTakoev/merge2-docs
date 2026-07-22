@@ -370,13 +370,13 @@
 - `+- FlightSettings: ChipFlightSettings`
 - `+- IsDestroying: bool`
 - `+- IsMoving: bool`
+- `+- IsSpawning: bool`
 - `+- LiftController: IChipLiftController`
 - `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
 - `+- SortingLayer: IChipSortingLayer`
 - `~ chipChangeNotifier: IChipChangeNotifier`
 - `~ chipCollections: IChipCollections`
-- `~ deferredUpdateVisual: bool`
 - `~ dontRepeatTrigger: bool`
 - `~ effectOfPrioritizingDestroying: IEffect`
 - `~ effects: Dictionary<int, IEffect>`
@@ -537,7 +537,7 @@
     - on move-start it enqueues a chip-change event with NewChip=null for the current cell so observer-based systems can immediately react to temporary chip departure
     - calls UpdateVisual when movement ends
 - `+ SetRotationZ(float zAngle): void`
-- `+ StopDeferredUpdateVisual(): void`
+- `+ StopSpawning(): void`
     - **Purpose**: Allows updating visual state after initial setup by toggling off the visual update deferral flag and forcing a visual refresh.
     - **Usage**: Call after completing initialization or state setup where initial rendering was deferred to prevent redundant visual updates.
     - **Notes**: Toggles deferredUpdateVisual to false and immediately calls UpdateVisual.
@@ -1369,6 +1369,7 @@
 - `+- BlockingSettings: EffectBlockingSettings`
 - `+- Chip: Chip`
 - `+- DestroyingSettings: EffectDestroyingSettings`
+- `+~ IsActive: bool`
 - `+- IsSkipDestroy: bool`
 - `~ animator: Animator`
 - `~ autoSize: AutoSizeType`
@@ -2266,6 +2267,7 @@
 - `+- BlockingSettings: EffectBlockingSettings`
 - `+- DestroyingSettings: EffectDestroyingSettings`
 - `+- gameObject: GameObject`
+- `+- IsActive: bool`
 - `+- IsSkipDestroy: bool`
 #### Methods
 - `+ Activate(Chip chip): bool`
@@ -3100,6 +3102,8 @@
     - **Purpose**: Handles tap input by checking permissions, and initiating tap evolution if allowed.
     - **Usage**: Called automatically when the parent chip is tapped by the user.
 - `+ UpdateVisual(): void`
+    - **Purpose**: Updates the visual state of the tap evolution hint effect based on whether the chip can currently be tapped.
+    - **Usage**: Called when chip visual state is refreshed, activating or deactivating the TapHint effect according to CanBeTaped.
 - `- ExecuteTapEvolution(): void`
     - **Purpose**: Performs tap evolution by destroying the current chip and spawning the next weighted random chip in the same cell.
     - **Usage**: Called internally when the chip is tapped and not moving or being dragged.

@@ -134,6 +134,9 @@
   - На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
+#### Spawning State
+- **`IsSpawning`**: Властивість, що перевіряє, чи знаходиться фішка у процесі програвання анімації спавну (`Spawn`, `TapEvolutionSpawn`, `WaitEvolutionSpawn`, `EvolutionSpawn`).
+
 #### Chip Lift Management
 Висота підйому фішки над полем делегується окремому компоненту `IChipLiftController`:
 - При початку перетягування у `DraggableChipLogic` викликається `Chip.LiftController?.StartFastLiftHeight()`, що плавно піднімає фішку.
