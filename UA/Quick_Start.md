@@ -5,7 +5,7 @@
 ## Overview
 Цей гайд допоможе швидко підключити Merge Toolkit:
 - підключити залежність `VContainer`;
-- запустити приклад `ElementalMerge2`;
+- запустити приклад `GardenMerge`;
 - запустити тести
 - переглянути базові взаємодії.
 
@@ -26,9 +26,9 @@ Merge Toolkit має три залежності:
 - проєкт відкривається без критичних compile errors;
 - тести проходять успішно: **Window > General > Test Runner** → запустіть тести.
 
-## Run Sample: ElementalMerge2
+## Run Sample: GardenMerge
 Щоб запустити демонстраційний приклад:
-1. Відкрийте сцену `Assets/Expecto/Merge2/Examples/ElementalMerge2/Scenes/ElementalMerge2.unity`.
+1. Відкрийте сцену `Assets/Expecto/MergeBase/Examples/GardenMerge/Scenes/GardenMerge.unity`.
 2. Натисніть **Play**.
 3. Перевірте базовий цикл: переміщення фішок, взаємодії та merge.
 

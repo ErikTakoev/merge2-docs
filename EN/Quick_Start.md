@@ -5,7 +5,7 @@
 ## Overview
 This guide will help you quickly connect Merge Toolkit:
 - connect the `VContainer` dependency;
-- run the `ElementalMerge2` example;
+- run the `GardenMerge` example;
 - run tests
 - review the basic interactions.
 
@@ -26,9 +26,9 @@ After connecting dependencies, make sure that:
 - the project opens without critical compile errors;
 - tests pass successfully: **Window > General > Test Runner** -> run tests.
 
-## Run Sample: ElementalMerge2
+## Run Sample: GardenMerge
 To run the demo example:
-1. Open the scene `Assets/Expecto/Merge2/Examples/ElementalMerge2/Scenes/ElementalMerge2.unity`.
+1. Open the scene `Assets/Expecto/MergeBase/Examples/GardenMerge/Scenes/GardenMerge.unity`.
 2. Press **Play**.
 3. Check the basic loop: chip movement, interactions, and merge.
 

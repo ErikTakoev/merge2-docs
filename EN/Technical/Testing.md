@@ -157,7 +157,7 @@ Class configuration for test settings.
 
 ### TestFieldBuilder
 Helper class for creating test environment.
-- **Usage**: Loads `TestElemental_Field` prefab, configures DI Container, and initializes field.
+- **Usage**: Loads `TestGarden_Field` prefab, configures DI Container, and initializes field.
 - **Configuration**: Uses `TestSettings` through Resource loading to determine scene prefab and debug modes.
 - **Isolation**: `ClearField()` method allows clearing field between tests without scene reload.
 

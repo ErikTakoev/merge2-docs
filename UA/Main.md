@@ -8,7 +8,7 @@
 Швидкий старт та керівництво з розширення проекту.
 
 - **[Quick Start](Quick_Start.md)**
-  > **Контекст**: Перший запуск модуля, підключення `VContainer`, запуск `ElementalMerge2` та практичний workflow через `Level Editor` і `Chip Viewer`.
+  > **Контекст**: Перший запуск модуля, підключення `VContainer`, запуск `GardenMerge` та практичний workflow через `Level Editor` і `Chip Viewer`.
 
 - **[Extension Guide](ExtensionGuide.md)**
   > **Контекст**: Покрокове керівництво з розширення проєкту: додавання нових типів фішок, ефектів, взаємодій та сервісів.

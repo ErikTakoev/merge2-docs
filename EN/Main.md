@@ -8,7 +8,7 @@ Welcome to the Merge Toolkit documentation. This file is a navigation hub for al
 Quick start and extension guide for the project.
 
 - **[Quick Start](Quick_Start.md)**
-  > **Context**: First module launch, connect `VContainer`, run `ElementalMerge2` and practical workflow through `Level Editor` and `Chip Viewer`.
+  > **Context**: First module launch, connect `VContainer`, run `GardenMerge` and practical workflow through `Level Editor` and `Chip Viewer`.
 
 - **[Extension Guide](ExtensionGuide.md)**
   > **Context**: Step-by-step guide for extending the project: adding new chip types, effects, interactions, and services.
