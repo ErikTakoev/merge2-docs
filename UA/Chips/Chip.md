@@ -85,12 +85,13 @@
     2. Очищує occupancy в `FieldGrid` та `ChipCollections`.
     3. Викликає `ICellSubscriber.OnChipDestroy(mainCell)`.
     4. Якщо `force` є істиною або відсутній `Animator`, викликає `FinishDestroy()` негайно.
-    5. Інакше надсилає вказаний тригер аніматора `destroyTrigger` (наприклад, `AnimatorTrigger.Destroy` чи `AnimatorTrigger.TapEvolutionDestroy`).
+    5. Інакше деактивує активні ефекти через `DeactivateAllEffects()` та надсилає вказаний тригер аніматора `destroyTrigger` (наприклад, `AnimatorTrigger.Destroy` чи `AnimatorTrigger.TapEvolutionDestroy`).
   - **`FinishDestroy()`**: Завершує руйнування об'єкта. Може бути викликаний безпосередньо з `Destroy`, або через Unity Animation Event наприкінці анімації руйнування.
-    1. Викликає `DestroyEffects(0f)`.
-    2. Знищує GameObject чіпа.
+    1. Викликає `module.DestroyModule()` для кожного зареєстрованого модуля.
+    2. Знищує та очищає всі прив'язані ефекти через `RemoveAllEffects()`.
+    3. Знищує GameObject чіпа (`OnDestroy` також гарантує виклики `RemoveAllEffects()` та `DestroyModule()`).
     
-    Під час знищення ефектів через `DestroyEffects` перевіряється властивість ефекту `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект не знищується разом із чіпом (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
+    Під час деактивації та видалення ефектів перевіряється властивість `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект пропускається (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
   
 ## Modular Architecture and Composition (IChipModule)
 

@@ -60,6 +60,7 @@
 - [EffectDestroyingSettings](#effectdestroyingsettings)
 - [EffectExtraData](#effectextradata)
 - [EffectHintRef](#effecthintref)
+- [EffectMergeLightRef](#effectmergelightref)
 - [EffectPowerBoosterJoinRef](#effectpowerboosterjoinref)
 - [EffectRef](#effectref)
 - [EffectSelectorAttribute](#effectselectorattribute)
@@ -94,6 +95,7 @@
 - [IEffectBlockingSettings](#ieffectblockingsettings)
 - [IEffectContainerHint](#ieffectcontainerhint)
 - [IEffectHint](#ieffecthint)
+- [IEffectMergeLight](#ieffectmergelight)
 - [IEffectPowerBoosterJoin](#ieffectpowerboosterjoin)
 - [IFieldEventHandler](#ifieldeventhandler)
 - [IFieldGrid](#ifieldgrid)
@@ -115,6 +117,7 @@
 - [MergeCombination](#mergecombination)
 - [MergeHintDragFeedback](#mergehintdragfeedback)
 - [MergeLightDragFeedback](#mergelightdragfeedback)
+- [MergeLightEffect](#mergelighteffect)
 - [MergeResult](#mergeresult)
 - [NeighborChipFinder](#neighborchipfinder)
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
@@ -546,10 +549,7 @@
     - **Usage**: Call after modifying runtimeData.EffectEnables to synchronize visual effects
     - **Notes**: Iterates blockersData.Blockers and activates effects whose EffectId is in EffectEnables
     - also activates CellHighlight unless hidden by BlockingState.HideEffectIds
-- `~ DestroyEffects(float destroyDelay): void`
-    - **Purpose**: Destroys all attached effects with a specified delay
-    - **Usage**: Called from Destroy() to clean up visual effects with a timing synchronized with GameObject destruction
-    - **Params**: destroyDelay - delay in seconds before GameObjects are destroyed
+- `~ DeactivateAllEffects(): void`
 - `- HandleDestroyingEffects(): void`
 - `~ HasTrigger(string name): bool`
 - `~ InitDestroyingEffectsData(): void`
@@ -579,6 +579,7 @@
     - **Usage**: Called from SetMoving when a chip starts or ends visual movement
     - **Params**: isMoving - true if movement started, false if it ended
 - `~ PostInitEffects(): void`
+- `~ RemoveAllEffects(): void`
 - `- UpdatePrioritizingDestroyingEffect(): void`
     - **Purpose**: Selects the effect with the highest DestroyingSettings.Priority as the active destroying target
     - **Usage**: Called after InitDestroyingEffectsData and after RemoveEffect to reselect the next priority
@@ -1604,6 +1605,10 @@
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
+## EffectMergeLightRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
+---
+
 ## EffectPowerBoosterJoinRef
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
@@ -2325,6 +2330,15 @@
 - `+ Hint(bool force): void`
 ---
 
+## IEffectMergeLight
+
+> - **Purpose**: Specialized IEffect contract for MergeLight effects that support a 'little' (small) flash variant.
+> - **Usage**: Implemented by MergeLightEffect. Set Little = true before calling Activate — the setter writes to the Animator directly, routing to the small-flash state.
+> - **Notes**: The Animator bool 'Little' is updated immediately on property set, so no extra Activate override is required.
+#### Fields
+- `++ Little: bool`
+---
+
 ## IEffectPowerBoosterJoin
 
 > - **Purpose**: Effect contract for visualizing dynamic join links between a power booster and targets.
@@ -2770,6 +2784,20 @@
 - `+ OnDragEndFeedback(Chip chip, DragInteractionResult interaction): void`
 - `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
 - `+ OnDragStartFeedback(Chip chip): void`
+---
+
+## MergeLightEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: MergeLight visual effect that supports a 'little' small-flash variant via an Animator bool parameter.
+> - **Usage**: Attach to MergeLightEffect prefab instead of the base Effect component. Set Little = true — the setter immediately writes animator.SetBool('Little', true). Then call Activate as usual
+> - the Animator routes to the correct state.
+> - **Notes**: No Activate/Deactivate overrides are needed — the base Effect handles the 'Activate' trigger
+> - Animator routing is fully driven by the 'Little' bool parameter.
+#### Fields
+- `++ Little: bool`
+#### Methods
+- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
 
 ## MergeResult
