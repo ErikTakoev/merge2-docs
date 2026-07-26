@@ -550,6 +550,8 @@
     - **Notes**: Iterates blockersData.Blockers and activates effects whose EffectId is in EffectEnables
     - also activates CellHighlight unless hidden by BlockingState.HideEffectIds
 - `~ DeactivateAllEffects(): void`
+    - **Purpose**: Deactivates all attached visual effects except those marked with IsSkipDestroy
+    - **Usage**: Called from Destroy() to trigger visual deactivation effects before playing the chip destruction animation
 - `- HandleDestroyingEffects(): void`
 - `~ HasTrigger(string name): bool`
 - `~ InitDestroyingEffectsData(): void`
@@ -580,6 +582,8 @@
     - **Params**: isMoving - true if movement started, false if it ended
 - `~ PostInitEffects(): void`
 - `~ RemoveAllEffects(): void`
+    - **Purpose**: Destroys GameObject instances of all attached effects except those marked with IsSkipDestroy and clears the effects collection
+    - **Usage**: Called from OnDestroy() to ensure effect GameObjects are cleaned up when the chip GameObject is destroyed
 - `- UpdatePrioritizingDestroyingEffect(): void`
     - **Purpose**: Selects the effect with the highest DestroyingSettings.Priority as the active destroying target
     - **Usage**: Called after InitDestroyingEffectsData and after RemoveEffect to reselect the next priority
@@ -2476,6 +2480,12 @@
     - **Usage**: Called by LockedAreaEffect.Init after the level visual prefab is instantiated
     - **Params**: effect - effect component representing a single locked area visual
     - **Notes**: Immediately synchronizes visual state so late registrations still match current lock state
+- `+ SpawnDeferredChips(int areaId): void`
+    - **Purpose**: Spawns deferred chips for the specified locked area
+    - **Usage**: Called when an area is unlocked or from animation events on LockedAreaEffect
+    - **Params**: areaId - unique identifier from FieldData.LockedAreas
+    - **Notes**: Guaranteed to be idempotent
+    - subsequent calls for the same area are ignored
 - `+ UnlockArea(int areaId, bool force): void`
     - **Purpose**: Opens a locked area and materializes any deferred chips inside it
     - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
@@ -2595,6 +2605,10 @@
     - **Params**: chip - ignored because locked-area visuals are not chip-owned
     - effectId - stored for inherited Effect identity
     - **Notes**: Intentionally skips base.Init because the base implementation reads chip.Data and deactivates chip effects
+- `+ SpawnDeferredChips(): void`
+    - **Purpose**: Spawns deferred chips for this locked area when triggered (e.g., via Animation Event)
+    - **Usage**: Call from Animation Event during area unlock animation or directly from code
+    - **Notes**: Delegates to ILockedAreaManager.SpawnDeferredChips, which guarantees idempotent execution (subsequent calls are ignored)
 - `- FadeOutParticlesCoroutine(float duration): IEnumerator`
 - `- OnDisable(): void`
 ---
@@ -2611,6 +2625,7 @@
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
 - `- scenarioEventHandler: IScenarioEventHandler`
+- `- spawnedDeferredAreaIds: HashSet<int>`
 - `- unlockedAreaIds: HashSet<int>`
 #### Methods
 - `+ Initialize(): void`
@@ -2623,6 +2638,12 @@
     - **Usage**: Called by LockedAreaEffect.Init after the level visual prefab is instantiated
     - **Params**: effect - effect component representing a single locked area visual
     - **Notes**: Immediately synchronizes visual state so late registrations still match current lock state. Disables the effect's game object if the corresponding LockedAreaId is not found in the field data.
+- `+ SpawnDeferredChips(int areaId): void`
+    - **Purpose**: Spawns deferred chips for the specified locked area
+    - **Usage**: Called when an area is unlocked or from animation events on LockedAreaEffect
+    - **Params**: areaId - unique identifier from FieldData.LockedAreas
+    - **Notes**: Guaranteed to be idempotent
+    - subsequent calls for the same area are ignored
 - `+ UnlockArea(int areaId, bool force): void`
     - **Purpose**: Opens a locked area and materializes any deferred chips inside it
     - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
@@ -2632,7 +2653,6 @@
 - `- DeactivateEffects(int areaId, bool immediate): void`
 - `- SetAreaBlocked(LockedAreaData area, bool isBlocked): void`
 - `- SetCellsBlocked(Vector2Int[] cellPositions, bool isBlocked): void`
-- `- SpawnDeferredChips(LockedAreaData area): void`
 - `- TryGetArea(int areaId, LockedAreaData& area): bool`
 ---
 

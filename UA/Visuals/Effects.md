@@ -61,7 +61,7 @@
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
 - **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
 - **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
-- **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)`.
+- **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)` та `animator.Update(0f)`.
 - **`GetId()`**: Повертає збережений `effectId`.
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`) під час Drag-and-Drop.
