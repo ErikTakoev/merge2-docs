@@ -50,6 +50,11 @@ namespace Expecto.MergeBase
         event Action<Chip> OnChipRemoved;
 
         /// <summary>
+        /// Triggered when a chip is tapped by the user.
+        /// </summary>
+        event Action<Chip> OnChipTapped;
+
+        /// <summary>
         /// Triggered when an active effect blocker is successfully destroyed from a chip.
         /// </summary>
         /// <param name="chip">The chip that was unlocked.</param>
@@ -81,11 +86,15 @@ namespace Expecto.MergeBase
 - **Метод `Chip.Destroy()`** викликає `scenarioEventHandler.RaiseChipRemoved(this)` на самому початку виконання, перед очищенням клітинок сітки та фактичним знищенням GameObject.
 - Це дозволяє підписникам зчитати поточний стан та координати чіпа перед його видаленням.
 
-### 3.3 Розблокування чіпа від ефекту (`OnChipEffectUnlocked`)
+### 3.3 Натискання на чіп (`OnChipTapped`)
+
+- **Метод `Chip.OnTap()`** викликає `scenarioEventHandler.RaiseChipTapped(this)` під час користувацького тапу по чіпу (до виклику модулів та ефектів).
+
+### 3.4 Розблокування чіпа від ефекту (`OnChipEffectUnlocked`)
 
 - **Метод `Chip.RemoveEffect()`** викликає `scenarioEventHandler.RaiseChipEffectUnlocked(this, effectId)` після очищення ефекту зі словника активних ефектів, зняття блокувань (`CombinedBlockingState`) та оновлення візуалу чіпа.
 
-### 3.4 Розблокування зони (`OnAreaUnlocked`)
+### 3.5 Розблокування зони (`OnAreaUnlocked`)
 
 - **Метод `LockedAreaManager.UnlockArea()`** викликає `scenarioEventHandler.RaiseAreaUnlocked(areaId)` після відкриття клітинок зони, спавну всіх відкладених фішок через `ChipFactory` та деактивації візуальних ефектів блокування (туман/ворота).
 
@@ -99,7 +108,7 @@ namespace Expecto.MergeBase
 builder.Register<ScenarioEventHandler>(Lifetime.Singleton).As<IScenarioEventHandler>();
 ```
 
-Він відповідає за C# події (`OnChipCreated`, `OnChipRemoved`, `OnChipEffectUnlocked`, `OnAreaUnlocked`) та не має жодних залежностей від Unity Visual Scripting.
+Він відповідає за C# події (`OnChipCreated`, `OnChipRemoved`, `OnChipTapped`, `OnChipEffectUnlocked`, `OnAreaUnlocked`) та не має жодних залежностей від Unity Visual Scripting.
 
 ---
 
@@ -124,6 +133,9 @@ public void Initialize()
 
 	scenarioEventHandler.OnChipRemoved += (chip) =>
 		EventBus.Trigger("OnChipRemoved", new ChipRemovedEventArgs { Chip = chip });
+
+	scenarioEventHandler.OnChipTapped += (chip) =>
+		EventBus.Trigger("OnChipTapped", new ChipTappedEventArgs { Chip = chip });
 
 	scenarioEventHandler.OnChipEffectUnlocked += (chip, id) =>
 		EventBus.Trigger("OnChipEffectUnlocked", new ChipEffectUnlockedEventArgs { Chip = chip, EffectId = id });

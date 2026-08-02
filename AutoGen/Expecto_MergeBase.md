@@ -1,8 +1,10 @@
 # Namespace: Expecto.MergeBase
 
 ## Table of Contents
+- [ActivateTutorialNode](#activatetutorialnode)
 - [AreaUnlockedEventArgs](#areaunlockedeventargs)
 - [BlockedCell](#blockedcell)
+- [BlockTutorialInputNode](#blocktutorialinputnode)
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
 - [CellObserverManager](#cellobservermanager)
@@ -41,8 +43,10 @@
 - [ChipWaitEvolutionRuntimeData](#chipwaitevolutionruntimedata)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ContainerHintEffect](#containerhinteffect)
+- [ContainerHintNotifier](#containerhintnotifier)
 - [ContainerInfo](#containerinfo)
 - [ContainerModule](#containermodule)
+- [DeactivateTutorialNode](#deactivatetutorialnode)
 - [DeferredCell](#deferredcell)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
@@ -107,6 +111,9 @@
 - [IPowerBoosterTarget](#ipowerboostertarget)
 - [IScenarioEventHandler](#iscenarioeventhandler)
 - [IShadowEffect](#ishadoweffect)
+- [ITutorial](#itutorial)
+- [ITutorialInputBlocker](#itutorialinputblocker)
+- [ITutorialManager](#itutorialmanager)
 - [IVisualField](#ivisualfield)
 - [LockedAreaEffect](#lockedareaeffect)
 - [LockedAreaManager](#lockedareamanager)
@@ -116,6 +123,7 @@
 - [MergeCamera](#mergecamera)
 - [MergeCombination](#mergecombination)
 - [MergeHintDragFeedback](#mergehintdragfeedback)
+- [MergeHintEffect](#mergehinteffect)
 - [MergeLightDragFeedback](#mergelightdragfeedback)
 - [MergeLightEffect](#mergelighteffect)
 - [MergeResult](#mergeresult)
@@ -129,6 +137,11 @@
 - [ShadowEffectRef](#shadoweffectref)
 - [SortingLayerData](#sortinglayerdata)
 - [TapEvolutionModule](#tapevolutionmodule)
+- [Tutorial](#tutorial)
+- [TutorialHandHelper](#tutorialhandhelper)
+- [TutorialInputBlocker](#tutorialinputblocker)
+- [TutorialManager](#tutorialmanager)
+- [UnblockTutorialInputNode](#unblocktutorialinputnode)
 - [UnlockAreaNode](#unlockareanode)
 - [VisualField](#visualfield)
 - [WaitEvolutionModule](#waitevolutionmodule)
@@ -137,6 +150,22 @@
 - [WaitForChipEffectUnlockedNode](#waitforchipeffectunlockednode)
 - [WaitForChipRemovedNode](#waitforchipremovednode)
 
+---
+
+## ActivateTutorialNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Activates a tutorial by name via ITutorialManager and suspends graph execution until it is deactivated.
+> - **Usage**: Connect to a control flow
+> - provide tutorialName matching the tutorial prefab name. Must be run as a coroutine (enable Coroutine on starting event node).
+> - **Notes**: TutorialManager must be set on the ScriptMachine's GameObject local Variables during scene initialization by MergeBaseVScriptingInitializer.
+#### Fields
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
+- `+- TutorialName: ValueInput`
+#### Methods
+- `~ Definition(): void`
+- `- TriggerCoroutine(Flow flow): IEnumerator`
 ---
 
 ## AreaUnlockedEventArgs
@@ -159,6 +188,22 @@
 - `+ OnDragEnd(Vector2 position): void`
 - `+ OnDragStart(Vector2 position): void`
 - `+ OnTap(Vector2 position): void`
+---
+
+## BlockTutorialInputNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Blocks all field interactions (drag and tap) during a tutorial step. Optionally allows a single action via AllowedStart / AllowedEnd.
+> - **Usage**: Connect to a control flow in a Visual Scripting graph. Resolves ITutorialInputBlocker from local object Variables. Set AllowedStart == AllowedEnd for tap-only, AllowedStart != AllowedEnd for drag-only, or leave both at (-1,-1) to block everything.
+> - **Notes**: Positions are top-left grid cell coordinates (Vector2Int). (-1,-1) is treated as null (no exception). Multi-cell chip anchors are resolved automatically in DraggableChipLogic.
+#### Fields
+- `+- AllowedEnd: ValueInput`
+- `+- AllowedStart: ValueInput`
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- Trigger(Flow flow): ControlOutput`
 ---
 
 ## Cell
@@ -1134,6 +1179,37 @@
 - `- HintCoroutine(): IEnumerator`
 ---
 
+## ContainerHintNotifier
+
+> - **Purpose**: Listens to chip creation and tap events and triggers visual container hints on fillable containers when a compatible chip is created or tapped.
+> - **Usage**: Registered as a VContainer entry point
+> - receives scenarioEventHandler.OnChipCreated and OnChipTapped, and queries IChipCollections.FillableChipsByData.
+> - **Notes**: Checks if the chip can move and is not destroying, then triggers Hint() on active ContainerHintEffects for all matching fillable containers.
+#### Fields
+- `- chipCollections: IChipCollections`
+- `- scenarioEventHandler: IScenarioEventHandler`
+#### Methods
+- `+ Dispose(): void`
+    - **Purpose**: Unsubscribes from scenarioEventHandler events when the lifetime scope is disposed.
+    - **Usage**: Called automatically by VContainer.
+- `+ Initialize(): void`
+    - **Purpose**: Subscribes to scenarioEventHandler events when the lifetime scope initializes.
+    - **Usage**: Called automatically by VContainer.
+- `- OnChipCreated(Chip createdChip): void`
+    - **Purpose**: Handles chip creation events by finding fillable containers for the new chip and triggering their hint effects if active.
+    - **Usage**: Event handler for scenarioEventHandler.OnChipCreated.
+    - **Params**: createdChip - The newly spawned chip instance on the board.
+- `- OnChipTapped(Chip tappedChip): void`
+    - **Purpose**: Handles chip tap events by finding fillable containers for the tapped chip and triggering their hint effects if active.
+    - **Usage**: Event handler for scenarioEventHandler.OnChipTapped.
+    - **Params**: tappedChip - The chip instance tapped by the player.
+- `- TriggerContainerHintsForChip(Chip chip, bool force): void`
+    - **Purpose**: Finds fillable containers requiring the specified chip data and triggers their visual hint effect.
+    - **Usage**: Internal helper method used by OnChipCreated and OnChipTapped handlers.
+    - **Params**: chip - The target chip whose required containers should be notified
+    - force - Whether to trigger the hint immediately without delay.
+---
+
 ## ContainerInfo
 #### Fields
 - `+- ContainerElementPrefab: GameObject`
@@ -1194,6 +1270,20 @@
     - Triggers OnFillContainer event
     - If all requirements are met, destroys parent Cell content and spawns NextChipData result
 - `+ UpdateVisual(): void`
+---
+
+## DeactivateTutorialNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Deactivates the currently active tutorial via ITutorialManager.
+> - **Usage**: Connect to a control flow. Resolves ITutorialManager from local object Variables and calls Deactivate() without requiring a tutorial name.
+> - **Notes**: TutorialManager must be set on the ScriptMachine's GameObject local Variables during scene initialization by MergeBaseVScriptingInitializer.
+#### Fields
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- Trigger(Flow flow): ControlOutput`
 ---
 
 ## DeferredCell
@@ -1293,6 +1383,7 @@
     - used for coordinate transformations during drag
     - **Notes**: Used for coordinate transformations during drag
     - set in OnDragStart
+- `~ tutorialInputBlocker: ITutorialInputBlocker`
 #### Methods
 - `+ GetAnchorPosition(Vector2 originalPosition): Vector2`
     - **Purpose**: Calculates anchor position for chip placement based on its size.
@@ -1378,6 +1469,7 @@
 - `+- IsSkipDestroy: bool`
 - `~ animator: Animator`
 - `~ autoSize: AutoSizeType`
+- `~ cellSpacing: Vector2`
 - `~ deactivateOnMove: bool`
 - `~ destroyAfterActivate: bool`
 - `~ destroyDelayAfterActivate: float`
@@ -1716,6 +1808,7 @@
 - `~ fieldGrid: IFieldGrid`
 - `- OnChangeField: Action`
 - `~ shouldNotifyFieldChanged: bool`
+- `- tutorialInputBlocker: ITutorialInputBlocker`
 #### Methods
 - `+ NotifyFieldChanged(): void`
     - **Purpose**: Notifies subscribers that the field state has changed.
@@ -2559,6 +2652,7 @@
 - `+ RaiseChipCreated(Chip chip, ICell cell): void`
 - `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
 - `+ RaiseChipRemoved(Chip chip): void`
+- `+ RaiseChipTapped(Chip chip): void`
 ---
 
 ## IShadowEffect
@@ -2570,6 +2664,71 @@
     - **Purpose**: Updates the shadow's local position and scale based on the chip's current lift height
     - **Usage**: Called dynamically when the chip is lifted (dragged) or is in a flight animation
     - **Params**: height - the current height value of the chip
+---
+
+## ITutorial
+
+> - **Purpose**: Contract for a single tutorial unit that can be activated and deactivated by name
+> - **Usage**: Implement on a MonoBehaviour in a tutorial prefab
+> - register self to ITutorialManager in Start()
+> - **Notes**: TutorialName must match the prefab name so VScripting nodes can route by name
+#### Fields
+- `+- TutorialName: string`
+#### Methods
+- `+ Activate(): void`
+    - **Purpose**: Shows and starts the tutorial
+    - **Usage**: Called by TutorialManager.Activate
+    - implementation should enable visuals and begin tutorial logic
+- `+ Deactivate(): void`
+    - **Purpose**: Hides and stops the tutorial
+    - **Usage**: Called by TutorialManager.Deactivate
+    - implementation should disable visuals and clean up tutorial state
+---
+
+## ITutorialInputBlocker
+
+> - **Purpose**: Interface for blocking all field interactions during tutorial steps, with an optional single allowed action (tap or drag).
+> - **Usage**: Injected into DraggableChipLogic and FieldEventHandler to gate input. Controlled via BlockTutorialInputNode / UnblockTutorialInputNode in Visual Scripting.
+> - **Notes**: When AllowedStart == AllowedEnd — tap-mode: only tap on that cell is permitted. When AllowedStart != AllowedEnd — drag-mode: only drag from AllowedStart to AllowedEnd is permitted.
+#### Fields
+- `+- AllowedEnd: Nullable<Vector2Int>`
+- `+- AllowedStart: Nullable<Vector2Int>`
+- `+- IsBlocked: bool`
+- `+- IsTapMode: bool`
+#### Methods
+- `+ BlockInput(Nullable<Vector2Int> allowedStart, Nullable<Vector2Int> allowedEnd): void`
+    - **Purpose**: Activates the input block with an optional single allowed action.
+    - **Usage**: Called by BlockTutorialInputNode when the Visual Scripting graph triggers the node.
+    - **Params**: allowedStart - top-left cell of the allowed action start (null = no exception)
+    - allowedEnd - top-left cell of the allowed drag end (null = no exception). When allowedStart == allowedEnd, only a tap is permitted.
+- `+ UnblockInput(): void`
+    - **Purpose**: Deactivates the input block, restoring full interaction.
+    - **Usage**: Called by UnblockTutorialInputNode when the Visual Scripting graph triggers the node.
+---
+
+## ITutorialManager
+
+> - **Purpose**: Contract for managing the lifecycle of tutorial prefab instances by name
+> - **Usage**: Inject to activate/deactivate tutorials from gameplay systems or VScripting nodes
+> - **Notes**: Implemented by TutorialManager
+> - tutorial names must match prefab names
+#### Fields
+- `+- ActiveTutorial: ITutorial`
+#### Methods
+- `+ Activate(string tutorialName): void`
+    - **Purpose**: Activates the tutorial with the given name
+    - **Usage**: Called by ActivateTutorialNode or gameplay logic
+    - tutorialName must match ITutorial.TutorialName
+    - **Notes**: Logs a warning if no tutorial with that name is registered
+- `+ Deactivate(): void`
+    - **Purpose**: Deactivates the currently active tutorial
+    - **Usage**: Called by DeactivateTutorialNode or gameplay logic without requiring a tutorial name
+    - **Notes**: Logs a warning if no tutorial is currently active
+- `+ RegisterTutorial(ITutorial tutorial): void`
+    - **Purpose**: Registers a tutorial instance so the manager can route Activate/Deactivate calls to it
+    - **Usage**: Called from ITutorial MonoBehaviour Start() after VContainer injection
+    - **Notes**: Duplicate registrations with the same TutorialName overwrite the previous entry with a warning
+- `+ UnregisterTutorial(ITutorial tutorial): void`
 ---
 
 ## IVisualField
@@ -2794,6 +2953,23 @@
     - **Notes**: Uses MergeableChipsByData (merge targets) and FillableChipsByData (containers) — both already filter out blocked chips. All hinted chips are tracked in hintedChips for cleanup.
 ---
 
+## MergeHintEffect
+**Inherits**: `Effect`
+
+> - **Purpose**: Optimized merge hint effect implementation that passes physical scale, aspect ratio, and normalized corner radius into shader via MaterialPropertyBlock
+> - **Usage**: Attach to hint effect prefabs (e.g. HintEffect.prefab) and assign targetRenderer in Editor inspector.
+> - **Notes**: Inherits directly from Effect
+> - Zero-allocation O(1) renderer update without GetComponentsInChildren overhead.
+#### Fields
+- `- cornerRadius: float`
+- `- ScalePropertyId: int`
+- `- sharedPropertyBlock: MaterialPropertyBlock`
+- `- targetRenderer: Renderer`
+#### Methods
+- `+ Init(Chip chip, int effectId): void`
+- `~ UpdateMaterialScale(Vector2Int chipSize): void`
+---
+
 ## MergeLightDragFeedback
 **Inherits**: `MonoBehaviour`
 
@@ -2817,6 +2993,7 @@
 #### Fields
 - `++ Little: bool`
 #### Methods
+- `+ Activate(Chip chip): bool`
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
 
@@ -3057,11 +3234,13 @@
 - `- OnChipCreated: Action<Chip>`
 - `- OnChipEffectUnlocked: Action<Chip, int>`
 - `- OnChipRemoved: Action<Chip>`
+- `- OnChipTapped: Action<Chip>`
 #### Methods
 - `+ RaiseAreaUnlocked(int areaId): void`
 - `+ RaiseChipCreated(Chip chip, ICell cell): void`
 - `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
 - `+ RaiseChipRemoved(Chip chip): void`
+- `+ RaiseChipTapped(Chip chip): void`
 ---
 
 ## ShadowEffect
@@ -3158,6 +3337,122 @@
     - **Notes**: If no next chip configuration is determined, the current chip is just destroyed.
 ---
 
+## Tutorial
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Base MonoBehaviour implementation of ITutorial that drives show/hide state via Animator triggers
+> - **Usage**: Place on the root GameObject of a tutorial prefab
+> - assign the Animator in the Inspector
+> - self-registers to ITutorialManager in Start()
+> - **Notes**: TutorialName returns gameObject.name, which must match the prefab name so VScripting nodes can route by name
+#### Fields
+- `+- TutorialName: string`
+- `- animator: Animator`
+- `- tutorialManager: ITutorialManager`
+#### Methods
+- `+ Activate(): void`
+    - **Purpose**: Shows the tutorial by sending the Activate trigger to the Animator
+    - **Usage**: Called by TutorialManager.Activate
+    - triggers the Activate state in the AnimatorController
+    - **Notes**: Logs a warning and no-ops when the Animator is not assigned
+- `+ Deactivate(): void`
+    - **Purpose**: Hides the tutorial by sending the Deactivate trigger to the Animator
+    - **Usage**: Called by TutorialManager.Deactivate
+    - triggers the Deactivate state in the AnimatorController
+    - **Notes**: Logs a warning and no-ops when the Animator is not assigned
+- `+ Destroy(): void`
+- `~ Awake(): void`
+---
+
+## TutorialHandHelper
+**Inherits**: `MonoBehaviour`
+
+> - **Purpose**: Provides a SendTrigger API for driving hand animator states from tutorial prefab logic or VScripting, and particle playback control
+> - **Usage**: Place on a child GameObject inside a tutorial prefab alongside the hand Animator
+> - call SendTrigger from tutorial scripts or UVS
+> - **Notes**: Requires handAnimator to be assigned in the Inspector
+> - logs a warning when it is missing. handParticle is optional — methods are no-ops when null
+#### Fields
+- `- handAnimator: Animator`
+- `- handParticle: ParticleSystem`
+#### Methods
+- `+ PlayParticle(): void`
+    - **Purpose**: Plays the hand particle system from the beginning
+    - **Usage**: Call from tutorial scripts or VScripting nodes to start a particle burst on the hand
+    - **Notes**: No-ops silently when handParticle is null
+- `+ SendTrigger(string triggerName): void`
+    - **Purpose**: Forwards a trigger name to the hand Animator to change the hand's animation state
+    - **Usage**: Call from tutorial scripts or VScripting nodes to drive idle/point/tap hand animations
+    - **Params**: triggerName - the Animator trigger parameter name defined in the hand's AnimatorController
+    - **Notes**: No-ops with a warning when handAnimator is null
+    - the caller does not need to null-check
+- `+ StopParticleEmission(): void`
+    - **Purpose**: Stops new particle emission while letting existing particles finish their lifetime
+    - **Usage**: Call from tutorial scripts or VScripting nodes to gracefully end the hand particle effect
+    - **Notes**: No-ops silently when handParticle is null
+---
+
+## TutorialInputBlocker
+
+> - **Purpose**: Concrete implementation of ITutorialInputBlocker. Stores the current block state and the single allowed action.
+> - **Usage**: Registered as Singleton in Merge2LifetimeScope. Injected into DraggableChipLogic, FieldEventHandler, and MergeBaseVScriptingInitializer.
+> - **Notes**: IsTapMode returns true when AllowedStart == AllowedEnd, which means tap is permitted and drag is fully blocked on that cell.
+#### Fields
+- `+- AllowedEnd: Nullable<Vector2Int>`
+- `+- AllowedStart: Nullable<Vector2Int>`
+- `+- IsBlocked: bool`
+- `+- IsTapMode: bool`
+#### Methods
+- `+ BlockInput(Nullable<Vector2Int> allowedStart, Nullable<Vector2Int> allowedEnd): void`
+    - **Purpose**: Activates the input block. Stores the allowed start/end cells.
+    - **Usage**: Called by BlockTutorialInputNode.Trigger via ITutorialInputBlocker.
+    - **Params**: allowedStart - top-left cell of the allowed action (null = block all)
+    - allowedEnd - top-left cell of the drag end (null = block all)
+- `+ UnblockInput(): void`
+    - **Purpose**: Deactivates the input block and clears allowed positions.
+    - **Usage**: Called by UnblockTutorialInputNode.Trigger via ITutorialInputBlocker.
+---
+
+## TutorialManager
+
+> - **Purpose**: Routes tutorial activation and deactivation calls to registered ITutorial instances by name
+> - **Usage**: Registered as a VContainer singleton
+> - tutorials self-register via RegisterTutorial() in Start()
+> - **Notes**: Tutorial names are case-sensitive and must match the prefab GameObject name
+#### Fields
+- `+- ActiveTutorial: ITutorial`
+- `- OnTutorialDeactivated: Action<string>`
+- `- tutorials: Dictionary<string, ITutorial>`
+#### Methods
+- `+ Activate(string tutorialName): void`
+    - **Purpose**: Activates the tutorial with the given name if it is registered
+    - **Usage**: Called by ActivateTutorialNode or gameplay logic
+    - **Notes**: Logs a warning when tutorialName is not found in the registry
+- `+ Deactivate(): void`
+    - **Purpose**: Deactivates the currently active tutorial
+    - **Usage**: Called by DeactivateTutorialNode or gameplay logic without specifying a tutorial name
+    - **Notes**: Logs a warning when no tutorial is currently active
+- `+ RegisterTutorial(ITutorial tutorial): void`
+    - **Purpose**: Adds an ITutorial instance to the routing dictionary
+    - **Usage**: Called from ITutorial.Start() after VContainer injects ITutorialManager
+    - **Notes**: Overwrites the previous entry when the same TutorialName is registered twice, logging a warning
+- `+ UnregisterTutorial(ITutorial tutorial): void`
+---
+
+## UnblockTutorialInputNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Removes the tutorial input block set by BlockTutorialInputNode, restoring full field interaction.
+> - **Usage**: Connect to a control flow after the tutorial step is complete. Resolves ITutorialInputBlocker from local object Variables and calls UnblockInput.
+> - **Notes**: TutorialInputBlocker must be set on the ScriptMachine's GameObject local Variables during scene initialization by MergeBaseVScriptingInitializer.
+#### Fields
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- Trigger(Flow flow): ControlOutput`
+---
+
 ## UnlockAreaNode
 **Inherits**: `Unit`
 
@@ -3166,10 +3461,10 @@
 > - resolves ILockedAreaManager from local object Variables and calls UnlockArea.
 > - **Notes**: Supports optional force unlock flag. Emits event OnAreaUnlocked on completion. LockedAreaManager must be set on the ScriptMachine's GameObject local Variables during scene initialization.
 #### Fields
-- `+- expectedAreaId: ValueInput`
-- `+- forceUnlock: ValueInput`
-- `+- inputTrigger: ControlInput`
-- `+- outputTrigger: ControlOutput`
+- `+- ExpectedAreaId: ValueInput`
+- `+- ForceUnlock: ValueInput`
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
 #### Methods
 - `~ Definition(): void`
 - `- Trigger(Flow flow): ControlOutput`
@@ -3263,10 +3558,10 @@
 > - registers to EventBus dynamically when reached, resumes flow when event triggers.
 > - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
 #### Fields
-- `+- areaId: ValueOutput`
-- `+- expectedAreaId: ValueInput`
-- `+- inputTrigger: ControlInput`
-- `+- outputTrigger: ControlOutput`
+- `+- AreaId: ValueOutput`
+- `+- ExpectedAreaId: ValueInput`
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
 #### Methods
 - `~ Definition(): void`
 - `- TriggerCoroutine(Flow flow): IEnumerator`
@@ -3280,12 +3575,12 @@
 > - registers to EventBus dynamically when reached, resumes flow when event triggers.
 > - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
 #### Fields
-- `+- cell: ValueOutput`
-- `+- chip: ValueOutput`
-- `+- chipData: ValueOutput`
-- `+- expectedChipData: ValueInput`
-- `+- inputTrigger: ControlInput`
-- `+- outputTrigger: ControlOutput`
+- `+- Cell: ValueOutput`
+- `+- Chip: ValueOutput`
+- `+- ChipData: ValueOutput`
+- `+- ExpectedChipData: ValueInput`
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
 #### Methods
 - `~ Definition(): void`
 - `- TriggerCoroutine(Flow flow): IEnumerator`
@@ -3299,13 +3594,13 @@
 > - registers to EventBus dynamically when reached, resumes flow when event triggers.
 > - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
 #### Fields
-- `+- chip: ValueOutput`
-- `+- chipData: ValueOutput`
-- `+- effectId: ValueOutput`
-- `+- expectedChipData: ValueInput`
-- `+- expectedEffectId: ValueInput`
-- `+- inputTrigger: ControlInput`
-- `+- outputTrigger: ControlOutput`
+- `+- Chip: ValueOutput`
+- `+- ChipData: ValueOutput`
+- `+- EffectId: ValueOutput`
+- `+- ExpectedChipData: ValueInput`
+- `+- ExpectedEffectId: ValueInput`
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
 #### Methods
 - `~ Definition(): void`
 - `- TriggerCoroutine(Flow flow): IEnumerator`
@@ -3319,11 +3614,11 @@
 > - registers to EventBus dynamically when reached, resumes flow when event triggers.
 > - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
 #### Fields
-- `+- chip: ValueOutput`
-- `+- chipData: ValueOutput`
-- `+- expectedChipData: ValueInput`
-- `+- inputTrigger: ControlInput`
-- `+- outputTrigger: ControlOutput`
+- `+- Chip: ValueOutput`
+- `+- ChipData: ValueOutput`
+- `+- ExpectedChipData: ValueInput`
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
 #### Methods
 - `~ Definition(): void`
 - `- TriggerCoroutine(Flow flow): IEnumerator`
