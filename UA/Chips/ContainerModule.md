@@ -9,7 +9,7 @@
 ### 1. `ContainerModule.cs` (Container)
 Клас `ContainerModule` зберігає стан наповнення та керує візуальними ефектами, реалізуючи інтерфейс `IChipModule`.
 - **Властивості (Data)**:
-  - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, нагорода `NextChipData`), які отримуються через `data.GetSpecialData<ChipContainerData>()`. Також кожна потрібна фішка визначає префаб візуального елемента через власні спеціальні дані `ChipContainerElementData`.
+  - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, нагорода `NextChipData` типу `ChipSpawnData`), які отримуються через `data.GetSpecialData<ChipContainerData>()`. `NextChipData` зберігає ID нової фішки та список блокерів (`BlockerEffectIds`), які активуються при створенні. Також кожна потрібна фішка визначає префаб візуального елемента через власні спеціальні дані `ChipContainerElementData`.
   - `ContainerRequirements`: Публічна властивість тільки для читання (`IReadOnlyDictionary<ContainerInfo, int>`), що надає доступ до поточних вимог контейнера для підсистеми `ChipCollections`.
 - **Події та Делегати**:
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
@@ -45,10 +45,16 @@
    - Видаляє вимогу зі словника.
    - Відправляє тригер анімації `Recharge`.
    - Викликає `OnFillContainer` з прапорцем `isFull`.
-   - **Завершення**: Якщо всі вимоги виконані, контейнер знищується через `this.chip.Destroy(cell)`, а на його місці створюється `NextChipData` за допомогою `ChipFactory`.
+   - **Завершення**: Якщо всі вимоги виконані, викликає метод `CreateNextChip()`.
    - **Часткове виконання**: Якщо вимога виконана, але контейнер має інші активні вимоги, інформує колекції через `chipCollections.OnContainerRequirementsChanged(this, key.RequiredChip)`.
 3. Якщо лічильник ще не повний — просто інкрементує його значення.
 4. **Результат**: Повертає `true`, якщо фішка була успішно прийнята.
+
+### `CreateNextChip()`
+Захищений віртуальний метод створення нагороди після заповнення контейнера:
+1. Отримує `ChipData` через `chipContainerData.NextChipData.GetChipData(chipDataCollection)`.
+2. Знищує поточний контейнер через `this.chip.Destroy(cell, false)`.
+3. Створює нову фішку за допомогою `ChipFactory.CreateChip(...)`, передаючи initializer для накладання блокер-ефектів із `NextChipData.BlockerEffectIds`.
 
 ## Visual Effects
 

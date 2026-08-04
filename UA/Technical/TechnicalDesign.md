@@ -47,7 +47,7 @@
 
 - **`IChipCollections`** -> `ChipCollections`
   - **Призначення**: Централізований реєстр усіх активних фішок на полі, згрупованих за типом даних, а також надання високопродуктивних відфільтрованих індексів.
-  - **Відповідальність**: Збереження `AllChipsByData`, а також підтримка актуальності словників `MergeableChipsByData` (фішки, доступні як цілі для злиття) та `FillableChipsByData` (контейнери, що очікують наповнення). Оновлюється при створенні/знищенні фішок, а також через події зміни блокувань (`OnChipBlockingChanged`) та оновлення вимог контейнера (`OnContainerRequirementsChanged`).
+  - **Відповідальність**: Збереження `AllChipsByData`, а також підтримка актуальності словників `MergeableChipsByData` (фішки, доступні як цілі для злиття), `FillableChipsByData` (контейнери, що очікують наповнення) та `MovableChipsByData` (рухомі фішки з незаблокованими клітинками). Оновлюється при створенні/знищенні фішок, а також через події зміни блокувань (`OnChipBlockingChanged`) та оновлення вимог контейнера (`OnContainerRequirementsChanged`).
 
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
@@ -151,10 +151,10 @@
 
 ### FieldData & CellData
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
-- **FieldChipData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
+- **ChipSpawnData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
 - **BlockedCells**: Масив координат (`Vector2Int[]`), які визначають заблоковані клітинки на рівні, що ініціалізуються як непрохідні.
 - **Позиція**: Координати якоря (top-left) для розміщених фішок у `CellData`.
-- **Розташування в коді**: `FieldData` і `FieldChipData` знаходяться в `Core/Scripts/Field/Data`.
+- **Розташування в коді**: `FieldData` і `ChipSpawnData` знаходяться в `Core/Scripts/Field/Data`.
 - **MergeSettings**: Глобальні налаштування сцени, які зокрема містять `CellPrefab` для створення стандартних ігрових клітинок.
 
 ### Runtime State
@@ -163,7 +163,7 @@
 ## Editor Tools
 Ми надаємо спеціалізовані інструменти для полегшення процесу створення та налаштування контенту.
 - **[Level Editor](../Editors.md)**: Візуальний редактор рівнів та Scene View Overlay toolbar (`LevelEditorOverlay`), що дозволяє налаштовувати сітку, малювати заблоковані зони та розміщувати фішки безпосередньо у Scene View.
-- **Property Drawers**: Спеціалізовані атрибути `[ChipSelector]` та `[EffectBlockerSelector]` інтегровані в `FieldChipData` для зручного вибору ID фішок та ефектів прямо в інспекторі.
+- **Property Drawers**: Спеціалізовані атрибути `[ChipSelector]` та `[EffectBlockerSelector]` інтегровані в `ChipSpawnData` для зручного вибору ID фішок та ефектів прямо в інспекторі.
 - **Chip Creator**: Редактор `ChipData`, який підтримує редагування `specialDatas` (включно з поліморфними типами `IChipSpecialData`).
 - **Undo/Redo (Command Pattern)**: Всі дії в редакторі інкапсульовані в об'єкти команд (`IEditorCommand`). Це дозволяє реалізувати надійну систему скасування та повторення дій, запобігаючи втраті прогресу при помилках редагування.
 - **Validation**: Система автоматичної перевірки цілісності даних рівня перед збереженням.

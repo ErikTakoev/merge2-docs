@@ -97,7 +97,7 @@
 
 #### Container_Filling
 - **Мета**: Перевіряє процес заповнення контейнера з двома різними вимогами та коректний результат після повного заповнення.
-- **Сценарій**: Клонує `SeedlingContainer_2` через `ChipData.Clone()` та програмно додає другу вимогу (`TomatoSeed_2`) через параметризований конструктор `ContainerInfo`, а також встановлює `NextChipData = TomatoPlant_1`. Послідовно перетягує `BagOfSoil_2` та `TomatoSeed_2` у контейнер. Після першого перетягування перевіряє `AssertFieldConsistency`. Після другого (фінального) — перевіряє, що на полі залишився рівно 1 чіп (результат `TomatoPlant_1`) та цілісність поля.
+- **Сценарій**: Клонує `SeedlingContainer_2` через `ChipData.Clone()` та програмно додає другу вимогу (`TomatoSeed_2`) через параметризований конструктор `ContainerInfo`, а також встановлює `NextChipData = new ChipSpawnData { ChipId = tomatoPlant1Data.name }`. Послідовно перетягує `BagOfSoil_2` та `TomatoSeed_2` у контейнер. Після першого перетягування перевіряє `AssertFieldConsistency`. Після другого (фінального) — перевіряє, що на полі залишився рівно 1 чіп (результат `TomatoPlant_1`) та цілісність поля.
 
 ### ChipPowerBoosterTests
 Тести функціональності чіпа-підсилювача ([PowerBoosterModule](../Chips/PowerBoosterModule.md)) та системи підписок.
