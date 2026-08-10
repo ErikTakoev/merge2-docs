@@ -96,19 +96,34 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 
 - **`ActivateTutorialNode`** ([ActivateTutorialNode.cs](../../VScripting/Scripts/Actions/ActivateTutorialNode.cs)): Викликова нода-корутина. Викликає `manager.Activate(tutorialName)` і призупиняє виконання графа до виклику події `OnTutorialDeactivated` із відповідним ім'ям.
 - **`DeactivateTutorialNode`** ([DeactivateTutorialNode.cs](../../VScripting/Scripts/Actions/DeactivateTutorialNode.cs)): Викликає `manager.Deactivate()`.
-- **`BlockTutorialInputNode`** ([BlockTutorialInputNode.cs](../../VScripting/Scripts/Actions/BlockTutorialInputNode.cs)): Встановлює обмежувальні координати дій `allowedStart` та `allowedEnd` через `ITutorialInputBlocker`. Значення `(-1, -1)` використовується як сентинель для `null` (повне блокування).
+- **`BlockTutorialInputNode`** ([BlockTutorialInputNode.cs](../../VScripting/Scripts/Actions/BlockTutorialInputNode.cs)): Встановлює обмежувальні координати дій `allowedStart` та `allowedEnd` через `ITutorialInputBlocker`. Значення `(-1, -1)` (або `Tutorial.LockedPosition`) використовується як сентинель для `null` (повне блокування).
 - **`UnblockTutorialInputNode`** ([UnblockTutorialInputNode.cs](../../VScripting/Scripts/Actions/UnblockTutorialInputNode.cs)): Викликає `blocker.UnblockInput()`.
+- **`CreateChipNode`** ([CreateChipNode.cs](../../VScripting/Scripts/Actions/CreateChipNode.cs)): Нода створення чіпа на полі через `ChipFactory` з налаштуваннями початкової світової позиції (`parentWorldPosition`), параметрами польоту (`flightDuration`, `flightType`), списками ефектів блокування (`blockerEffectIds`) та анімаційним тригером (`animatorTrigger`).
 
-### 4.2 TutorialDragNDrop
+### 4.2 Event and Wait Nodes
+
+- **`WaitForChipCreatedNode`**, **`WaitForChipEffectUnlockedNode`**, **`WaitForChipRemovedNode`**: Ноди-корутини для очікування відповідних подій ядра. Крім виходів `Chip`, `ChipData` (та `EffectId` / `Cell`), вони надають вихід `CellPosition` (`Vector2Int`) для безпосереднього використання в графі без додаткових перетворень.
+
+### 4.3 TutorialDragNDrop
 
 - **Файл**: [TutorialDragNDrop.cs](../../VScripting/Scripts/Tutorials/TutorialDragNDrop.cs)
 
 Спеціалізований нащадок `Tutorial`, що реалізує анімоване переміщення підказки руки між клітинками поля та інтеграцію із Visual Scripting:
 - **Серіалізовані налаштування**: `startDragPos`, `endDragPos`, `waitDestroyChip`, `handTransform`, `dragDuration`, `movementCurve`, `arcHeight`, `arcCurve`.
-- **`Activate()`**: Позиціонує `handTransform` у світові координати центру клітинки `startDragPos`.
-- **`StartHandDrag()`**: Запускає корутину анімації переміщення руки по дузі до `endDragPos` за час `dragDuration` (зазвичай викликається через Animation Event в AnimatorController префабу).
+- **`Activate()`**: Позиціонує `handTransform` у світові координати центру клітинки або чіпа `startDragPos` (з урахуванням розміру чіпа).
+- **`StartHandDrag()`**: Оновлює цільові позиції `startPosition` / `endPosition` та запускає корутину анімації переміщення руки по дузі до `endDragPos` за час `dragDuration` (зазвичай викликається через Animation Event в AnimatorController префабу).
+- **`GetCellWorldPosition(cellPos)`**: Обчислює світові координати центру клітинки або чіпа (з урахуванням розміру чіпа `chip.Data.Size` та його якоря `MainCell`).
 
-### 4.3 VariablesTransfer
+### 4.4 TutorialTapChip
+
+- **Файл**: [TutorialTapChip.cs](../../VScripting/Scripts/Tutorials/TutorialTapChip.cs)
+
+Спеціалізований нащадок `Tutorial` для реалізації підказки тапу по чіпу:
+- **Серіалізовані налаштування**: `tapPos`, `waitDestroyChip`, `handTransform`.
+- **`Activate()`**: Позиціонує `handTransform` у світові координати центру клітинки або чіпа `tapPos` (за допомогою `IFieldGrid.GetCellWorldPosition(tapPos)` з урахуванням `MainCell` та розміру чіпа) і запускає тригер `"Activate"`.
+- **Анімація руки**: Керується `AnimatorController` префабу туторіалу; жест тапу зазвичай викликається через Animation Event на компоненти `TutorialHandHelper`.
+
+### 4.5 VariablesTransfer
 
 - **Файл**: [VariablesTransfer.cs](../../VScripting/Scripts/Tutorials/VariablesTransfer.cs)
 

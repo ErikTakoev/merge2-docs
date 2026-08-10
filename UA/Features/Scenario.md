@@ -149,10 +149,15 @@ public void Initialize()
 
 Під час старту сцени ініціалізатор:
 1. Викликає `bridge.Initialize()` для підписки на івенти та перенаправлення їх в UVS.
-2. Реєструє посилання на `ILockedAreaManager` у локальних `Variables` об'єкта `ScriptMachine`, що дозволяє кастомним UVS-вузлам (наприклад, `UnlockAreaNode`) викликати методи менеджера зон:
+2. Реєструє посилання на `ILockedAreaManager`, `ITutorialManager`, `ITutorialInputBlocker`, `ChipFactory` та `ClickAction` (`UnityEngine.InputSystem.InputAction`) у локальних `Variables` об'єкта `ScriptMachine`, що дозволяє кастомним UVS-вузлам та стандартним подям (таким як `On Input System Button`) взаємодіяти з системами:
 
 ```csharp
-Variables.Object(scriptMachine.gameObject).Set("LockedAreaManager", lockedAreaManager);
+var declarations = Variables.Object(scriptMachine.gameObject);
+declarations.Set("LockedAreaManager", lockedAreaManager);
+declarations.Set("TutorialManager", tutorialManager);
+declarations.Set("TutorialInputBlocker", tutorialInputBlocker);
+declarations.Set("ChipFactory", chipFactory);
+declarations.Set("ClickAction", inputManager.ClickAction);
 ```
 
 ### 5.3 Кастомні вузли сценаріїв (Custom UVS Units)

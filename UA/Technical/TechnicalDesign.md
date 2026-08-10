@@ -21,7 +21,7 @@
 
 - **`IFieldGrid`** -> `FieldGrid`
   - **Призначення**: Управління станом сітки (2D масив `ICell`).
-  - **Відповідальність**: Створення комірок, валідація координат, перевірка заблокованих зон (`HasBlockedCells`), низькорівневі операції розміщення чіпів (`SetChipInCell`).
+  - **Відповідальність**: Створення комірок, валідація координат, перевірка заблокованих зон (`HasBlockedCells`), низькорівневі операції розміщення чіпів (`SetChipInCell`), а також обчислення світових координат клітини чи чіпа (`GetCellWorldPosition`) з урахуванням розміру фішки та якоря `MainCell`.
   - **Деталь `SetChipInCell`**: При встановленні чіпа `FieldGrid` призначає `chip.CellPosition` до `IChipChangeNotifier.Enqueue(...)`, щоб підписники отримували подію вже з актуальними координатами. При очищенні спочатку скидає occupancy (`ClearCells`), потім enqueue події `oldChip -> null`.
 
 - **`IMergeLifetimeScope`** (Інтерфейс)
@@ -52,7 +52,7 @@
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
   - **Призначення**: Абстракція системи вводу для Dependency Injection.
-  - **Відповідальність**: Визначення подій вводу (OnTap, OnDragStart, OnDrag, OnDragEnd) та методів симуляції для тестування. Реалізація `InputManager` обробляє Unity Input System та трансформує події вводу в C# події.
+  - **Відповідальність**: Визначення подій вводу (OnTap, OnDragStart, OnDrag, OnDragEnd), надання джерела екшенів `ClickAction` та методу `Init()`, а також методів симуляції для тестування. Реалізація `InputManager` обробляє Unity Input System та трансформує події вводу в C# події.
 
 - **`IFieldEventHandler`** -> `FieldEventHandler`
   - **Призначення**: Точка входу для подій системи вводу.

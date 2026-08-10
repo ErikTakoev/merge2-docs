@@ -52,7 +52,7 @@
 - **`BlockingSettings`** (`EffectBlockingSettings`): Конфігурація блокувань чіпа при активації ефекту. Детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocking-system).
 - **`DestroyingSettings`** (`EffectDestroyingSettings`): Конфігурація руйнування ефекту при сусідніх злиттях. Детальніше: [Effect Destroying System](../Features/ChipEffectBlockers.md#effect-destroying-system).
 
-### 
+###
 Докладніше про систему блокувань (Blocking Settings, Combined Blocking State) див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md)**.
 
 ---
@@ -101,7 +101,7 @@
 
 ## Effect Destroying System
 
-Система руйнування ефектів дозволяє ефектам поступово руйнуватися при сусідніх злиттях. 
+Система руйнування ефектів дозволяє ефектам поступово руйнуватися при сусідніх злиттях.
 Докладніше див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#effect-destroying-system)**.
 
 ---
@@ -210,9 +210,9 @@
 - **Сортування**: Під час руху тінь збільшує свій `sortingOrder` на величину `AdditionallyWhenMoving` основного чіпа, щоб залишатися візуально під чіпом, але над полем.
 
 ### 9. Merge Light
-**Константа**: `EffectConsts.MergeLight` (ID 9)  
-**Клас**: `MergeLightEffect.cs`  
-**Реалізує**: `IEffectMergeLight`  
+**Константа**: `EffectConsts.MergeLight` (ID 9)
+**Клас**: `MergeLightEffect.cs`
+**Реалізує**: `IEffectMergeLight`
 **Використовується в**: `MergeLightDragFeedback`, [TapEvolutionModule](../Chips/Chip.md#modular-architecture-and-composition-ichipmodule), [WaitEvolutionModule](../Chips/Chip.md#modular-architecture-and-composition-ichipmodule)
 
 Візуальний ефект спалаху або підсвічування, який відтворюється на результуючій фішці після успішного злиття або при еволюції (Tap/Wait Evolution).
@@ -222,7 +222,7 @@
   - Оскільки попередній чіп знищується, а новий з'являється на його місці, ефект допомогає зробити перехід візуально безшовним. Прапорець `destroyAfterActivate` зазвичай дорівнює `true`, що дозволяє йому автоматично самоочиститися з поля після завершення анімації спалаху.
 
 ### 10. Merge Hint
-**Константа**: `EffectConsts.MergeHint` (ID 10)  
+**Константа**: `EffectConsts.MergeHint` (ID 10)
 **Використовується в**: `MergeHintDragFeedback`
 
 Візуальний підказка (наприклад, анімоване сяйво або пульсація), яка активується на всіх сумісних фішках-цілях та контейнерах під час початку перетягування (Drag Start).
@@ -241,6 +241,7 @@
 - **Особливості**:
   - Реалізує `IEffectHint` для відтворення візуальної підказки `Hint(bool force)`.
   - Відтворює тригер `"Hint"` в Animator із затримкою (`delay`) або миттєво (`force = true`).
+  - При активному туторіалі (`ITutorialManager.ActiveTutorial != null`) візуальна підказка не відображається, окрім випадків примусового виклику (`force = true`).
   - Спрацьовує автоматично при спавні фішки, зміні клітинки (`OnChangedCell`), або при тапі користувача.
 
 ### 101. Box Effect
