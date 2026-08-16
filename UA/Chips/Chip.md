@@ -19,7 +19,8 @@
   
 - **Special Data**:
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas`.
-  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`.
+  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`.
+  - **INextChipsProvider**: Поліморфна стратегія вибору наступних чіпів у `ChipTapEvolutionData` (`[SerializeReference]`). Реалізації: `ConstantNextChipsProvider`, `RandomNextChipsProvider`, `SequentialNextChipsProvider`.
 
 - **Runtime**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
@@ -33,7 +34,7 @@
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  
   Для повного каталогу див. [Visual Effects](../Visuals/Effects.md). Детальніше про логіку блокувань та руйнування див. [Chip Effect Blockers](../Features/ChipEffectBlockers.md).
-- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`).
+- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`). Підтримує паузу через `PauseAnimator(bool)` на час затримки польоту.
 
 ## Effect Management
 
@@ -54,9 +55,11 @@
 ### Effect Initialization
 - **`InitEffects()`**: Віртуальний метод, викликаний з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація:
   1. Ітерує `ChipExtraEffectsData.Blockers` — для кожного елемента, чий `EffectId` є в `runtimeData.EffectEnables`, інстантіює префаб і додає в словник ефектів через `AddEffect`
-  2. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
-  3. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
-  4. Якщо вказано `ShadowEffectPrefab`, створює та додає `ShadowEffect` (ключ: `EffectConsts.ShadowEffect`)
+  2. Створює та додає `OtherEffects` з `ChipExtraEffectsData`
+  3. Реєструє додаткові ефекти з масиву `extraEffects` (`EffectRef[]`), налаштовані на самому префабі чіпа
+  4. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
+  5. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
+  6. Якщо вказано `ShadowEffectPrefab`, створює та додає `ShadowEffect` (ключ: `EffectConsts.ShadowEffect`)
   
   Цей метод призначений для перекриття в похідних класах (наприклад, `ChipGenerator` додає `GeneratorCharging` та `GeneratorCharged`).
 
@@ -100,7 +103,8 @@
 - **`GeneratorModule`**: Керує логікою генерації та підсиленням швидкості.
 - **`PowerBoosterModule`**: Керує логікою підсилювачів та зв'язками з цілями.
 - **`WaitEvolutionModule`**: Керує автоматичною еволюцією чіпа з часом, відстежуючи час очікування і замінюючи поточний чіп на інший.
-- **`TapEvolutionModule`**: Керує еволюцією чіпа при натисканні (тапі), створюючи випадковий наступний чіп на основі налаштованих ваг та програючи відповідні візуальні ефекти (тригери анімації `TapEvolutionSpawn` та `TapEvolutionDestroy`).
+- **`TapEvolutionModule`**: Керує еволюцією чіпа при натисканні (тапі) за допомогою стратегій `INextChipsProvider`. Підтримує спавн кількох фішок через `FreeCellFinder.FindFreeCellsForChips`, програє візуальні ефекти (тригери анімації `TapEvolutionSpawn`, `Generate` та `TapEvolutionDestroy`), а при відсутності вільних клітинок викликає `OnNotEnoughSpace` через `ScenarioEventHandler`.
+- **`PauseAnimationOnDelay`**: Прапорець у `ChipFlightSettings`, що заморожує виконання анімації чіпа через `PauseAnimator(true)` під час активності затримки польоту (`flightDelay`).
 
 ### Lifecycle Delegation to Modules
 Клас `Chip` автоматично збирає всі компоненти `IChipModule` на своєму GameObject за допомогою `GetComponents<IChipModule>()` і делегує їм виклики у ключових точках життєвого циклу:
@@ -161,6 +165,7 @@
   - `ArcBounce` — параболічний рух із відскоками при приземленні (за замовчуванням).
   - `HalfArcHalfBounce` — рух з меншою висотою дуги та меншим відскоком (наприклад, при звичайному переміщенні або зміні місць).
   - `HalfArc` — рух по низькій дузі без відскоків.
+- **`PauseAnimationOnDelay`**: Вказує, чи потрібно призупиняти аніматор чіпа під час затримки перед початком польоту.
 - **`SetFlightSettings(ChipFlightSettings settings)`**: Оновлює налаштування польоту для наступного переміщення чіпа.
 
 ### Other Methods
@@ -169,3 +174,4 @@
 ### Merge System
 Реалізує логіку сумісності та процес злиття двох фішок через механізм `IChipInteractionLogic`.  
 Для повного опису (CanInteract, ExecuteInteraction, Weighted Random, Extra Chips, Relocation) див. [MergeableChipLogic](../Interactions/MergeableChipLogic.md).
+

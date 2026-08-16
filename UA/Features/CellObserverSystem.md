@@ -73,9 +73,3 @@
 Спеціалізована версія для [PowerBoosterModule](../Chips/PowerBoosterModule.md).
 - Використовує події від спостережуваних клітинок для виявлення генераторів навколо себе.
 - Динамічно застосовує або знімає модифікатори прискорення, коли сусідні чіпи з'являються, зникають або змінюються.
-
-### ChipCollections Integration
-Класи `ChipCollections` та `IChipCollections` ведуть відфільтровані суб-колекції `MergeableChipsByData`, `FillableChipsByData` та `MovableChipsByData` (`Dictionary<ChipData, List<Chip>>`). Колекція `MovableChipsByData` містить тільки ті активні чіпи, чий `BlockingState.CanBeMoved` є істинним і їх клітинка не заблокована. Це забезпечує миттєву перевірку наявності потрібних рухомих чіпів на полі (наприклад, для `ContainerHintEffect.HasMatchingChipsOnField()`).
-
-### Integration Tests
-Система активно використовується в тестах (`ChipPowerBoosterTests`) для перевірки цілісності зв'язків та коректності виклику ефектів при складних маніпуляціях на полі.

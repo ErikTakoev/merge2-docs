@@ -55,6 +55,11 @@ namespace Expecto.MergeBase
         event Action<Chip> OnChipTapped;
 
         /// <summary>
+        /// Triggered when chip generation or evolution fails due to lack of free cells on the board.
+        /// </summary>
+        event Action<Chip> OnNotEnoughSpace;
+
+        /// <summary>
         /// Triggered when an active effect blocker is successfully destroyed from a chip.
         /// </summary>
         /// <param name="chip">The chip that was unlocked.</param>
@@ -142,6 +147,9 @@ public void Initialize()
 
 	scenarioEventHandler.OnAreaUnlocked += (areaId) =>
 		EventBus.Trigger("OnAreaUnlocked", new AreaUnlockedEventArgs { AreaId = areaId });
+
+	scenarioEventHandler.OnNotEnoughSpace += (chip) =>
+		EventBus.Trigger("OnNotEnoughSpace", new NotEnoughSpaceEventArgs { Chip = chip });
 }
 ```
 
@@ -169,6 +177,7 @@ declarations.Set("ClickAction", inputManager.ClickAction);
 - **`Wait For Chip Removed` (`WaitForChipRemovedNode`)**: Призупиняє виконання, доки чіп певного типу не буде знищено.
 - **`Wait For Chip Effect Unlocked` (`WaitForChipEffectUnlockedNode`)**: Очікує зняття конкретного ефекту-блокатора з чіпа.
 - **`Wait For Area Unlocked` (`WaitForAreaUnlockedNode`)**: Очікує розблокування певної зони сітки.
+- **`Wait For Not Enough Space` (`WaitForNotEnoughSpaceNode`)**: Очікує спроби генерації або еволюції чіпа при відсутності вільного місця на полі.
 
 #### Вузли дій (UVS Action Units):
 - **`Unlock Area` (`UnlockAreaNode`)**: Команда на розблокування зони з вказаним ID (із можливістю форсованого відкриття `forceUnlock`).
@@ -183,3 +192,4 @@ declarations.Set("ClickAction", inputManager.ClickAction);
 | **Квест "Очисти поле"** | Заблокувати вихід з рівня, поки на полі є заблоковані ланцюгами чіпи. | `OnChipEffectUnlocked` |
 | **Бос або Скриня** | При знищенні (видаленні) чіпа-перешкоди спавнити нагороду. | `OnChipRemoved` |
 | **Прогресія рівня** | Після розблокування нової зони показати діалог або анімацію. | `OnAreaUnlocked` |
+| **Попередження про переповнення** | Показувати підказку або UI повідомлення при спробі спавну без вільного місця. | `OnNotEnoughSpace` |
