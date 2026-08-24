@@ -8,7 +8,7 @@
 ## Dependency Injection (VContainer)
 Ми використовуємо **VContainer** для керування залежностями.
 - **LifetimeScope**: `Merge2LifetimeScope` та `IsoMergeLifetimeScope` реалізують інтерфейс `IMergeLifetimeScope` і є точками конфігурації для відповідних сцен Merge та IsoMerge. Тут реєструються дані рівня (`FieldData`, `ChipDataCollection`), а також глобальні налаштування злиття (`MergeSettings`) як синглтони. `FieldData` та `MergeSettings` можуть бути призначені динамічно (наприклад, у тестах).
-- **Initialization**: `Merge2Initializer` виступає як Entry Point. Він отримує через конструктор ключові інтерфейси (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) та ініціалізує поле через `IFieldInitializeCommand`.
+- **Initialization**: `Merge2Initializer` та `IsoMergeInitializer` виступають як Entry Point. Вони отримують через конструктор ключові інтерфейси (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) та ініціалізують поле через послідовність викликів `IFieldInitializeCommand` (`CreateField()`, `lockedAreaManager.Initialize()`, `CreateLevelVisual()`, `CreateVScripting()`, `LoadChips()`, `InitCamera()`).
 - **Component Injection**: Всі ігрові сервіси та логічні класи отримують залежності через `[Inject]` або конструктор.
 
 ## Core Interfaces & Implementations
@@ -30,7 +30,7 @@
 
 - **`IFieldInitializeCommand`** -> `FieldInitializeCommand`
   - **Призначення**: Команда ініціалізації рівня.
-  - **Відповідальність**: Створення візуальної сітки, завантаження початкових чіпів та ініціалізація камери. Отримує `FieldData`, `ChipDataCollection` та `IMergeCamera` через Injection.
+  - **Відповідальність**: Створення візуальної сітки (`CreateLevelVisual`), інстанціювання префабу Visual Scripting (`CreateVScripting`), завантаження початкових чіпів (`LoadChips`) та ініціалізація камери (`InitCamera`). Отримує `FieldData`, `ChipDataCollection` та `IMergeCamera` через Injection.
 
 - **`IChipChangeNotifier`** -> `DeferredChipChangeNotifier`
   - **Призначення**: Агрегація змін клітинок (реалізацій `ICell`) протягом кадру та єдиний `Flush` у `LateUpdate`.
@@ -136,7 +136,7 @@
 `ChipData` зберігає базові параметри чіпа (тип, префаб, розмір), а розширювані дані винесені в `specialDatas` (`SerializeReference`).
 - **Контракт**: `IChipSpecialData` — базовий інтерфейс для спеціалізованих конфігурацій.
 - **Merge як SpecialData**: `ChipMergeData` є одним із блоків `IChipSpecialData` для конфігурації злиття чіпів.
-- **Доступ**: 
+- **Доступ**:
   - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData` тощо).
   - `CreateSpecialData<T>()` — динамічно створює нову інстанцію спеціальних даних, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
   - `AddSpecialData(IChipSpecialData)` — додає готовий екземпляр спеціальних даних у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Chip Creator).
@@ -153,6 +153,8 @@
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
 - **ChipSpawnData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
 - **BlockedCells**: Масив координат (`Vector2Int[]`), які визначають заблоковані клітинки на рівні, що ініціалізуються як непрохідні.
+- **VisualFieldPrefab**: Посилання на префаб візуального оформлення поля (`GameObject`).
+- **VScriptingFieldPrefab**: Посилання на префаб Visual Scripting сцени (`GameObject`), що автоматично інстанціюється під час ініціалізації поля.
 - **Позиція**: Координати якоря (top-left) для розміщених фішок у `CellData`.
 - **Розташування в коді**: `FieldData` і `ChipSpawnData` знаходяться в `Core/Scripts/Field/Data`.
 - **MergeSettings**: Глобальні налаштування сцени, які зокрема містять `CellPrefab` для створення стандартних ігрових клітинок.

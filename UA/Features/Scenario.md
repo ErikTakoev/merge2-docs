@@ -1,12 +1,12 @@
 [← На Головну](../Main.md)
 
-# Scenario System (Система сценаріїв та квестів)
+# Scenario System
 
 Цей документ описує архітектуру для створення сюжетних сценаріїв, туторіалів та квестів у Merge з використанням **Unity Visual Scripting (UVS)** та івент-орієнтованого підходу.
 
 ---
 
-## 1. Архітектурний огляд
+## 1. Architectural Overview
 
 Система сценаріїв інтегрується з ігровим полем та життєвим циклом чіпів, транслюючи низькорівневі зміни у високорівневі івенти, на які реагує візуальний скриптинг.
 
@@ -22,11 +22,11 @@ graph TD
 
 ---
 
-## 2. Інтерфейс IScenarioEventHandler
+## 2. IScenarioEventHandler Interface
 
 Для передачі подій у Visual Scripting використовується C# контракт `IScenarioEventHandler`. Він виступає сполучною ланкою між ядром Merge та графом UVS.
 
-### Специфікація інтерфейсу:
+### 2.1 Interface Specification
 
 ```csharp
 using System;
@@ -77,35 +77,35 @@ namespace Expecto.MergeBase
 
 ---
 
-## 3. Джерела подій (Event Sources)
+## 3. Event Sources
 
 Генерація подій вбудована у відповідні життєві цикли ядра Merge2.
 
-### 3.1 Створення чіпа (`OnChipCreated`)
+### 3.1 Chip Creation (OnChipCreated)
 
 - **Метод `ChipFactory.CreateChip()`** викликає `scenarioEventHandler.RaiseChipCreated(chip, cell)` після успішної ініціалізації та розміщення чіпа на полі через `SetChipInCell()`.
 - Це гарантує, що чіп повністю готовий, розміщений на сітці та має актуальну клітинку.
 
-### 3.2 Видалення чіпа (`OnChipRemoved`)
+### 3.2 Chip Removal (OnChipRemoved)
 
 - **Метод `Chip.Destroy()`** викликає `scenarioEventHandler.RaiseChipRemoved(this)` на самому початку виконання, перед очищенням клітинок сітки та фактичним знищенням GameObject.
 - Це дозволяє підписникам зчитати поточний стан та координати чіпа перед його видаленням.
 
-### 3.3 Натискання на чіп (`OnChipTapped`)
+### 3.3 Chip Tapping (OnChipTapped)
 
 - **Метод `Chip.OnTap()`** викликає `scenarioEventHandler.RaiseChipTapped(this)` під час користувацького тапу по чіпу (до виклику модулів та ефектів).
 
-### 3.4 Розблокування чіпа від ефекту (`OnChipEffectUnlocked`)
+### 3.4 Chip Effect Unlocking (OnChipEffectUnlocked)
 
 - **Метод `Chip.RemoveEffect()`** викликає `scenarioEventHandler.RaiseChipEffectUnlocked(this, effectId)` після очищення ефекту зі словника активних ефектів, зняття блокувань (`CombinedBlockingState`) та оновлення візуалу чіпа.
 
-### 3.5 Розблокування зони (`OnAreaUnlocked`)
+### 3.5 Area Unlocking (OnAreaUnlocked)
 
 - **Метод `LockedAreaManager.UnlockArea()`** викликає `scenarioEventHandler.RaiseAreaUnlocked(areaId)` після відкриття клітинок зони, спавну всіх відкладених фішок через `ChipFactory` та деактивації візуальних ефектів блокування (туман/ворота).
 
 ---
 
-## 4. Реалізація ScenarioEventHandler
+## 4. ScenarioEventHandler Implementation
 
 Клас `ScenarioEventHandler` є C# синглтоном і реєструється у `Merge2LifetimeScope` та `IsoMergeLifetimeScope` як реалізація `IScenarioEventHandler`:
 
@@ -117,7 +117,7 @@ builder.Register<ScenarioEventHandler>(Lifetime.Singleton).As<IScenarioEventHand
 
 ---
 
-## 5. Інтеграція з Visual Scripting (UVS)
+## 5. Visual Scripting Integration (UVS)
 
 Вся інтеграція з Unity Visual Scripting винесена в окрему збірку `MergeBase.VScripting.asmdef` (у папці `Assets/Expecto/MergeBase/VScripting`), що дозволяє тримати ядро Merge повністю незалежним від пакета `com.unity.visualscripting`.
 
@@ -126,7 +126,7 @@ builder.Register<ScenarioEventHandler>(Lifetime.Singleton).As<IScenarioEventHand
 2. Реєструє адаптер `VScriptingScenarioEventBridge` як `Singleton`.
 3. Реєструє точку входу `MergeBaseVScriptingInitializer`.
 
-### 5.1 Адаптер подій (VScriptingScenarioEventBridge)
+### 5.1 Event Bridge (VScriptingScenarioEventBridge)
 
 Адаптер підписується на події `IScenarioEventHandler` і транслює їх в `EventBus` Visual Scripting:
 
@@ -153,38 +153,39 @@ public void Initialize()
 }
 ```
 
-### 5.2 Точка ініціалізації (MergeBaseVScriptingInitializer)
+### 5.2 Initialization (MergeBaseVScriptingInitializer)
 
 Під час старту сцени ініціалізатор:
 1. Викликає `bridge.Initialize()` для підписки на івенти та перенаправлення їх в UVS.
-2. Реєструє посилання на `ILockedAreaManager`, `ITutorialManager`, `ITutorialInputBlocker`, `ChipFactory` та `ClickAction` (`UnityEngine.InputSystem.InputAction`) у локальних `Variables` об'єкта `ScriptMachine`, що дозволяє кастомним UVS-вузлам та стандартним подям (таким як `On Input System Button`) взаємодіяти з системами:
+2. Реєструє посилання на `ILockedAreaManager`, `ITutorialManager`, `ITutorialInputBlocker`, `ChipFactory`, `IChipCollections` та `ClickAction` (`UnityEngine.InputSystem.InputAction`) у Scene Variables сцени (`Variables.Scene`), що дозволяє усім кастомним UVS-вузлам та стандартним подям у цій сцені взаємодіяти з системами:
 
 ```csharp
-var declarations = Variables.Object(scriptMachine.gameObject);
+var declarations = Variables.Scene(scriptMachine.gameObject.scene);
 declarations.Set("LockedAreaManager", lockedAreaManager);
 declarations.Set("TutorialManager", tutorialManager);
 declarations.Set("TutorialInputBlocker", tutorialInputBlocker);
 declarations.Set("ChipFactory", chipFactory);
+declarations.Set("ChipCollections", chipCollections);
 declarations.Set("ClickAction", inputManager.ClickAction);
 ```
 
-### 5.3 Кастомні вузли сценаріїв (Custom UVS Units)
+### 5.3 Custom UVS Units
 
 Для створення сюжетів у UVS реалізовано кастомні вузли подій та дій:
 
-#### Вузли подій (UVS Event Units):
+#### Event Units
 - **`Wait For Chip Created` (`WaitForChipCreatedNode`)**: Призупиняє виконання графу, доки не буде створено чіп (опціонально порівнюється з очікуваним `ChipData`).
 - **`Wait For Chip Removed` (`WaitForChipRemovedNode`)**: Призупиняє виконання, доки чіп певного типу не буде знищено.
 - **`Wait For Chip Effect Unlocked` (`WaitForChipEffectUnlockedNode`)**: Очікує зняття конкретного ефекту-блокатора з чіпа.
 - **`Wait For Area Unlocked` (`WaitForAreaUnlockedNode`)**: Очікує розблокування певної зони сітки.
 - **`Wait For Not Enough Space` (`WaitForNotEnoughSpaceNode`)**: Очікує спроби генерації або еволюції чіпа при відсутності вільного місця на полі.
 
-#### Вузли дій (UVS Action Units):
+#### Action Units
 - **`Unlock Area` (`UnlockAreaNode`)**: Команда на розблокування зони з вказаним ID (із можливістю форсованого відкриття `forceUnlock`).
 
 ---
 
-## 6. Типові сценарії використання (Use Cases)
+## 6. Common Use Cases
 
 | Сценарій | Логіка виконання | Подія-тригер |
 | :--- | :--- | :--- |
