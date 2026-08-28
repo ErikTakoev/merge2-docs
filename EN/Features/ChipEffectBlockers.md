@@ -36,8 +36,7 @@ Effect destruction system allows effects to be progressively destroyed during ne
 
 ### Configuration
 - **`EffectDestroyingSettings`** (`ScriptableObject`): Effect destruction settings.
-  - `NeighboringMergeCountToDestroy` (float): Threshold count of neighboring merges to destroy.
-  - `NeighboringMergeTriggerForEffect` (string): Trigger prefix for progressive animation.
+  - `AdditionalStates` (`string[]`): Array of additional state/trigger names played sequentially on neighboring merges before full effect destruction.
   - `Priority` (int): Priority among active destroying effects; highest is processed first.
 
 ### Runtime

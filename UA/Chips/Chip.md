@@ -16,7 +16,7 @@
   - **Size**: Розмір фішки в клітинках (Vector2Int).
   - **MergeData**: доступ до merge-конфігурації. Під час `Init(ChipData, ChipRuntimeData)` чіп кешує `data.GetSpecialData<ChipMergeData>()`.
   - **specialDatas**: Поліморфна колекція для додаткових типізованих налаштувань чіпа.
-  
+
 - **Special Data**:
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas`.
   - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`.
@@ -30,9 +30,10 @@
   - **SortingLayer** (`IChipSortingLayer`): Керує шарами сортування декількох рендерерів чіпа, забезпечуючи коректне відображення під час руху.
   - **AnimationNode** (`Transform`): Посилання на вузол анімації фішки, куди прикріплюються візуальні ефекти (типу `ParentChipAnimationNode`), що мають рухатися разом із фішкою.
   - **LiftController** (`IChipLiftController`): Об'єкт керування висотою підйому фішки (наприклад, під час перетягування). Отримує посилання через серіалізоване поле `liftControllerRef`.
+  - **MaterialController** (`IChipMaterialController`): Об'єкт керування матеріалами та шейдерними параметрами рендерерів фішки через `MaterialPropertyBlock` для збереження динамічного й статичного батчингу. Отримує посилання через серіалізоване поле `materialControllerRef` та ініціалізується в `Chip.Init()` (`MaterialController.Init(this)`).
 - **Others**:
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
-- **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.  
+- **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.
   Для повного каталогу див. [Visual Effects](../Visuals/Effects.md). Детальніше про логіку блокувань та руйнування див. [Chip Effect Blockers](../Features/ChipEffectBlockers.md).
 - **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`). Підтримує паузу через `PauseAnimator(bool)` на час затримки польоту.
 
@@ -60,7 +61,7 @@
   4. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
   5. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
   6. Якщо вказано `ShadowEffectPrefab`, створює та додає `ShadowEffect` (ключ: `EffectConsts.ShadowEffect`)
-  
+
   Цей метод призначений для перекриття в похідних класах (наприклад, `ChipGenerator` додає `GeneratorCharging` та `GeneratorCharged`).
 
 - **`AddEffect(IEffect effect, int effectHash, bool activate)`**: Додає ефект до словника та опціонально активує його:
@@ -71,8 +72,8 @@
 
 ### Effect Constants (EffectConsts)
 Вся система ефектів використовує централізовані цілочисельні константи, що визначені у [EffectConsts.cs](../../../Core/Scripts/Chips/Effects/EffectConsts.cs):
-- **Базові ефекти (1-7)**: `MergeAvailable`, `CellHighlight`, `ContainerRequirements`, `GeneratorCharged`, `GeneratorCharging`, `PBoosterConnectorCells`, `PBoosterJoin`
-- **Blocker-ефекти (101+)** — `EffectConsts.Blockers`: `BoxEffect` (101), `ChainsEffect` (102), `MoveLockedEffect` (103)
+- **Базові ефекти (1–13)**: `MergeAvailable`, `CellHighlight`, `ContainerRequirements`, `GeneratorCharged`, `GeneratorCharging`, `PBoosterConnectorCells`, `PBoosterJoin`, `ShadowEffect`, `MergeLight`, `MergeHint`, `TapHint`, `GlowEffect`, `SepiaEffect`
+- **Blocker-ефекти (101+)** — `EffectConsts.Blockers`: `BoxEffect` (101), `WebEffect` (102), `MoveLockedEffect` (103), `BoxAndWebEffect` (104)
 - **Утиліти**: `GetIdByName(string)` — резолв рядкової назви в ID через словник `nameToId`
 
 ### Effect Lifecycle
@@ -93,9 +94,9 @@
     1. Викликає `module.DestroyModule()` для кожного зареєстрованого модуля.
     2. Знищує та очищає всі прив'язані ефекти через `RemoveAllEffects()`.
     3. Знищує GameObject чіпа (`OnDestroy` також гарантує виклики `RemoveAllEffects()` та `DestroyModule()`).
-    
+
     Під час деактивації та видалення ефектів перевіряється властивість `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект пропускається (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
-  
+
 ## Modular Architecture and Composition (IChipModule)
 
 Починаючи з версії Merge Toolkit, реалізовано перехід від успадкування спеціалізованих чіпів до композиційного підходу. Клас [Chip](../../../Core/Scripts/Chips/Chip.cs) тепер виступає як контейнер (хост), а спеціалізована логіка винесена в окремі модулі, що реалізують інтерфейс [IChipModule](../../../Core/Scripts/Chips/Interfaces/IChipModule.cs):
@@ -172,6 +173,6 @@
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
 
 ### Merge System
-Реалізує логіку сумісності та процес злиття двох фішок через механізм `IChipInteractionLogic`.  
+Реалізує логіку сумісності та процес злиття двох фішок через механізм `IChipInteractionLogic`.
 Для повного опису (CanInteract, ExecuteInteraction, Weighted Random, Extra Chips, Relocation) див. [MergeableChipLogic](../Interactions/MergeableChipLogic.md).
 

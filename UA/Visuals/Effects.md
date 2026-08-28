@@ -24,14 +24,16 @@
 | [`MergeLight`](#9-merge-light) | 9 | Спалах підсвічування на результуючій фішці після злиття |
 | [`MergeHint`](#10-merge-hint) | 10 | Підсвічує сумісні фішки та контейнери під час перетягування |
 | [`TapHint`](#11-tap-hint) | 11 | Візуальний ефект підказки тапу (OnTap) на фішці |
+| [`SepiaEffect`](#13-sepia-effect) | 13 | Застосовує сепія-матеріал та керує шейдерним параметром `_Intensity` |
 
 **Blocker-ефекти (101+)** — вкладений клас `EffectConsts.Blockers`:
 
 | Константа | ID | Опис |
 |---|---|---|
 | [`BoxEffect`](#101-box-effect) | 101 | Ефект коробки |
-| [`ChainsEffect`](#102-chains-effect) | 102 | Ефект ланцюгів |
+| [`WebEffect`](#102-web-effect) | 102 | Ефект павутини |
 | [`MoveLockedEffect`](#103-move-locked-effect) | 103 | Ефект блокування переміщення |
+| [`BoxAndWebEffect`](#104-box-and-web-effect) | 104 | Комбінований ефект коробки та павутини |
 
 **Утиліти**:
 - **`nameToId`** (`Dictionary<string, int>`): Словник для резолвінгу рядкових імен ефектів у цілочисельні ID. Використовується `ExtraEffectData.EffectId` та `EffectBlockingSettings.UpdateHideEffectIds`.
@@ -44,7 +46,10 @@
 - **`GetId()`**: Повертає унікальний ID ефекту (з `EffectConsts`).
 - **`Init(Chip chip, int effectId)`**: Ініціалізація з посиланням на чіп та ідентифікатором ефекту.
 - **`Activate(Chip chip) → bool`**: Активація ефекту. Повертає `false`, якщо `effectId` міститься в `chip.BlockingState.HideEffectIds` (ефект приховано іншим блокуючим ефектом). При успішній активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
+- **`Activate(Chip chip, IEffect parentEffect) → bool`**: Активація ефекту із зазначенням батьківського ефекту. Додає `parentEffect` до `ParentEffects` і активує ефект, якщо він ще не був активним.
 - **`Deactivate(Chip chip, bool force)`**: Деактивація ефекту. При `force = true` форсує негайну зміну стану (корисно для миттєвого очищення).
+- **`Deactivate(Chip chip, IEffect parentEffect, bool force)`**: Деактивація ефекту із зазначенням батьківського ефекту. Видаляє `parentEffect` з `ParentEffects` і виконує деактивацію лише тоді, коли `ParentEffects.Count == 0`.
+- **`ParentEffects`** (`HashSet<IEffect>`): Множина активних батьківських ефектів, що наразі утримують цей ефект в активному стані.
 - **`SendTrigger(string triggerName, bool allowRepeat)`**: Відправка довільного тригеру в Animator.
 - **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`).
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Обробка зміни стану руху (початок перетягування або системне переміщення).
@@ -61,12 +66,15 @@
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
 - **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
 - **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
+- **`Activate(Chip chip, IEffect parentEffect) → bool`**: Реєструє `parentEffect` у списку `parentEffects` (`ParentEffects`) і викликає `Activate(chip)`, якщо ефект ще не активний.
 - **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)` та `animator.Update(0f)`.
+- **`Deactivate(Chip chip, IEffect parentEffect, bool force = false)`**: Видаляє `parentEffect` з `parentEffects`. Якщо `parentEffects.Count == 0` (всі батьківські ефекти деактивувалися), викликає `Deactivate(chip, force)`.
+- **`ParentEffects`**: Публічна властивість для доступу до активних батьківських ефектів (`HashSet<IEffect>`).
 - **`GetId()`**: Повертає збережений `effectId`.
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`) під час Drag-and-Drop.
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Автоматично приховує ефект при початку руху, якщо встановлено `deactivateOnMove = true`, та відновлює стан при зупинці.
-- **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Якщо `NeighboringMergeCount` менше порогу, відправляє прогресивний тригер (наприклад, `"Hit_1"`, `"Hit_2"`); якщо досяг порогу — деактивує ефект і повертає `true`.
+- **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Якщо `NeighboringMergeCount` не перевищує кількість станів у `AdditionalStates`, відправляє тригер відповідного додаткового стану; коли всі додаткові стани вичерпано (або масив порожній) — деактивує ефект і повертає `true`.
 
 **EffectParentType** (enum):
 - `ParentChip`: Ефект прикріплений до трансформу фішки.
@@ -96,6 +104,46 @@
 - **Animator Integration**: Якщо налаштовано `sendAnimatorTrigger`, методи `Activate` та `Deactivate` автоматично відправляють тригери `"Activate"` та `"Deactivate"` в компонент `Animator`, а також скидають протилежні тригери для запобігання анімаційним артефактам.
 - **`SendTrigger(string triggerName, bool allowRepeat = false)`**: Дозволяє відправити довільний тригер в `Animator` ефекту. Використовується для спеціальних взаємодій, таких як анімація при спробі перетягнути заблокований чіп (`MoveLocked`). Параметр `allowRepeat` дозволяє ігнорувати налаштування `dontRepeatTrigger` для конкретних викликів.
 - **`ResetTrigger(string triggerName)`**: Скидає вказаний анімаційний тригер в `Animator` ефекту. Викликається при переключенні анімаційних станів, щоб запобігти конфліктам між протилежними тригерами (наприклад, скидає `"Deactivate"` перед надсиланням `"Activate"`). Безпечно обробляє випадок, коли `Animator` значення `null`.
+
+**Підсистема сабефектів (`Effect.SubEffects.cs`)**:
+Базовий клас `Effect` підтримує масив сабефектів (`SubEffects`), що дозволяє зв'язувати дочірні ефекти з основним ефектом:
+- **`Effect.SubEffect`**:
+  - `effectId` (`[EffectSelector] int`): ID сабефекту з `EffectConsts`.
+  - `activateDelay` (`float`, дефолт `-1`): Затримка перед активацією. Значення `< 0` означає миттєву активацію, `> 0` — запуск корутіни із затримкою.
+  - `deactivateDelay` (`float`, дефолт `-1`): Затримка перед деактивацією. Значення `< 0` або виклик з `force = true` означає миттєву деактивацію, `> 0` — запуск корутіни із затримкою.
+  - `subEffect` (`IEffect`): Посилання на екземпляр сабефекту, кешується з `Chip.GetEffect(effectId)` під час `Init` або резолвиться ліниво.
+  - `delayCoroutine` (`Coroutine`): Посилання на активну корутіну затримки (автоматично очищається/зупиняється при зміні стану або знищенні).
+- **Синхронізація життєвого циклу та множинні батьки**:
+  - При `Activate(chip)`: зупиняє активні корутіни та викликає `se.subEffect.Activate(chip, this)` для всіх сабефектів (миттєво або з затримкою `activateDelay`). Передає `this` як батьківський ефект.
+  - При `Deactivate(chip, force)`: зупиняє активні корутіни та викликає `se.subEffect.Deactivate(chip, this, force)` (миттєво при `force` чи `deactivateDelay <= 0`, або з затримкою `deactivateDelay`). Передає `this` як батьківський ефект.
+  - **Множинні батьки (Multiple Parents)**: якщо саб-ефект одночасно прив'язаний до кількох батьківських ефектів (наприклад, до Parent A та Parent B), кожен батько реєструє себе в `ParentEffects` саб-ефекту. При деактивації Parent A саб-ефект залишається активним (`IsActive == true`), оскільки `ParentEffects.Count > 0` (Parent B ще активний). Саб-ефект деактивується лише тоді, коли деактивується останній активний батько (`ParentEffects.Count == 0`).
+  - При `OnDestroy()`: гарантовано зупиняє всі запущені delay-корутіни.
+
+---
+
+### `ChipMaterialEffect.cs`
+Базовий клас для візуальних ефектів, що керують матеріалами чіпа та анімують параметри шейдера без витоків пам'яті:
+- Наслідує `Effect`.
+- Поле `effectMaterial` (`Material`): спільний екземпляр матеріалу (`sharedMaterial`), призначений для цього ефекту.
+- Поле `isMaterialAnimating` (`bool`): вказує, чи триває покадрова анімація властивостей матеріалу.
+- **Життєвий цикл**:
+  - `Init(Chip, int)`: реєструє `effectMaterial` у `Chip.MaterialController` за унікальним `effectId`.
+  - `Activate(Chip)`: перемикає `sharedMaterial` рендерерів чіпа на `effectMaterial`, встановлює `isMaterialAnimating = true`, форсує негайне оновлення аніматора `animator.Update(0f)` та викликає `UpdateMaterialProperties(0f)`.
+  - `Deactivate(Chip, bool)`: якщо `force`, скидає `isMaterialAnimating = false` та одразу відновлює дефолтний матеріал; інакше встановлює `isMaterialAnimating = true` для програвання анімації деактивації.
+  - `OnAnimationEnd()`: Animation Event метод, що викликається в кінці кліпів анімації:
+    - При `IsActive == true` (Activate): встановлює `isMaterialAnimating = false` та викликає `ClearPropertyBlock()` для відновлення статичного/динамічного батчингу.
+    - При `IsActive == false` (Deactivate): встановлює `isMaterialAnimating = false` та відновлює вихідний матеріал через `RestoreDefaultMaterial(effectId)`.
+- **Робота з шейдерами та батчингом**:
+  - `UpdateMaterialProperties(float dt)`: віртуальний метод для оновлення параметрів шейдера через MPB під час анімації.
+  - `ClearPropertyBlock()`: викликається після закінчення анімації для скидання MPB (`renderer.SetPropertyBlock(null)`), що миттєво об'єднує всі чіпи з цим матеріалом у єдиний спільний Draw Call / Sprite Batch.
+
+---
+
+### `ChipMaterialController.cs`
+Компонент на фішці (`IChipMaterialController`), що керує `SpriteRenderer.sharedMaterial` та `MaterialPropertyBlock`:
+- Кешує вихідний `DefaultMaterial` чіпа.
+- Зберігає реєстр матеріалів ефектів `Dictionary<int, Material>`.
+- Надає методи `ApplyEffectMaterial`, `RestoreDefaultMaterial`, `SetPropertyFloat/Color/Vector` та `ClearPropertyBlock`.
 
 ---
 
@@ -244,11 +292,25 @@
   - При активному туторіалі (`ITutorialManager.ActiveTutorial != null`) візуальна підказка не відображається, окрім випадків примусового виклику (`force = true`).
   - Спрацьовує автоматично при спавні фішки, зміні клітинки (`OnChangedCell`), або при тапі користувача.
 
-### 101. Box Effect
-Ефект коробки. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-chains-box)**.
+### 13. Sepia Effect
+**Константа**: `EffectConsts.SepiaEffect` (ID 13)
+**Клас**: `SepiaEffect.cs` (наслідує `ChipMaterialEffect`)
 
-### 102. Chains Effect
-Ефект ланцюгів. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-chains-box)**.
+Візуальний ефект, що застосовує спільний сепія-матеріал до рендерерів чіпа та динамічно керує шейдерним параметром `_Intensity`.
+- **Особливості**:
+  - Наслідує `ChipMaterialEffect`, реєструючи `effectMaterial` у `ChipMaterialController`.
+  - Містить серіалізоване поле `[Range(0f, 1f)] intensity` та властивість `Intensity`, значення яких може анімуватися за допомогою Unity Animation Clips / Animator.
+  - У методі `UpdateMaterialProperties` передає значення `intensity` у `MaterialPropertyBlock` через `Chip.MaterialController.SetPropertyFloat(IntensityPropertyId, intensity)` без створення інстансів матеріалу.
+  - Підтримує скидання MPB у `OnAnimationEnd()` для відновлення статичного/динамічного батчингу або повернення дефолтного матеріалу при деактивації.
+
+### 101. Box Effect
+Ефект коробки. Докладніше про налаштування та використання див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-web-box-box-and-web)**.
+
+### 102. Web Effect
+Ефект павутини. Докладніше про налаштування та використання див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-web-box-box-and-web)**.
 
 ### 103. Move Locked Effect
-Ефект блокування переміщення. Докладніше про налаштування та використання див. у докуметі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-chains-box)**.
+Ефект блокування переміщення. Докладніше про налаштування та використання див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-web-box-box-and-web)**.
+
+### 104. Box And Web Effect
+Комбінований ефект коробки та павутини. Докладніше про налаштування та використання див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocker-effects-move-locked-web-box-box-and-web)**.

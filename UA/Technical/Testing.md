@@ -183,12 +183,39 @@
 - **Сценарій**: Налаштовує `ChipTapEvolutionData.Provider` на `RandomNextChipsProvider` із двома рівноважними `ConstantNextChipsProvider` записами (`SeedlingContainer_4` та `TomatoPlant_5`), спавнить 10 фішок, симулює тапи на кожній після спавну та перевіряє, що серед результатів присутні обидва типи фішок.
 
 #### Evolution_OnTap_BlockedWhenCanBeTapedIsFalse
-- **Мета**: Перевіряє, що еволюція та деактивація підказки тапу (`TapHint`) блокуються, якщо `CanBeTaped == false` (наприклад, при накладанні ефекту `ChainsEffect`).
-- **Сценарій**: Спавнить фішку з ефектом `ChainsEffect` у `EffectEnables`. Перевіряє `CanBeTaped == false`, симулює тап та перевіряє, що фішка не еволюціонувала, а ефект `TapHint` деактивований (`IsActive == false`).
+- **Мета**: Перевіряє, що еволюція та деактивація підказки тапу (`TapHint`) блокуються, якщо `CanBeTaped == false` (наприклад, при накладанні ефекту `WebEffect`).
+- **Сценарій**: Спавнить фішку з ефектом `WebEffect` у `EffectEnables`. Перевіряє `CanBeTaped == false`, симулює тап та перевіряє, що фішка не еволюціонувала, а ефект `TapHint` деактивований (`IsActive == false`).
 
 #### Evolution_OnTap_BlockedDuringMovement_ButSucceedsAfterSettle
 - **Мета**: Перевіряє, що еволюція блокується під час візуального переміщення фішки (`IsMoving == true`), але успішно виконується після її зупинки.
 - **Сценарій**: Симулює перетягування фішки на нову позицію. Під час польоту після перетягування симулює тап і перевіряє, що фішка не еволюціонувала. Чекає завершення польоту, симулює повторний тап і перевіряє еволюцію в `SeedlingContainer_4`.
+
+### ChipMaterialControllerTests
+Тести контролера матеріалів та MaterialPropertyBlock ([ChipMaterialController](../../../Core/Scripts/Chips/ChipMaterialController.cs)).
+
+#### Init_CachesDefaultMaterialFromRenderer
+- **Мета**: Перевіряє коректне кешування початкового матеріалу SpriteRenderer як дефолтного матеріалу.
+- **Сценарій**: Ініціалізує контролер і перевіряє, що властивості `DefaultMaterial` та `CurrentMaterial` повертають призначений `defaultMat`, а `sharedMaterial` на рендерері залишається незмінним.
+
+#### ApplyEffectMaterial_ChangesSharedMaterialOnRenderer
+- **Мета**: Перевіряє застосування зареєстрованого матеріалу ефекту на рендерері без створення локальних копій матеріалу.
+- **Сценарій**: Реєструє матеріал для вказаного ID ефекту через `RegisterEffectMaterial` та викликає `ApplyEffectMaterial`. Перевіряє, що `CurrentMaterial` та `sharedMaterial` рендерера оновилися на зареєстрований матеріал ефекту.
+
+#### RestoreDefaultMaterial_RestoresDefaultMaterialAndClearsMPB
+- **Мета**: Перевіряє відновлення дефолтного матеріалу та скидання MaterialPropertyBlock при деактивації ефекту.
+- **Сценарій**: Застосовує матеріал ефекту, встановлює float-властивість у `MaterialPropertyBlock`, після чого викликає `RestoreDefaultMaterial`. Перевіряє повернення рендерера до `defaultMat` і те, що `MaterialPropertyBlock` став порожнім.
+
+#### SetPropertyFloat_AppliesToRendererWithoutCreatingMaterialInstance
+- **Мета**: Перевіряє зміну параметрів шейдера через `MaterialPropertyBlock` без створення інстансів матеріалу.
+- **Сценарій**: Встановлює значення float через `SetPropertyFloat`. Перевіряє, що значення успішно передалося в `MaterialPropertyBlock` рендерера, а `sharedMaterial` не замінився на інстанційований матеріал.
+
+#### ClearPropertyBlock_EmptiesPropertyBlockOnRenderer
+- **Мета**: Перевіряє очищення `MaterialPropertyBlock` на рендерерах для повернення до статичного батчингу.
+- **Сценарій**: Записує значення у `MaterialPropertyBlock`, викликає `ClearPropertyBlock` і валідує, що блок властивостей на рендерері очищено.
+
+#### ChipMaterialEffect_Lifecycle_RegistersAppliesAndRestoresMaterial
+- **Мета**: Перевіряє повний життєвий цикл роботи `ChipMaterialEffect` у зв'язці з `ChipMaterialController`.
+- **Сценарій**: Створює тестовий ефект матеріалу. Перевіряє реєстрацію матеріалу під час `Init`, застосування матеріалу ефекту при активації, встановлення шейдерних параметрів через `SetPropertyFloat`, скидання блоку через `ClearPropertyBlock` та відновлення базового матеріалу при деактивації.
 
 ### ScenarioTests
 Тести взаємодії ядра Merge з системою сценаріїв та івентів (`IScenarioEventHandler`) у C# та Unity Visual Scripting (UVS).

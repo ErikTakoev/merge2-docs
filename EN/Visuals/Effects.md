@@ -49,7 +49,7 @@ Main contract for all effects:
 - **`BlockingSettings`** (`EffectBlockingSettings`): Chip blocking configuration when effect is active. More details: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocking-system).
 - **`DestroyingSettings`** (`EffectDestroyingSettings`): Effect destruction configuration on neighboring merges. More details: [Effect Destroying System](../Features/ChipEffectBlockers.md#effect-destroying-system).
 
-### 
+###
 For more details on blocking system (Blocking Settings, Combined Blocking State) see **[Chip Effect Blockers](../Features/ChipEffectBlockers.md)** document.
 
 ---
@@ -63,7 +63,7 @@ Base class for all effects. Implements `IEffect` and provides virtual methods fo
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Called when chip moves. If `parentType` is set to `ParentCell`, effect rebinds to new cell.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Handling cell (`ICell`) changes during Drag-and-Drop.
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Automatically hides effect when movement starts if `deactivateOnMove = true` is set, and restores state on stop.
-- **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: If `NeighboringMergeCount` is below threshold, sends progressive trigger (e.g., `"Hit_1"`, `"Hit_2"`); if threshold reached — deactivates effect and returns `true`.
+- **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: If `NeighboringMergeCount` does not exceed the number of states in `AdditionalStates`, sends the corresponding additional state trigger; when all additional states are exhausted (or the array is empty) — deactivates the effect and returns `true`.
 
 **EffectParentType** (enum):
 - `ParentChip`: Effect is attached to chip transform.

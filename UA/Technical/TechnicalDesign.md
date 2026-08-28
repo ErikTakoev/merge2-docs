@@ -100,8 +100,9 @@
 - **`IEffectGeneratorCharging`**: Спеціалізований інтерфейс для візуалізації зарядки `ChipGenerator`, розширює `IEffect` методом `OnCharging`.
 - **`IEffectPowerBoosterJoin`**: Спеціалізований інтерфейс для join-візуалізації бустера (`OnJoin`, `OnLeave`, `Show`) між `ChipPowerBooster` та `IPowerBoosterTarget`.
 - **`IShadowEffect`**: Спеціалізований інтерфейс для постійного ефекту тіні під фішкою, розширює `IEffect` методом `OnHeightChanged` для динамічної зміни зміщення та масштабу тіні.
+- **`IChipMaterialController`** -> `ChipMaterialController`: Інтерфейс та компонент для керування спільними матеріалами (`sharedMaterial`) та параметрами через `MaterialPropertyBlock` на рендерерах фішки, що забезпечує коректну роботу шейдерних ефектів зі збереженням статичного та динамічного батчингу.
 - **`IChipSortingLayer`**: Контракт для управління шарами сортування (Sorting Layers) декількох рендерерів фішки. Дозволяє автоматично коригувати `sortingOrder` під час переміщення (drag), щоб фішка візуально знаходилася над полем.
-- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerHintRef`, `EffectHintRef`, `EffectPowerBoosterJoinRef`, `ChipLiftControllerRef`, `ShadowEffectRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
+- **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerHintRef`, `EffectHintRef`, `EffectPowerBoosterJoinRef`, `ChipLiftControllerRef`, `ChipMaterialControllerRef`, `ShadowEffectRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
 
 ## Interaction Strategies
 Використовуємо патерн "Стратегія". Логіка того, як фішки взаємодіють між собою під час перетягування, винесена в окремі компоненти:
