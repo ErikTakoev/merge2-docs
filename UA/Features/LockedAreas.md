@@ -10,11 +10,13 @@
 
 - Клітинки у ділянці мають прапорець `IsBlocked = true`, що блокує будь-яку взаємодію вводу (натиск, перетягування)
 - Видимо ділянка закривається ефектами (наприклад, туман, ворота, ланцюги), які управляються `LockedAreaEffect`
+- Фішки, розташовані на заблокованих клітинках ділянки, отримують обмеження взаємодії через `EffectBlockingSettings` та відповідні субефекти (наприклад, ланцюги, лід)
 - Відкладені фішки не спавнять під час завантаження рівня, а чекають розблокування
 
 Коли ділянка розблокується (через ігровий код або завершення умови):
 
 - Клітинки розблоковуються (`IsBlocked = false`)
+- З наявних на ділянці фішок знімаються блокування та деактивуються субефекти ділянки (`RemoveFromChip`), оновлюється стан доступності фішок у колекціях
 - `LockedAreaEffect` запускає анімацію деактивації (наприклад, зникнення туману)
 - Для комірок типу `DeferredCell` спавнять збережені фішки (одразу якщо ефекти відсутні/force=true, або через Animation Event у `LockedAreaEffect`)
 
@@ -24,32 +26,35 @@
 
 ### Core Components
 
-#### 1. `LockedAreaManager` (ILockedAreaManager)
+#### 1. LockedAreaManager (ILockedAreaManager)
 Центральний менеджер, що управляє станом усіх заблокованих ділянок на полі.
 
 **Відповідальність**:
 - **Ініціалізація** (`Initialize`): Читає `FieldData.LockedAreas`, блокує всі клітинки закритих ділянок
-- **Реєстрація ефектів** (`RegisterEffect`): Приймає реєстрацію від компонентів `LockedAreaEffect` та одразу викликає `Activate()` або `Deactivate()` залежно від поточного стану. Якщо вказаний `LockedAreaId` ефекту не існує у конфігурації поля, ефект автоматично вимикається
-- **Розблокування** (`UnlockArea`): Розблоковує всі клітинки ділянки. Якщо `force` або для ділянки відсутні ефекти (`!hasEffects`), спавнить відкладені фішки через `SpawnDeferredChips(areaId)`. Запускає анімацію деактивації ефектів `DeactivateEffects(areaId, force)`
+- **Реєстрація ефектів** (`RegisterEffect`): Приймає реєстрацію від компонентів `ILockedAreaEffect`. Підтримує рівно один ефект на ділянку. Якщо вказаний `LockedAreaId` ефекту не існує у конфігурації поля, об'єкт ефекту автоматично вимикається. Якщо ділянка заблокована, прив'язує клітинки ділянки до ефекту у внутрішньому словнику `activeEffectByCell` та викликає `Activate()`, якщо вже розблокована — викликає `Deactivate(force: true)`
+- **Перевірка ефекту за клітинкою** (`TryGetEffect`): Дозволяє перевірити, чи покрита клітинка активним ефектом заблокованої ділянки, та отримати посилання на `ILockedAreaEffect`
+- **Застосування блокувань до фішки** (`ApplyToChip`): Якщо клітинка покрита активним ефектом ділянки, викликає `effect.ApplyToChip(chip)`. Використовується `ChipFactory` при появі нової фішки на заблокованій клітинці
+- **Розблокування** (`UnlockArea`): Видаляє клітинки ділянки зі словника активних ефектів, розблоковує клітинки (`IsBlocked = false`), знімає блокування та субефекти з усіх наявних фішок ділянки (`effect.RemoveFromChip`) та оновлює стан їх доступності в `IChipCollections`. Якщо `force` або для ділянки відсутній ефект, спавнить відкладені фішки через `SpawnDeferredChips(areaId)`. Запускає анімацію деактивації ефекту `Deactivate(force)`
 - **Спавн відкладених фішок** (`SpawnDeferredChips`): Публічний ідемпотентний метод для спавну фішок на ділянці `areaId`. Гарантує, що спавн відбувається лише один раз для кожної ділянки
 
-#### 2. `LockedAreaEffect`
-Візуальний компонент, що представляє графічне покриття заблокованої ділянки.
+#### 2. LockedAreaEffect (ILockedAreaEffect)
+Візуальний компонент, що представляє графічне покриття заблокованої ділянки та імплементує `ILockedAreaEffect` (наслідує `MonoBehaviour, ILockedAreaEffect`).
 
 **Структура**:
 - **`lockedAreaId`** (int): Унікальний ID ділянки, до якої належить ефект
-- **`Animator`**: Компонент Animator з тригерами `"Activate"` (показ) та `"Deactivate"` (приховування)
+- **`blockingSettings`** (`EffectBlockingSettings`): Налаштування блокування взаємодій (перетягування, злиття тощо), які накладаються на покриті фішки через `Chip.BlockingState`
+- **`subEffects`** (`SubEffect[]`): Конфігурація додаткових чіп-ефектів, що активуються на фішках у зоні. Кожен елемент містить `effectId`, а також необов'язкові затримки `activateDelay` та `deactivateDelay` у секундах
+- **`animator`** (`Animator`): Компонент Animator з тригерами `"Activate"` (показ) та `"Deactivate"` (приховування)
 
 **Методи**:
-- **`Init(Chip chip, int effectId)`**: Зберігає `effectId` та реєструє себе у менеджері через `RegisterEffect(this)`
-  > **Важливо**: `base.Init()` **не викликається** — базова реалізація читає `chip.Data` і деактивує чіп-ефекти, що не підходить для рівневих візуалів.
-- **`Activate(Chip chip)`**: Активує GameObject та запускає анімацію через `Animator.SetTrigger("Activate")`
-- **`Deactivate(Chip chip, bool force)`**: Запускає анімацію через `Animator.SetTrigger("Deactivate")`
+- **`Init()`**: Реєструє компонент у менеджері через `lockedAreaManager.RegisterEffect(this)`. Викликається з `VisualField` або `IsoVisualField` під час створення візуалу рівня
+- **`Activate()`**: Скидає тригер `"Deactivate"` та запускає анімацію появи через `Animator.SetTrigger("Activate")`
+- **`Deactivate(bool force = false)`**: Скидає тригер `"Activate"`. При `force = true` миттєво переводить аніматор у стан `"Deactivate"` без переходу, інакше запускає тригер `"Deactivate"`
+- **`ApplyToChip(Chip chip)`**: Застосовує `blockingSettings` до блокуючого стану фішки (`chip.BlockingState.ApplyBlock`) та активує субефекти на фішці через `chip.GetEffect(se.effectId)?.Activate(chip)` (з підтримкою корутини затримки `activateDelay`)
+- **`RemoveFromChip(Chip chip, bool force = false)`**: Знімає `blockingSettings` з блокуючого стану фішки (`chip.BlockingState.RemoveBlock`) та деактивує субефекти (з підтримкою затримки `deactivateDelay` або негайно при `force = true`)
 - **`SpawnDeferredChips()`**: Може викликатися через Animation Event під час анімації розблокування або з коду. Делегує виклик `lockedAreaManager.SpawnDeferredChips(lockedAreaId)`
-- **`FadeOutParticles(float duration)`**: Запускається через анімаційний івент під час деактивації. Зупиняє спавн нових часток та плавно зменшує їхню видимість до нуля за вказаний час `duration`
 
-
-#### 3. `DeferredCell`
+#### 3. DeferredCell
 Додатковий `MonoBehaviour` компонент, що зберігає конфігурацію фішки та спавнить її після розблокування ділянки. Додається на той же GameObject, що й регулярна `Cell` або `IsoCell`.
 
 **Методи**:
@@ -80,19 +85,21 @@ public struct LockedAreaData
 
 Під час запуску сцени відбувається послідовність кроків:
 
-1. **`FieldInitializeCommand.CreateField()`**: Створює сітку комірок. Для координат у `CellsToLockAndDeferred` додає компонент `DeferredCell`.
-2. **`LockedAreaManager.Initialize()`**: Блокує комірки на основі `FieldData.LockedAreas`.
-   > **Важливо**: На цьому кроці `LockedAreaEffect` компоненти ще не зареєстровані (вони реєструються на Кроці 3).
-3. **`FieldInitializeCommand.CreateLevelVisual()`**: Інстанціює `LevelVisualPrefab`. Кожен `LockedAreaEffect` під час `Init()` реєструється у менеджері (`RegisterEffect`) і одразу синхронізує свій стан (активує або деактивує візуал).
-4. **`FieldInitializeCommand.LoadChips()`**: Для звичайних комірок спавнить фішки миттєво, а для комірок з `DeferredCell` викликає `SetupDeferredChip()` (зберігає конфігурацію без спавну).
+1. **`chipFactory.Init(...)`**: Отримує залежності, включаючи `ILockedAreaManager`.
+2. **`FieldInitializeCommand.CreateField()`**: Створює сітку комірок. Для координат у `CellsToLockAndDeferred` додає компонент `DeferredCell`.
+3. **`LockedAreaManager.Initialize()`**: Блокує комірки на основі `FieldData.LockedAreas`.
+   > **Важливо**: На цьому кроці `ILockedAreaEffect` компоненти ще не зареєстровані (вони реєструються на Кроці 4).
+4. **`FieldInitializeCommand.CreateLevelVisual()`**: Інстанціює `LevelVisualPrefab`. Кожен компонент `ILockedAreaEffect` під час `Init()` реєструється у менеджері (`RegisterEffect`) і одразу синхронізує свій стан (активує або деактивує візуал, а також зв'язує активні клітинки з ефектом).
+5. **`FieldInitializeCommand.LoadChips()`**: Для звичайних комірок спавнить фішки через `ChipFactory.CreateChip`. Якщо комірка заблокована (`cell.IsBlocked`), фабрика автоматично застосовує до фішки налаштування блокування та субефекти через `lockedAreaManager.ApplyToChip(chip, cell)`. Для комірок з `DeferredCell` викликає `SetupDeferredChip()` (зберігає конфігурацію без створення фішки).
 
 ---
 
 ## Unlocking and Deferred Chip Spawning
 
 ### Method UnlockArea(int areaId, bool force = false)
-- **Розблокування комірок**: Встановлює `IsBlocked = false` для комірок ділянки та оновлює стан доступності фішок у колекціях (`chipCollections.OnChipBlockingChanged`).
-- **Спавн відкладених фішок**: Якщо `force = true` або для ділянки відсутні ефекти (`!hasEffects`), спавнить відкладені фішки через `SpawnDeferredChips(areaId)`.
+- **Розблокування комірок**: Видаляє координати ділянки з `activeEffectByCell`, встановлює `IsBlocked = false` для комірок ділянки.
+- **Зняття блокувань та ефектів з фішок**: Через `RemoveEffectFromAreaChips` знімає блокування та субефекти з наявних фішок (`effect.RemoveFromChip`) і оновлює стан їх доступності в колекціях (`chipCollections.OnChipBlockingChanged`).
+- **Спавн відкладених фішок**: Якщо `force = true` або для ділянки відсутній зареєстрований ефект, спавнить відкладені фішки через `SpawnDeferredChips(areaId)`.
 - **Деактивація ефектів**: Викликає `DeactivateEffects(areaId, force)` для запуску анімації відкриття.
 
 ### Method SpawnDeferredChips(int areaId)
