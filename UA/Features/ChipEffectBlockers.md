@@ -17,6 +17,7 @@
 - **`CanBeMergedAsSource` / `CanBeMergedAsTarget`**: Дозвіл злиття як джерело/ціль.
 - **`CanBeFilled`**: Дозвіл наповнення (для `ChipContainer`).
 - **`CanGenerate`**: Дозвіл генерації (для `ChipGenerator`).
+- **`CanCharge`**: Дозвіл зарядки / еволюції за часом (для `WaitEvolutionModule` та `GeneratorModule`).
 - **`CanBeTaped`**: Дозвіл натиснення.
 - **`CanApplyModifiers`**: Дозвіл впливу на інших (для `ChipPowerBooster`).
 - **`CanReceiveModifiers`**: Дозвіл прийому підсилень (для `ChipGenerator`, `ChipPowerBooster`).

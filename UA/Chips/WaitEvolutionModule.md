@@ -11,7 +11,7 @@
 ### 1. `WaitEvolutionModule.cs` (Main Component)
 Клас `WaitEvolutionModule` керує таймером еволюції та процесом заміни фішки, реалізуючи інтерфейси `IChipModule` та `IPowerBoosterTarget`.
 - **Ініціалізація даних**: У методі `Init(Chip, ChipData, ChipRuntimeData)` зчитує конфігурацію через `data.GetSpecialData<ChipWaitEvolutionData>()` та рантайм-дані `ChipWaitEvolutionRuntimeData`.
-- **Update Loop**: У методі `Update()` зменшує залишок часу `TimeLeft` на `Time.deltaTime`, помножений на `powerMultiplier`. Коли час закінчується, ініціює еволюцію (якщо фішка не рухається і не перетягується користувачем).
+- **Update Loop**: У методі `Update()` перевіряє стан блокування `chip.BlockingState.CanCharge`. Якщо зарядка заблокована, оновлення таймера призупиняється; якщо дозволена — зменшує залишок часу `TimeLeft` на `Time.deltaTime`, помножений на `powerMultiplier`. Коли час закінчується, ініціює еволюцію (якщо фішка не рухається і не перетягується користувачем).
 - **Залежності**:
   - `IFieldGrid`: Для отримання доступу до поточної клітинки на сітці поля.
   - `ChipFactory`: Для створення нової фішки на місці старої.
@@ -31,7 +31,7 @@
 
 ## Evolution Process (Flow)
 
-1. **Update Timer**: Таймер `TimeLeft` зменшується в кожному кадрі. Якщо ефект підсилення діє і дозволений (`IsAffectedByBoosters = true`), швидкість таймера масштабується за допомогою `powerMultiplier` (береться максимальна сила `Power` серед сусідніх бустерів).
+1. **Update Timer**: Якщо `chip.BlockingState.CanCharge == true`, таймер `TimeLeft` зменшується в кожному кадрі. Якщо ефект підсилення діє і дозволений (`IsAffectedByBoosters = true`), швидкість таймера масштабується за допомогою `powerMultiplier` (береться максимальна сила `Power` серед сусідніх бустерів).
 2. **Visual Progress**: Кожні кадр розраховується нормалізований прогрес і передається ефекту через виклик події `OnCharging` -> `ChargingEffect.OnCharging`.
 3. **Pre-Deactivation**: За 0.5 секунд до закінчення часу (`TimeLeft <= 0.5f`) візуальний ефект заряджання деактивується.
 4. **Execute Evolution**: Після закінчення часу (`TimeLeft <= 0f`), якщо фішка не переміщується (`IsMoving = false`) та не перетягується користувачем:

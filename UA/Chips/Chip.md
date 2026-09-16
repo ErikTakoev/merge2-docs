@@ -135,10 +135,16 @@
 
 #### Visual Movement State
 - **`SetMoving(bool)`**: Керує візуальним станом переміщення.
-  - Оновлює стан `IChipSortingLayer` для коригування шарів сортування рендерерів.
+  - Оновлює стан `IChipSortingLayer` (`SetMoving(value)`) для коригування шарів сортування рендерерів на величину `MovingOrderOffset` (під час руху зміщення руху має пріоритет над ефектами).
   - Сповіщає всі ефекти через метод `OnMovingStateChanged(chip, isMoving)`.
   - На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
-- **`IsMoving()`**: Перевіряє візуальний стан переміщення (за `sortingOrder`). Повертає `true` як для перетягування користувачем, так і для системного переміщення.
+- **`IsMoving()`**: Перевіряє візуальний стан переміщення. Повертає `true` як для перетягування користувачем, так і для системного переміщення.
+
+#### Sorting Layer and Effects Sorting
+Компонент `ChipSortingLayer` (`IChipSortingLayer`) керує порядком сортування рендерерів:
+- **`MovingOrderOffset`** (за замовчуванням `110`): однаковий зсув, що додається до `CachedOrder` усіх рендерерів під час руху (`isMoving == true`).
+- **`EffectsSortingData`** (`EffectSortingData[]`): налаштування `[EffectSelector] EffectId` та `AdditionalOrder`. При активації ефекту через `Effect.Activate` сортінг піднімається на `AdditionalOrder`.
+- **Пріоритет**: під час руху діє тільки `MovingOrderOffset`. У стані спокою діє зміщення останнього активованого ефекту (якщо активні 2 або більше ефектів, виводиться попередження).
 
 #### Spawning State
 - **`IsSpawning`**: Властивість, що перевіряє, чи знаходиться фішка у процесі програвання анімації спавну (`Spawn`, `TapEvolutionSpawn`, `WaitEvolutionSpawn`, `EvolutionSpawn`).

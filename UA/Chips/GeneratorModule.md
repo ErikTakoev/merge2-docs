@@ -11,10 +11,10 @@
 ### 1. `GeneratorModule.cs` (Main Component)
 Клас `GeneratorModule` керує життєвим циклом генератора на чіпі, реалізуючи інтерфейси `IChipModule` та `IPowerBoosterTarget`.
 - **Вхідні дані (Input)**:
-  - **Manual**: Обробляє `OnTap` через делегування подій з `Chip`.
-  - **Auto**: Підписується на `field.OnChangeField`, щоб автоматично спавнити при появі вільного місця.
+  - **Manual**: Обробляє `OnTap` через делегування подій з `Chip` (перевіряє стан блокування `BlockingState.CanBeTaped` та `BlockingState.CanGenerate`).
+  - **Auto**: Підписується на `field.OnChangeField`, щоб автоматично спавнити при появі вільного місця (перевіряє `BlockingState.CanGenerate`).
 - **Ініціалізація даних**: У `Init(Chip, ChipData, ChipRuntimeData)` читає конфігурацію через `data.GetSpecialData<ChipGeneratorData>()`. Якщо `ChipGeneratorData` відсутній, логіка генератора не запускається.
-- **Update Loop**: У методі `Update` керує таймером перезарядки, масштабуючи час на множник швидкості `powerMultiplier`.
+- **Update Loop**: У методі `Update` перевіряє стан блокування чіпа (`chip.BlockingState.CanCharge`). Якщо зарядка заблокована, процес заряджання зупиняється; якщо дозволена і генератор розряджений, таймер `ChargingTimeLeft` інкрементується з урахуванням множника швидкості `powerMultiplier`.
 - **Залежності**:
   - `IFreeCellFinder`: Логіка пошуку найближчої вільної клітинки.
   - `ChipFactory`: Фабрика для створення нових об'єктів.
@@ -51,7 +51,7 @@
   - Реалізація: [ChargingEffect](../Visuals/Effects.md#5-generator-charging)
   - Відображає прогрес перезарядки. Активний, коли `IsCharged` = `false`.
   - Реалізує інтерфейс `IChargingEffect`, його метод `OnCharging(float progress)` оновлює маску перезарядки та повертає стрілку.
-  
+
 - **`EffectConsts.GeneratorCharged`**: Звертання через `GetEffect(EffectConsts.GeneratorCharged)`
   - Реалізація: базовий `Effect`
   - Активний, коли `IsCharged` = `true` та чіп не перетягується.

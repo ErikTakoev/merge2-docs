@@ -65,9 +65,9 @@
 ### `Effect.cs`
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
 - **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
-- **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
+- **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При успішній активації сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, true)` та викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
 - **`Activate(Chip chip, IEffect parentEffect) → bool`**: Реєструє `parentEffect` у списку `parentEffects` (`ParentEffects`) і викликає `Activate(chip)`, якщо ефект ще не активний.
-- **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)` та `animator.Update(0f)`.
+- **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. Сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, false)`. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)` та `animator.Update(0f)`.
 - **`Deactivate(Chip chip, IEffect parentEffect, bool force = false)`**: Видаляє `parentEffect` з `parentEffects`. Якщо `parentEffects.Count == 0` (всі батьківські ефекти деактивувалися), викликає `Deactivate(chip, force)`.
 - **`ParentEffects`**: Публічна властивість для доступу до активних батьківських ефектів (`HashSet<IEffect>`).
 - **`GetId()`**: Повертає збережений `effectId`.
@@ -256,7 +256,8 @@
 - **Динамічна висота (`OnHeightChanged`)**: Реалізує інтерфейс `IShadowEffect`. Метод `OnHeightChanged(float height)` викликається під час перетягування фішки або польоту та динамічно змінює:
   - `transform.localPosition` на основі `shadowOffsetPerOneHeight * height`.
   - `transform.localScale` на основі `shadowScalePerOneHeight * height * Vector3.one`.
-- **Сортування**: Під час руху тінь збільшує свій `sortingOrder` на величину `AdditionallyWhenMoving` основного чіпа, щоб залишатися візуально під чіпом, але над полем.
+- **Сортування**: Під час руху тінь збільшує свій `sortingOrder` на величину `MovingOrderOffset` основного чіпа (`chip.SortingLayer.MovingOrderOffset`), щоб залишатися візуально під чіпом, але над полем.
+- **Вплив ефектів на Sorting Order**: Ефекти при активації (`Effect.Activate`) та деактивації (`Effect.Deactivate`) автоматично сповіщають `chip.SortingLayer.SetEffectActive(effectId, isActive)`. Якщо на фішці налаштовано `EffectSortingData` для цього ефекту, порядок сортування всіх рендерерів зміщується на `AdditionalOrder`. Під час руху `MovingOrderOffset` має пріоритет.
 
 ### 9. Merge Light
 **Константа**: `EffectConsts.MergeLight` (ID 9)

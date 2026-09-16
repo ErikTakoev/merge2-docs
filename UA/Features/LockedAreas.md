@@ -63,6 +63,29 @@
 - **`SpawnDeferredChip()`**: Спавнить фішку через `ChipFactory` з накопленими даними. Викликається `LockedAreaManager.SpawnDeferredChips`
 - **`TryGet(ICell cell, out DeferredCell deferredCell)`**: Статичний метод-помічник для пошуку компонента на `ICell`
 
+#### 4. SpriteDirectionalFadeController
+Компонент [SpriteDirectionalFadeController](../../../Core/Scripts/ShaderScripts/SpriteDirectionalFadeController.cs) керує параметрами діагонального зникнення в шейдері (ShaderGraph [MergeDirectionalFadeGraph](../../../Examples/Common/ShaderGraph/MergeDirectionalFadeGraph.shadergraph), повна назва в Unity: `Shader Graphs/MergeDirectionalFadeGraph`) та забезпечує плавні переходи приховування або показу (`FadeOut`/`FadeIn`) для звичайних або нарізаних (`sliced`) спрайтів.
+- **Батчинг**: Працює виключно через `MaterialPropertyBlock`, що уникає створення копій матеріалів та зберігає GPU-батчинг рендерерів.
+- **Властивості**:
+  - `SpriteRenderer`: Рендерер цільового спрайта.
+  - `fadeCurve`: Крива зміни прогресу фейду.
+  - `defaultDuration`: Тривалість анімації переходу за замовчуванням.
+  - `currentProgress`: Поточний рівень приховування (`0.0` — повністю видимий, `1.0` — повністю прихований).
+  - `autoSyncSize`: Автоматична передача поточного розміру `SpriteRenderer.size` у векторний параметр шейдера `_Size` (необхідно для коректного нахилу градієнта нарізаних спрайтів).
+- **Методи**:
+  - `SetProgress(float progress)`: Миттєво встановлює значення прогресу в матеріал без анімації.
+  - `UpdateSize()`: Синхронізує поточний розмір спрайта з параметром `_Size` через `MaterialPropertyBlock`.
+  - `FadeOut(float duration = -1f, Action onComplete = null)`: Запускає плавне приховування спрайта до значення `1.0`.
+  - `FadeIn(float duration = -1f, Action onComplete = null)`: Запускає плавну появу спрайта до значення `0.0`.
+  - `StopFade()`: Зупиняє активну корутину переходу.
+
+#### 5. LeafHelper
+Допоміжний компонент [LeafHelper](../../../Examples/GardenMerge/Scripts/Helpers/LeafHelper.cs) керує процедурним упорядкуванням та послідовною анімацією листочків, що закривають заблоковані ділянки поля (наприклад, у префабі `LockedArea_Leafs`).
+- **Синхронізація з фейдом**: Містить посилання на `SpriteDirectionalFadeController` (`diagonalFadeSprite`) та затримку `fadeOutOffset`. Під час розблокування запускає діагональне зникнення фону одночасно з розкриттям листя.
+- **Методи**:
+  - `PlayAnimation()`: Послідовно активує аніматори листя вздовж кривої `animationCurve` за час `animationDuration` та ініціює `diagonalFadeSprite.FadeOut()` після затримки `fadeOutOffset`.
+  - `ResetAnimators()`: Повертає аніматори листочків у початковий стан, зупиняє корутину фейду та скидає прогрес `diagonalFadeSprite` на `0.0`.
+
 ---
 
 ## Data Structures

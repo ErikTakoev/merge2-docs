@@ -1,5 +1,14 @@
 # Effect Order In Layer Report
 
+### BoxAndWebBlockerEffect
+
+| GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
+|---|---|---|---|---|
+| Web | 111 | MergeSpriteGraph, Web_box.png | 0 | 0 |
+| Image | 111 | MergeSpriteGraph_Sepia, Box1.png | 0 | 0 |
+
+---
+
 ### BoxBlockerEffect
 
 | GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
@@ -7,17 +16,8 @@
 | Front | 110 | MergeSpriteGraph, Box2_Front.png | 0 | 0 |
 | Back | 90 | MergeSpriteGraph, Box2.png | 0 | 0 |
 | Image | 110 | MergeSpriteGraph, Box1.png | 0 | 0 |
-| DeactivateParticle | 163 | SmokeMaterial | 0 | 0 |
-| Particle | 163 | SmokeMaterial | 0 | 0 |
-| Shadow | 90 | MergeSpriteGraph, Box1.png | 0 | 0 |
-
----
-
-### ChainsBlockerEffect
-
-| GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
-|---|---|---|---|---|
-| Image | 110 | MergeSpriteGraph, MoveBlocked.png | 0 | 0 |
+| SmokeParticle | 163 | SmokeMaterial | 0 | 0 |
+| Shadow | 90 | MergeSpriteGraph, ChipShadow_5.png | 0 | 0 |
 
 ---
 
@@ -26,6 +26,14 @@
 | GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
 |---|---|---|---|---|
 | Image | 110 | MergeSpriteGraph, MoveLock.png | 0 | 0 |
+
+---
+
+### WebBlockerEffect
+
+| GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
+|---|---|---|---|---|
+| Image | 110 | MergeSpriteGraph, Web_chip.png | 0 | 0 |
 
 ---
 
@@ -57,11 +65,19 @@
 
 ---
 
+### GlowEffect
+
+| GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
+|---|---|---|---|---|
+| Image | 90 | MergeSpriteGraph, Secateur_glow.png | 0 | 0 |
+
+---
+
 ### HintEffect
 
 | GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
 |---|---|---|---|---|
-| Spiral_1 | 121 | MergeAvailableGraph, Mergeable.png | 0 | 0 |
+| Spiral_1 | 90 | MergeHintGraph, Mergeable.png | 0 | 0 |
 
 ---
 
@@ -69,7 +85,7 @@
 
 | GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
 |---|---|---|---|---|
-| Spiral_1 | 121 | MergeAvailableGraph, Mergeable.png | 0 | 0 |
+| Spiral_1 | 121 | MergeHintGraph, Mergeable.png | 0 | 0 |
 
 ---
 
@@ -135,11 +151,12 @@
 
 ---
 
-### TapHintEffect
+### TutorialHand
 
 | GameObject | Order In Layer | Material | LocalPositionZ | PositionZ |
 |---|---|---|---|---|
-| Glove | 115 | a97c1056, HintGlove.png | -0.05 | -0.05 |
-| Finger | 115 | a97c1056, HintFinger.png | 0 | 0 |
+| Particle | 214 | MergeSpriteGraph_Generator_Particle | 0 | 0 |
+| Glove | 215 | a97c1056, HintGlove.png | -0.05 | -0.05 |
+| Finger | 215 | a97c1056, HintFinger.png | 0 | 0 |
 
 ---
