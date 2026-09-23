@@ -256,6 +256,9 @@
 - **Динамічна висота (`OnHeightChanged`)**: Реалізує інтерфейс `IShadowEffect`. Метод `OnHeightChanged(float height)` викликається під час перетягування фішки або польоту та динамічно змінює:
   - `transform.localPosition` на основі `shadowOffsetPerOneHeight * height`.
   - `transform.localScale` на основі `shadowScalePerOneHeight * height * Vector3.one`.
+- **Синхронізація альфи (`alphaFollowDuration`)**: Після виклику `Activate` або `Deactivate` ефект відслідковує прозорість (`color.a`) першого спрайт-рендерера чіпа (`chip.SortingLayer.SortingLayers[0].Renderer`) протягом часу `alphaFollowDuration` (за замовчуванням `0.5f`) та дублює її для `shadowRenderer`. Забезпечує плавне відображення або згасання тіні під час анімацій появи чи зникнення чіпа.
+  - При `Deactivate(chip, force = true)` відслідковування скасовується, а альфа тіні миттєво встановлюється в `0f`.
+  - При `Deactivate(chip, force = false)` запускається корутина відслідковування згасання альфи до повної прозорості одночасно з чіпом.
 - **Сортування**: Під час руху тінь збільшує свій `sortingOrder` на величину `MovingOrderOffset` основного чіпа (`chip.SortingLayer.MovingOrderOffset`), щоб залишатися візуально під чіпом, але над полем.
 - **Вплив ефектів на Sorting Order**: Ефекти при активації (`Effect.Activate`) та деактивації (`Effect.Deactivate`) автоматично сповіщають `chip.SortingLayer.SetEffectActive(effectId, isActive)`. Якщо на фішці налаштовано `EffectSortingData` для цього ефекту, порядок сортування всіх рендерерів зміщується на `AdditionalOrder`. Під час руху `MovingOrderOffset` має пріоритет.
 
