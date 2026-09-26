@@ -25,7 +25,8 @@
 - **Runtime**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
   - **RuntimeData**: Поточний стан (див. нижче).
-  - **BlockingState**: (`CombinedBlockingState`) агрегований стан дозволів (наприклад, `CanBeMoved`, `CanBeMergedAsSource`), що визначається активними ефектами.
+  - **BlockingState**: (`CombinedBlockingState`) агрегований стан дозволів (наприклад, `CanBeMoved`, `CanBeMergedAsSource`, `CanDestroyEffects`), що визначається активними ефектами.
+  - **EffectOfPrioritizingDestroying**: (`IEffect`) посилання на поточний найвищий за пріоритетом ефект, що підлягає руйнуванню при сусідніх взаємодіях.
 - **Visual Management**:
   - **SortingLayer** (`IChipSortingLayer`): Керує шарами сортування декількох рендерерів чіпа, забезпечуючи коректне відображення під час руху.
   - **AnimationNode** (`Transform`): Посилання на вузол анімації фішки, куди прикріплюються візуальні ефекти (типу `ParentChipAnimationNode`), що мають рухатися разом із фішкою.
@@ -80,8 +81,8 @@
 - Всі ефекти, додані до словника `effects`, автоматично отримують сповіщення через методи `OnChangedCell()`, `OnInteractionOverCellChanged()` та `OnInteractionUnderCellChanged()`.
 - **Effect Destroying**: Ефекти з `DestroyingSettings` підтримують поступове руйнування при сусідніх злиттях (детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#effect-destroying-system)):
   - `InitDestroyingEffectsData()` сканує ефекти і створює `EffectDestroyingRuntimeData` записи.
-  - `UpdatePrioritizingDestroyingEffect()` обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying`.
-  - `HandleDestroyingEffects()` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
+  - `UpdatePrioritizingDestroyingEffect()` обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying` (доступний через публічну властивість `EffectOfPrioritizingDestroying`).
+  - `HandleDestroyingEffects()` перевіряє `BlockingState.CanDestroyEffects` (якщо `false`, руйнування блокується), після чого інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
   - `RemoveEffect(int effectId)` деактивує ефект, видаляє з словника та `EffectEnables`, прибирає блок з `BlockingState`, обирає наступний пріоритетний ефект, і оновлює візуал.
 - Процес знищення чіпа підтримує анімації руйнування та є двохетапним:
   - **`Destroy(ICell mainCell, bool force, AnimatorTrigger destroyTrigger = AnimatorTrigger.Destroy)`**: Ініціює процес знищення.

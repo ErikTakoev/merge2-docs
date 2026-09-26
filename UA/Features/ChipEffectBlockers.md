@@ -22,6 +22,7 @@
 - **`CanApplyModifiers`**: Дозвіл впливу на інших (для `ChipPowerBooster`).
 - **`CanReceiveModifiers`**: Дозвіл прийому підсилень (для `ChipGenerator`, `ChipPowerBooster`).
 - **`CanBeMoved`**: Дозвіл переміщення.
+- **`CanDestroyEffects`**: Дозвіл руйнування блокер-ефектів на чіпі при взаємодіях на сусідніх клітинках.
 - **`IsLittleChip`**: Зменшення візуалу чіпа, коли ефект активний.
 - **`HideEffectIds`** (`HashSet<int>`): Набір ID ефектів, які повинні бути приховані при активному блокуванні.
 
@@ -47,7 +48,7 @@
 ### Lifecycle
 1. `Chip.InitDestroyingEffectsData()` — сканує всі ефекти з `DestroyingSettings`, створює `EffectDestroyingRuntimeData` записи.
 2. `Chip.UpdatePrioritizingDestroyingEffect()` — обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying`.
-3. Коли на сусідній клітинці відбувається взаємодія (`OnNeighborsChipOfInteraction`), `HandleDestroyingEffects` інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
+3. Коли на сусідній клітинці відбувається взаємодія (`OnNeighborsChipOfInteraction`), `HandleDestroyingEffects` спочатку перевіряє `BlockingState.CanDestroyEffects` (якщо `false`, руйнування блокується), після чого інкрементує `NeighboringMergeCount` і викликає `TryDestroyEffect`.
 4. Якщо `TryDestroyEffect` повертає `true`, `RemoveEffect` деактивує ефект, видаляє з словника, прибирає блок із `BlockingState`, і обирає наступний пріоритетний ефект.
 
 ---
@@ -89,7 +90,7 @@ public struct ChipSpawnData
 ### Runtime (Chip)
 Клас `Chip` містить `ChipRuntimeData`, який синхронізується з даними рівня:
 - **`runtimeData.EffectEnables`**: Набір активних blocker-ефектів.
-- **`CombinedBlockingState`**: Агрегований стан блокувань, перевіряється через `BlockingState.CanBeMoved`.
+- **`CombinedBlockingState`**: Агрегований стан блокувань, перевіряється через `BlockingState.CanBeMoved`, `BlockingState.CanDestroyEffects` тощо.
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод для зворотного зв'язку при спробі перетягнути заблоковану фішку. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying`; якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`.
 
 ### Level Editor
@@ -103,3 +104,4 @@ public struct ChipSpawnData
 - **Переміщення**: Якщо `CanBeMoved = false`, гравець не може почати перетягування фішки. При спробі перетягнути спрацьовує візуальний фідбек (`OnDraggingChipWithMoveLocked`).
 - **Слот підсилення**: Якщо `CanReceiveModifiers = false`, фішка ігнорує підсилення від бустерів (Power Boosters).
 - **Relocation (Релокація)**: Заблоковані фішки виступають як **нерухомі перешкоди**. Система автоматичної релокації не може змістити таку фішку. Якщо для виконання дії (наприклад, злиття або переміщення іншої великої фішки) потрібно звільнити місце, де знаходиться заблокований об'єкт, вся дія відміняється, і об'єкт гравця повертається на місце.
+- **Руйнування ефектів**: Якщо `CanDestroyEffects = false`, блокер-ефекти на фішці не реагують на сусідні взаємодії (не інкрементують `NeighboringMergeCount` та не руйнуються), наприклад, коли фішка знаходиться під дією ефекту заблокованої ділянки ([Locked Areas](LockedAreas.md)).
