@@ -85,7 +85,7 @@ Visual chip effects are implemented through interface system for flexibility and
 - **`IEffectContainer`**: Specialized interface for `ChipContainer` visualization, extends `IEffect` with `UpdateElements` method.
 - **`IEffectGeneratorCharging`**: Specialized interface for `ChipGenerator` charge visualization, extends `IEffect` with `OnCharging` method.
 - **`IEffectPowerBoosterJoin`**: Specialized interface for booster join visualization (`OnJoin`, `OnLeave`, `Show`) between `ChipPowerBooster` and `IPowerBoosterTarget`.
-- **`IChipSortingLayer`**: Contract for sorting layer management of multiple chip renderers. Allows automatic `sortingOrder` adjustment during movement (drag) so chip is visually above field.
+- **`IChipSortingLayer`**: Contract for sorting layer management of multiple chip renderers. Allows automatic `sortingOrder` adjustment during movement (drag), under active visual effects or animations, and supports manual sorting order overrides (`SetSortingOrderOverride`).
 - **`InterfaceRef<T>`**: We use a special serialized wrapper (`EffectRef`, `EffectContainerRef`, `EffectPowerBoosterJoinRef`, etc.) for assigning MonoBehaviour implementations of interfaces directly in Unity inspector, ensuring typing and modularity.
 
 ## Interaction Strategies

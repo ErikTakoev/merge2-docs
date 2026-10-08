@@ -98,7 +98,7 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 - **`DeactivateTutorialNode`** ([DeactivateTutorialNode.cs](../../VScripting/Scripts/Actions/DeactivateTutorialNode.cs)): Викликає `manager.Deactivate()`.
 - **`BlockTutorialInputNode`** ([BlockTutorialInputNode.cs](../../VScripting/Scripts/Actions/BlockTutorialInputNode.cs)): Встановлює обмежувальні координати дій `allowedStart` та `allowedEnd` через `ITutorialInputBlocker`. Значення `(-1, -1)` (або `Tutorial.LockedPosition`) використовується як сентинель для `null` (повне блокування).
 - **`UnblockTutorialInputNode`** ([UnblockTutorialInputNode.cs](../../VScripting/Scripts/Actions/UnblockTutorialInputNode.cs)): Викликає `blocker.UnblockInput()`.
-- **`CreateChipNode`** ([CreateChipNode.cs](../../VScripting/Scripts/Actions/CreateChipNode.cs)): Нода створення чіпа на полі через `ChipFactory` з налаштуваннями початкової світової позиції (`parentWorldPosition`), параметрами польоту (`flightDuration`, `flightType`), списками ефектів блокування (`blockerEffectIds`) та анімаційним тригером (`animatorTrigger`).
+- **`CreateChipNode`** ([CreateChipNode.cs](../../VScripting/Scripts/Actions/CreateChipNode.cs)): Нода створення чіпа на полі через `ChipFactory` з опціональними налаштуваннями польоту (прапорець `Use Flight` у заголовку/інспекторі ноди динамічно активує порти `parentWorldPosition`, `flightDuration`, `flightType`), списками ефектів блокування (`blockerEffectIds`), анімаційним тригером (`animatorTrigger`), прапорцем агресивної релокації `aggressive` (автоматично розчищає місце через `IChipMovingLogic`, якщо клітинки зайняті) та виходом результату `success`.
 
 ### 4.2 Event and Wait Nodes
 

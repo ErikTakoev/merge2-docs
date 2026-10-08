@@ -141,11 +141,54 @@
   - На старті руху (`true`) додає в `IChipChangeNotifier` тимчасову подію `NewChip=null` для поточної клітинки, щоб observer-системи одразу відреагували на "тимчасовий вихід" чіпа; при завершенні (`false`) викликає `UpdateVisual()`.
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення. Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
-#### Sorting Layer and Effects Sorting
-Компонент `ChipSortingLayer` (`IChipSortingLayer`) керує порядком сортування рендерерів:
-- **`MovingOrderOffset`** (за замовчуванням `110`): однаковий зсув, що додається до `CachedOrder` усіх рендерерів під час руху (`isMoving == true`).
-- **`EffectsSortingData`** (`EffectSortingData[]`): налаштування `[EffectSelector] EffectId` та `AdditionalOrder`. При активації ефекту через `Effect.Activate` сортінг піднімається на `AdditionalOrder`.
-- **Пріоритет**: під час руху діє тільки `MovingOrderOffset`. У стані спокою діє зміщення останнього активованого ефекту (якщо активні 2 або більше ефектів, виводиться попередження).
+### Sorting Layer and Visual Depth Management
+Компонент `ChipSortingLayer` ([ChipSortingLayer.cs](../../Core/Scripts/Chips/ChipSortingLayer.cs)), що реалізує контракт `IChipSortingLayer` ([IChipSortingLayer.cs](../../Core/Scripts/Chips/Interfaces/IChipSortingLayer.cs)), керує порядком сортування (`sortingOrder`) усіх рендерерів чіпа. Він гарантує збереження відносного порядку глибини між різними спрайтами однієї фішки при змінах висоти, руху, активних ефектів, анімацій або ручних оверрайдів.
+
+#### Initialization and Base Order Caching
+- При виклику `Chip.Init` викликається `sortingLayer.Init()`.
+- Кешуються вихідні значення `CachedOrder` для кожного рендерера з масиву `SortingLayers`.
+- Заповнюються словники швидкого пошуку зсувів для активних ефектів (`effectOffsets`) та анімаційних тригерів (`animationOffsets`).
+- Скидаються будь-які активні корутини анімацій, анімаційний оффсет та прапорець оверрайду (`sortingOrderOverride = null`).
+
+#### Movement Sorting
+- **`MovingOrderOffset`** (за замовчуванням `110`): однаковий зсув, що додається до `CachedOrder` усіх рендерерів під час переміщення фішки (`isMoving == true`).
+
+#### Effects Sorting
+- **`EffectsSortingData`** (`EffectSortingData[]`): конфігурація зсувів для конкретних ефектів (`[EffectSelector] EffectId` та `AdditionalOrder`).
+- При активації ефекту (`Effect.Activate`) викликається `SetEffectActive(effectId, true)`, при деактивації — `SetEffectActive(effectId, false)`. Якщо активні кілька ефектів, використовується зсув останнього зареєстрованого ефекту.
+
+#### Animation Sorting (AnimationsSortingData)
+Функціонал **Animation Sorting** забезпечує динамічне тимчасове підвищення шару сортування фішки під час виконання конкретних анімацій (наприклад, під час спавну, підйому, зарядки або спеціальних дій), щоб фішка візуально перекривала сусідні елементи поля на час програвання кліпу.
+- **Структура `AnimationSortingData`**:
+  - `string TriggerName`: назва тригера / стану в `Animator`.
+  - `int AdditionalOrder`: додатковий зсув сортування, який додається до базового порядку всіх рендерерів на час анімації.
+- **Механізм роботи (`OnAnimationTrigger`)**:
+  1. Коли `Chip.SendTrigger(trigger)` надсилає тригер в `Animator`, він автоматично сповіщає `sortingLayer?.OnAnimationTrigger(trigger)`.
+  2. Якщо для `trigger` налаштовано зсув у `AnimationsSortingData`:
+     - Негайно зупиняється будь-яка попередня активна корутина анімаційного сортування та скидається попередній оффсет.
+     - Компонент автоматично визначає точну тривалість анімації (`duration`): перевіряє поточний стан `animator.GetCurrentAnimatorStateInfo(0)` та наступний стан `animator.GetNextAnimatorStateInfo(0)`, знаходить стан з іменем `triggerName` і зчитує `state.length`.
+     - Застосовує `currentAnimationOffset = offset` та перераховує сортінг усіх рендерерів фішки.
+     - Запускає корутину `AnimationSortingCoroutine(duration)`.
+  3. По закінченню тривалості анімації корутина скидає `currentAnimationOffset = 0`, деактивує анімаційний стан і автоматично повертає сортінг рендерерів до базового рівня.
+- **Переривання та безпека (Interruption & Safety)**:
+  - Будь-який наступний виклик `OnAnimationTrigger` (навіть для тригера без налаштованого зсуву) негайно зупиняє поточну корутину анімаційного сортингу та скидає або замінює анімаційний зсув.
+  - При деактивації об'єкта (`OnDisable`) активна корутина зупиняється, а анімаційний зсув скидається.
+
+#### Manual Sorting Override
+- **`SetSortingOrderOverride(int offset)`**: дозволяє примусово встановити довільний зсув сортування для фішки (наприклад, при показі в модальних діалогах, фокусуванні в туторіалі або спеціальних катсценах).
+- **`ClearSortingOrderOverride()`**: скидає примусовий оверрайд та перераховує сортінг згідно з поточними динамічними станами.
+- **Властивості стану**: `IsSortingOrderOverridden` (`bool`) та `SortingOrderOverride` (`int?`).
+
+#### Priority Hierarchy
+При одночасній наявності декількох факторів застосовується сувора ієрархія пріоритетів:
+```
+sortingOrderOverride > isMoving > activeEffects > animationOffset > baseOrder
+```
+1. **`sortingOrderOverride`**: має абсолютний найвищий пріоритет. Якщо задано, перекриває рух, ефекти та анімації.
+2. **`isMoving` (`MovingOrderOffset`)**: діє під час перетягування або польоту фішки, перекриває активні ефекти та анімаційні зсуви.
+3. **`activeEffects` (`EffectsSortingData`)**: діє при спокої фішки за наявності активних візуальних ефектів зі зсувом сортування.
+4. **`animationOffset` (`AnimationsSortingData`)**: діє, коли фішка не рухається, немає оверрайду та активних ефектів зі зсувом.
+5. **Базовий порядок (`baseOrder`)**: відновлює вихідні `CachedOrder` рендерерів, коли всі вищезазначені стани неактивні.
 
 #### Spawning State
 - **`IsSpawning`**: Властивість, що перевіряє, чи знаходиться фішка у процесі програвання анімації спавну (`Spawn`, `TapEvolutionSpawn`, `WaitEvolutionSpawn`, `EvolutionSpawn`).
