@@ -133,6 +133,16 @@ public struct LockedAreaData
 
 ---
 
+## Unlocking via Chips (UnlockAreaModule)
+
+Окрім прямого виклику `UnlockArea` через код сценарію або Visual Scripting (`UnlockAreaNode`), розблокування ділянок може ініціюватися гравцем через спеціальні ігрові фішки-ключі за допомогою компонента [UnlockAreaModule](../../../Core/Scripts/Chips/UnlockAreaModule.cs) та конфігурації [ChipUnlockAreaData](../../../Core/Scripts/Chips/Data/SpecialData/ChipUnlockAreaData.cs). Детальний опис архітектури, життєвого циклу та налаштувань модуля див. у **[UnlockAreaModule](../Chips/UnlockAreaModule.md)**:
+- **Послідовне відкриття**: Фішка містить масив кроків `Steps` (`UnlockAreaStep[]`), кожен з яких визначає цільовий `AreaId` та послідовну затримку `Delay` у секундах перед відкриттям.
+- **Попередня перевірка**: Якщо налаштовано створення наступних фішок (`INextChipsProvider`), перед стартом черги виконується атомарна перевірка вільного місця через `FreeCellFinder.FindFreeCellsForChips`. Якщо місця недостатньо, викликається `IScenarioEventHandler.RaiseNotEnoughSpace`, а відкриття скасовується.
+- **Візуальне знищення та спавн**: Затримки кроків не блокують анімацію фішки чи створення наступних чіпів. Одразу після успішної валідації тапу фішка запускає знищення (`chip.Destroy` з тригером `TapEvolutionDestroy` або `Destroy`), спавнить наступні фішки (за наявності), а корутина розблокування зон виконується паралельно з урахуванням `Delay`.
+- **Відкладення FinishDestroy**: Якщо анімація знищення фішки завершилася раніше за корутину розблокування (через затримки в кроках), метод `FinishDestroy` фішки відкладається через `IChipModule.CanFinishDestroy()` (`isFinishDestroyPending = true`) до повного виконання всіх кроків корутини, після чого GameObject остаточно видаляється.
+
+---
+
 ## Integration with Level Editor
 
 Налаштування заблокованих ділянок сітки, відкладених фішок (Deferred Cells), а також відповідні режими редактора описано в розділі **[Editors](../Editors.md)**.

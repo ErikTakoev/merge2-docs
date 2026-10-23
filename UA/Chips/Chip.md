@@ -19,8 +19,8 @@
 
 - **Special Data**:
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas`.
-  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`.
-  - **INextChipsProvider**: Поліморфна стратегія вибору наступних чіпів у `ChipTapEvolutionData` (`[SerializeReference]`). Реалізації: `ConstantNextChipsProvider`, `RandomNextChipsProvider`, `SequentialNextChipsProvider`.
+  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`, `ChipUnlockAreaData`.
+  - **INextChipsProvider**: Поліморфна стратегія вибору наступних чіпів у `ChipTapEvolutionData` та `ChipUnlockAreaData` (`[SerializeReference]`). Реалізації: `ConstantNextChipsProvider`, `RandomNextChipsProvider`, `SequentialNextChipsProvider`.
 
 - **Runtime**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
@@ -94,7 +94,7 @@
   - **`FinishDestroy()`**: Завершує руйнування об'єкта. Може бути викликаний безпосередньо з `Destroy`, або через Unity Animation Event наприкінці анімації руйнування.
     1. Викликає `module.DestroyModule()` для кожного зареєстрованого модуля.
     2. Знищує та очищає всі прив'язані ефекти через `RemoveAllEffects()`.
-    3. Знищує GameObject чіпа (`OnDestroy` також гарантує виклики `RemoveAllEffects()` та `DestroyModule()`).
+    3. Знищує GameObject чіпа (`OnDestroy` також гарантує виклики `RemoveAllEffects()` та `DestroyModule()`). При форсованому знищенні (`force: true`) приховує `animationNode` і відкладає `Destroy(gameObject)` на 1 кадр через корутину `DeferredDestroyRoutine`, щоб слухачі подій (наприклад, `WaitForChipRemovedNode`) встигли коректно обробити посилання на фішку до її остаточного видалення з пам'яті рушієм.
 
     Під час деактивації та видалення ефектів перевіряється властивість `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект пропускається (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
 
@@ -106,6 +106,7 @@
 - **`PowerBoosterModule`**: Керує логікою підсилювачів та зв'язками з цілями.
 - **`WaitEvolutionModule`**: Керує автоматичною еволюцією чіпа з часом, відстежуючи час очікування і замінюючи поточний чіп на інший.
 - **`TapEvolutionModule`**: Керує еволюцією чіпа при натисканні (тапі) за допомогою стратегій `INextChipsProvider`. Підтримує спавн кількох фішок через `FreeCellFinder.FindFreeCellsForChips`, програє візуальні ефекти (тригери анімації `TapEvolutionSpawn`, `Generate` та `TapEvolutionDestroy`), а при відсутності вільних клітинок викликає `OnNotEnoughSpace` через `ScenarioEventHandler`.
+- **`UnlockAreaModule`**: Керує послідовним розблокуванням зон `LockedArea` при натисканні (тапі) з налаштовуваними часовими затримками між кроками (`UnlockAreaStep`). Підтримує попередню перевірку вільного місця через `FreeCellFinder.FindFreeCellsForChips`, негайний запуск знищення (`chip.Destroy` з тригерами `TapEvolutionSpawn`/`TapEvolutionDestroy`/`Destroy`) та паралельне розблокування зон із відкладенням `FinishDestroy` до повного завершення корутини.
 - **`PauseAnimationOnDelay`**: Прапорець у `ChipFlightSettings`, що заморожує виконання анімації чіпа через `PauseAnimator(true)` під час активності затримки польоту (`flightDelay`).
 
 ### Lifecycle Delegation to Modules
@@ -115,6 +116,7 @@
 - **`OnTap`**: Передача події тапу користувача.
 - **`OnDragStart`, `OnDrag`, `OnDragEnd`**: Передача подій перетягування.
 - **`OnChangedCell`**: Передача подій зміни поточної клітинки на полі.
+- **`CanFinishDestroy`**: Перевірка готовності модулів до завершення знищення чіпа. Якщо хоча б один модуль повертає `false`, `FinishDestroy` відкладається (`isFinishDestroyPending = true`). При `force: true` перевірка пропускається.
 - **`FinishDestroy`**: Очищення ресурсів модуля перед повним видаленням GameObject чіпа (метод `DestroyModule`).
 
 ### Module Effects Management

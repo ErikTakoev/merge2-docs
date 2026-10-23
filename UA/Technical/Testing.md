@@ -243,6 +243,25 @@
 - **Мета**: Перевіряє, що блокер-ефекти на фішках під заблокованою ділянкою захищені від руйнування та не отримують прогресу від злиттів на сусідніх клітинках.
 - **Сценарій**: Завантажує поле із заблокованою зоною `TestLockedAreaGardenSettings`, де розташовані клітинки із блокер-ефектами. Спавнить дві сусідні фішки поруч із заблокованою зоною та виконує їхнє злиття за допомогою `InputHelper.SimulateDrag`. Перевіряє, що клітинки ділянки залишаються заблокованими (`cell.IsBlocked == true`), фішки нерухомими (`CanBeMoved == false`), а блокер-ефекти не отримують руйнувань (`NeighboringMergeCount == 0`) та не видаляються. Також валідує успішність злиття зовнішніх фішок та цілісність поля через `FieldAssertions.AssertFieldConsistency`.
 
+#### UnlockArea_Secateur_UnlocksArea
+- **Мета**: Перевіряє, що натискання (тап) на `Secateur_1` призводить до його знищення та розблокування пов'язаної заблокованої ділянки (Area 1).
+- **Сценарій**: Завантажує тестове поле `TestLockedAreaGardenSettings`. Спавнить фішку `Secateur_1` на вільній клітинці, перевіряє, що клітинки Area 1 початково заблоковані. Симулює тап по фішці через `InputHelper.SimulateTap`, чекає 5 секунд для перегляду та завершення анімації розблокування зони. Перевіряє, що фішка `Secateur_1` знищена, а всі клітинки Area 1 розблоковані (`IsBlocked == false`). Валідує цілісність поля через `FieldAssertions.AssertFieldConsistency`.
+
+#### UnlockArea_Blower_UnlocksArea
+- **Мета**: Перевіряє, що натискання (тап) на `Blower_1` призводить до його знищення та розблокування пов'язаної заблокованої ділянки (Area 2).
+- **Сценарій**: Завантажує тестове поле `TestLockedAreaGardenSettings`. Спавнить фішку `Blower_1` на вільній клітинці, перевіряє, що клітинки Area 2 початково заблоковані. Симулює тап по фішці через `InputHelper.SimulateTap`, чекає 5 секунд для перегляду та завершення анімації розблокування зони. Перевіряє, що фішка `Blower_1` знищена, а всі клітинки Area 2 розблоковані (`IsBlocked == false`). Валідує цілісність поля через `FieldAssertions.AssertFieldConsistency`.
+
+### ScenarioEventTests
+Тести сюжетних сценаріїв та івентів розблокування зон ([Scenario System](../Features/Scenario.md), [Locked Areas](../Features/LockedAreas.md)).
+
+#### UnlockArea_Secateur_UnlocksArea
+- **Мета**: Перевіряє, що натискання (тап) на `Secateur_1` у контексті сценарію подій знищує фішку, очікує підтвердження на екрані (`SimulateScreenTap`) та розблоковує Area 1.
+- **Сценарій**: Завантажує тестове поле `TestScenarioEventGardenSettings`. Спавнить фішку `Secateur_1` на клітинці `(5, 5)`, перевіряє початковий заблокований стан Area 1. Симулює тап по фішці через `InputHelper.SimulateTap`, чекає появи фейду екрана, емулює клік по екрану через `InputHelper.SimulateScreenTap()` для продовження сценарію та валідує, що фішка знищена, а клітинки Area 1 розблоковані. Валідує цілісність поля через `FieldAssertions.AssertFieldConsistency`.
+
+#### UnlockArea_Blower_UnlocksArea
+- **Мета**: Перевіряє, що натискання (тап) на `Blower_1` у сценарії подій ініціює ланцюг розблокування Area 2.
+- **Сценарій**: Завантажує тестове поле `TestScenarioEventGardenSettings`. Спавнить фішку `Blower_1`, емулює тап користувача, валідує знищення чіпа та розблокування клітинок Area 2.
+
 ## Instrumentation (Helpers)
 
 ### TestSettings
@@ -268,13 +287,14 @@
 Статичний клас для симуляції користувацького вводу (тап та перетягування) в інтеграційних тестах.
 - `Initialize(manager, fTransform, fSize)`: Ініціалізує посилання на `InputManager`, трансформацію поля та розміри сітки для конвертації координат.
 - `SimulateTap(cellPosition)`: Симулює тап по клітинці та очікує перевірки паузи `TestHelper.WaitForSpaceTap()`.
+- `SimulateScreenTap()`: Симулює тап/клік по екрану через чергу подій Input System (`DeltaStateEvent` для `Mouse.leftButton`), активуючи моніторинг `InputAction` (наприклад, для закриття оверлеїв або продовження сценаріїв туторіалів/розблокування), автоматично очищує тимчасовий пристрій миші у разі його створення та очікує `TestHelper.WaitForSpaceTap()`.
 - `SimulateDrag(startCellPosition, endCellPosition, duration, chipSize)`: Інтерполює переміщення фішки між клітинками, викликаючи `TestHelper.WaitForSpaceTap()` на кожному кроці.
 
 ### TestHelper
 Статичний клас з допоміжними методами для тестів та інтерактивного дебагу.
 - `FindChipByChipId(field, chipId, exclude)`: Знаходить на полі вказаний чіп за його назвою (ID), дозволяючи виключити вже знайдені чіпи.
-- `WaitForSpaceTap()`: Перевіряє натискання клавіші `Space` через Unity Input System. Перше натискання клавіші активує паузу (`IsPaused = true`, `WasPausedInThisTest = true`), а наступне натискання `Space` відновлює виконання тесту.
-- `ResetPauseState()`: Скидає стан паузи (`IsPaused = false`, `WasPausedInThisTest = false`) для запуску тестів на повній швидкості за замовчуванням (викликається у `[UnitySetUp]` / `BeforeEachTest`).
+- `WaitForSpaceTap()`: Очікує зняття паузи, якщо режим паузи активний. Натискання клавіші `Space` відстежується в `EditorApplication.update` (rising edge): перше натискання клавіші активує паузу (`IsPaused = true`, `WasPausedInThisTest = true`), а наступне натискання `Space` відновлює виконання тесту.
+- `ResetPauseState()`: Скидає стан паузи (`IsPaused = false`, `WasPausedInThisTest = false`, ініціалізує попередній стан клавіші) для запуску тестів на повній швидкості за замовчуванням (викликається у `[UnitySetUp]` / `BeforeEachTest`).
 - `WaitForSingleRun()`: При завершенні тесту очікує фінального натискання `Space`, якщо під час виконання тесту активувався режим паузи.
 
 ## Test Writing Principles
