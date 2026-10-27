@@ -126,6 +126,8 @@
 - [IPowerBoosterTarget](#ipowerboostertarget)
 - [IScenarioEventHandler](#iscenarioeventhandler)
 - [IShadowEffect](#ishadoweffect)
+- [ISubEffect](#isubeffect)
+- [ISubEffectOwner](#isubeffectowner)
 - [ITutorial](#itutorial)
 - [ITutorialInputBlocker](#itutorialinputblocker)
 - [ITutorialManager](#itutorialmanager)
@@ -156,6 +158,7 @@
 - [ShadowEffectRef](#shadoweffectref)
 - [SortingLayerData](#sortinglayerdata)
 - [SpriteDirectionalFadeController](#spritedirectionalfadecontroller)
+- [SubEffect](#subeffect)
 - [TapEvolutionModule](#tapevolutionmodule)
 - [Tutorial](#tutorial)
 - [TutorialHandHelper](#tutorialhandhelper)
@@ -1449,7 +1452,12 @@
 - `- appliedBlocks: HashSet<IEffectBlockingSettings>`
 #### Methods
 - `+ ApplyBlock(IEffectBlockingSettings blockSettings): void`
-- `+ RemoveBlock(IEffectBlockingSettings blockSettings): void`
+- `+ RemoveBlock(IEffectBlockingSettings blockSettings): bool`
+    - **Purpose**: Removes an active block setting from this aggregate and recalculates the combined state
+    - **Usage**: Called when an effect or locked area is deactivated or removed from a chip
+    - **Params**: blockSettings - the blocking settings instance to remove
+    - **Returns**: True if the blocking settings were successfully removed from applied blocks
+    - false otherwise
 - `- Recalculate(): void`
 - `~ Reset(): void`
 ---
@@ -1831,12 +1839,13 @@
 - `+- DestroyingSettings: EffectDestroyingSettings`
 - `+~ IsActive: bool`
 - `+- IsSkipDestroy: bool`
-- `+- ParentEffects: HashSet<IEffect>`
-- `+- SubEffects: SubEffect[]`
+- `+- Owners: HashSet<ISubEffectOwner>`
+- `+- SubEffects: ISubEffect[]`
 - `~ animator: Animator`
 - `~ autoSize: AutoSizeType`
 - `~ cellSpacing: Vector2`
 - `~ deactivateOnMove: bool`
+- `~ delayCoroutines: Dictionary<int, Coroutine>`
 - `~ destroyAfterActivate: bool`
 - `~ destroyDelayAfterActivate: float`
 - `~ dontRepeatTrigger: bool`
@@ -1848,13 +1857,6 @@
 - `~ restoreStateAfterMove: bool`
 - `~ sendAnimatorTrigger: bool`
 #### Methods
-- `+ Activate(Chip chip, IEffect parentEffect): bool`
-    - **Purpose**: Activates the effect on the specified chip with a parent effect reference
-    - **Usage**: Called by parent effects during ActivateSubEffects to track active callers
-    - activates effect if not already active
-    - **Params**: chip - the chip this effect belongs to
-    - parentEffect - the parent effect initiating activation
-    - **Returns**: True if the effect is or became active
 - `+ Activate(Chip chip): bool`
     - **Purpose**: Activates the effect on the specified chip
     - **Usage**: Call when the chip or non-chip visual owner is activated
@@ -1864,19 +1866,26 @@
     - false if skipped because effectId is in chip.BlockingState.HideEffectIds
     - **Notes**: Pass null only for non-chip visuals
     - when chip is provided, applies BlockingSettings and respects HideEffectIds
-- `+ Deactivate(Chip chip, IEffect parentEffect, bool force): void`
-    - **Purpose**: Deactivates the effect on the specified chip with a parent effect reference
-    - **Usage**: Called by parent effects during DeactivateSubEffects
-    - deactivates effect only when all parent effects have deactivated
+- `+ ActivateByOwner(Chip chip, ISubEffectOwner owner): bool`
+    - **Purpose**: Activates the effect on the specified chip with an owner reference
+    - **Usage**: Called by sub-effect owners during ActivateSubEffects to track active owners
+    - activates effect if not already active
     - **Params**: chip - the chip this effect belongs to
-    - parentEffect - the parent effect initiating deactivation
-    - force - whether to force immediate deactivation
+    - owner - the owner initiating activation
+    - **Returns**: True if the effect is or became active
 - `+ Deactivate(Chip chip, bool force): void`
     - **Purpose**: Deactivates the effect on the specified chip
     - **Usage**: Call when the chip is deactivated or disabled
     - trigger 'Deactivate' animation if configured
     - **Params**: chip - the chip this effect belongs to
     - force - if true, forces immediate animation state change (plays 'Deactivate' state at end time)
+- `+ DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force): void`
+    - **Purpose**: Deactivates the effect on the specified chip with an owner reference
+    - **Usage**: Called by sub-effect owners during DeactivateSubEffects
+    - deactivates effect only when all owners have deactivated
+    - **Params**: chip - the chip this effect belongs to
+    - owner - the owner initiating deactivation
+    - force - whether to force immediate deactivation
 - `+ GetId(): int`
     - **Purpose**: Returns the unique hash/ID of this effect for identification in the chip's effects dictionary
     - **Usage**: Called by external code to retrieve the effect's ID for lookup or removal
@@ -1939,32 +1948,31 @@
     - false if still alive
     - **Notes**: When not yet destroyed, sends a trigger from AdditionalStates to the effect animator
     - when all additional states are exhausted, deactivates the effect
-- `- ActivateSubEffectCoroutine(Chip chip, SubEffect se): IEnumerator`
+- `- ActivateSubEffectCoroutine(Chip chip, ISubEffect se): IEnumerator`
 - `~ ActivateSubEffects(Chip chip): void`
     - **Purpose**: Activates all configured sub-effects, either immediately or after their respective activation delays
     - **Usage**: Called when the parent effect successfully activates in Effect.Activate
     - **Params**: chip - The owner chip activating this effect
-    - **Notes**: Passes this effect as parent
-    - stops any running delayCoroutine before activating
-    - falls back to resolving subEffect dynamically if needed
+    - **Notes**: Passes this effect as owner
+    - stops any running delay coroutine before activating
 - `~ ApplyAutoSize(Vector2Int chipSize): void`
     - **Purpose**: Applies auto-sizing logic to the effect based on the autoSize setting and chip dimensions
     - **Usage**: Called internally during Init
     - scales the effect proportionally or non-proportionally
     - **Params**: chipSize - the grid dimensions of the chip (e.g., Data.Size)
-- `- DeactivateSubEffectCoroutine(Chip chip, SubEffect se): IEnumerator`
+- `- DeactivateSubEffectCoroutine(Chip chip, ISubEffect se): IEnumerator`
 - `~ DeactivateSubEffects(Chip chip, bool force): void`
     - **Purpose**: Deactivates all configured sub-effects, either immediately or after their respective deactivation delays
     - **Usage**: Called when the parent effect deactivates in Effect.Deactivate
     - **Params**: chip - The owner chip deactivating this effect
     - force - Whether to force immediate deactivation ignoring delays
-    - **Notes**: Passes this effect as parent
+    - **Notes**: Passes this effect as owner
     - when force is true, delays are ignored and sub-effects are deactivated immediately with force
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 - `~ HasTrigger(string name): bool`
 - `~ InitSubEffects(Chip chip): void`
-    - **Purpose**: Resolves IEffect references for configured sub-effects from the owner chip
-    - **Usage**: Called during Effect.Init to pre-cache sub-effect instances from Chip.GetEffect
+    - **Purpose**: Initializes sub-effects configuration for the owner chip
+    - **Usage**: Called during Effect.Init to set up sub-effects state
     - **Params**: chip - The owner chip that hosts the effects
 - `~ OnDestroy(): void`
 - `~ ResetTrigger(string triggerName): void`
@@ -2887,19 +2895,16 @@
 
 > - **Purpose**: Interface for all effects that can be activated or deactivated on chips
 > - **Usage**: Implement this interface for custom chip effects. Used by Chip class to manage common effect lifecycle.
-> - **Notes**: Includes core activation, deactivation, trigger, and cell change handling methods.
+> - **Notes**: Includes core activation, deactivation, trigger, and cell change handling methods. Inherits sub-effect and parent-effect handling from ISubEffectOwner.
 #### Fields
 - `+- BlockingSettings: EffectBlockingSettings`
 - `+- DestroyingSettings: EffectDestroyingSettings`
 - `+- gameObject: GameObject`
 - `+- IsActive: bool`
 - `+- IsSkipDestroy: bool`
-- `+- ParentEffects: HashSet<IEffect>`
 #### Methods
 - `+ Activate(Chip chip): bool`
-- `+ Activate(Chip chip, IEffect parentEffect): bool`
 - `+ Deactivate(Chip chip, bool force): void`
-- `+ Deactivate(Chip chip, IEffect parentEffect, bool force): void`
 - `+ GetId(): int`
 - `+ Init(Chip chip, int effectHash): void`
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
@@ -3110,18 +3115,17 @@
 > - **Purpose**: Contract for visual effects associated with locked areas on the board
 > - **Usage**: Implement on level visual overlay components that represent locked area fog, gates, or barriers
 > - registered with ILockedAreaManager
-> - **Notes**: Independent from IEffect
+> - **Notes**: Implements ISubEffectOwner
 > - manages level-level visual activation and applies blocking/sub-effects to chips
 #### Fields
 - `+- BlockingSettings: EffectBlockingSettings`
 - `+- gameObject: GameObject`
 - `+- LockedAreaId: int`
-- `+- SubEffects: SubEffect[]`
 #### Methods
 - `+ Activate(): void`
     - **Purpose**: Activates the visual overlay animation or display
     - **Usage**: Called by ILockedAreaManager when the area is initialized or locked
-- `+ ApplyToChip(Chip chip): void`
+- `+ ApplyAreaEffectToChip(Chip chip): void`
     - **Purpose**: Applies locked-area blocking settings and sub-effects to a chip
     - **Usage**: Called when a chip is spawned on or covered by this locked area
     - **Params**: chip - target chip receiving the locked area effects
@@ -3132,10 +3136,10 @@
 - `+ Init(): void`
     - **Purpose**: Registers the effect with ILockedAreaManager
     - **Usage**: Called after level visual prefab is instantiated and dependencies are injected
-- `+ RemoveFromChip(Chip chip, bool force): void`
-    - **Purpose**: Removes locked-area blocking settings and deactivates sub-effects from a chip
-    - **Usage**: Called when the locked area is unlocked
-    - **Params**: chip - target chip
+- `+ RemoveAreaEffectFromCells(List<ICell> cells, bool force): void`
+    - **Purpose**: Removes locked-area blocking settings and deactivates sub-effects from chips on the specified cells
+    - **Usage**: Called by LockedAreaManager when the locked area is unlocked
+    - **Params**: cells - target cells with chips
     - force - whether to bypass deactivation delay
 - `+ SpawnDeferredChips(): void`
     - **Purpose**: Spawns deferred chips for this locked area when triggered
@@ -3149,7 +3153,7 @@
 > - **Usage**: Inject to initialize locked areas, register visual effects, and unlock areas during gameplay
 > - **Notes**: Implemented by LockedAreaManager
 #### Methods
-- `+ ApplyToChip(Chip chip, ICell cell): void`
+- `+ ApplyAreaEffectToChip(Chip chip, ICell cell): void`
     - **Purpose**: Applies locked-area blocking settings and sub-effects to a chip on a cell if covered by an active locked area
     - **Usage**: Called by ChipFactory upon chip creation when the target cell is blocked
     - **Params**: chip - newly instantiated chip
@@ -3170,13 +3174,6 @@
     - **Params**: areaId - unique identifier from FieldData.LockedAreas
     - **Notes**: Guaranteed to be idempotent
     - subsequent calls for the same area are ignored
-- `+ TryGetEffect(Vector2Int cellPosition, ILockedAreaEffect& effect): bool`
-    - **Purpose**: Attempts to retrieve the active locked area effect for the given cell position
-    - **Usage**: Called to check whether a cell is covered by an active locked area effect
-    - **Params**: cellPosition - field grid coordinates
-    - effect - out parameter receiving the effect if active
-    - **Returns**: True if an active locked area effect covers this cell
-    - false otherwise
 - `+ UnlockArea(int areaId, bool force): void`
     - **Purpose**: Opens a locked area and materializes any deferred chips inside it
     - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
@@ -3276,6 +3273,32 @@
     - **Purpose**: Updates the shadow's local position and scale based on the chip's current lift height
     - **Usage**: Called dynamically when the chip is lifted (dragged) or is in a flight animation
     - **Params**: height - the current height value of the chip
+---
+
+## ISubEffect
+
+> - **Purpose**: Contract for sub-effect configuration linked to a parent effect or area effect
+> - **Usage**: Implemented by SubEffect class
+> - inspected by ISubEffectOwner implementations
+> - **Notes**: Provides read-only access to sub-effect ID and optional activation/deactivation delays
+#### Fields
+- `+- ActivateDelay: float`
+- `+- DeactivateDelay: float`
+- `+- EffectId: int`
+---
+
+## ISubEffectOwner
+
+> - **Purpose**: Contract for any component or effect that owns, manages, or is controlled by sub-effect owners
+> - **Usage**: Implemented by IEffect and ILockedAreaEffect
+> - passed as owner into ActivateByOwner/DeactivateByOwner
+> - **Notes**: Provides access to configured sub-effects and tracks active owners via Owners
+#### Fields
+- `+- Owners: HashSet<ISubEffectOwner>`
+- `+- SubEffects: ISubEffect[]`
+#### Methods
+- `+ ActivateByOwner(Chip chip, ISubEffectOwner owner): bool`
+- `+ DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force): void`
 ---
 
 ## ITutorial
@@ -3422,19 +3445,23 @@
 > - **Purpose**: Runtime visual controller for one locked area overlay, fog, or gate
 > - **Usage**: Attach to level visual prefab children and assign the matching LockedAreaId
 > - VisualField calls Init after instantiation
-> - **Notes**: Independent MonoBehaviour implementing ILockedAreaEffect
+> - **Notes**: Independent MonoBehaviour implementing ILockedAreaEffect and ISubEffectOwner
 > - handles overlay animations and applies blocking settings and sub-effects to covered chips
 #### Fields
 - `+- BlockingSettings: EffectBlockingSettings`
 - `+- LockedAreaId: int`
-- `+- SubEffects: SubEffect[]`
+- `+- Owners: HashSet<ISubEffectOwner>`
+- `+- SubEffects: ISubEffect[]`
 - `- animator: Animator`
+- `- chipCollections: IChipCollections`
+- `- delayCoroutines: Dictionary<int, Coroutine>`
 - `- lockedAreaManager: ILockedAreaManager`
 #### Methods
 - `+ Activate(): void`
     - **Purpose**: Activates the visual overlay animation
     - **Usage**: Called by LockedAreaManager when the area is initialized or locked
-- `+ ApplyToChip(Chip chip): void`
+- `+ ActivateByOwner(Chip chip, ISubEffectOwner owner): bool`
+- `+ ApplyAreaEffectToChip(Chip chip): void`
     - **Purpose**: Applies locked-area blocking settings and activates sub-effects on the specified chip
     - **Usage**: Called when a chip is created on or added to this locked area
     - **Params**: chip - target chip receiving the locked area effects
@@ -3442,19 +3469,21 @@
     - **Purpose**: Deactivates the visual overlay animation
     - **Usage**: Called by LockedAreaManager when the area is unlocked
     - **Params**: force - if true, immediately forces animator into end Deactivate state
+- `+ DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force): void`
 - `+ Init(): void`
     - **Purpose**: Registers this level visual effect with the locked-area runtime manager
     - **Usage**: Called by VisualField after the level visual prefab is instantiated and injected
-- `+ RemoveFromChip(Chip chip, bool force): void`
-    - **Purpose**: Removes locked-area blocking settings and deactivates sub-effects from the specified chip
+- `+ RemoveAreaEffectFromCells(List<ICell> cells, bool force): void`
+    - **Purpose**: Removes locked-area blocking settings and deactivates sub-effects from chips on the specified cells with a single coroutine per sub-effect
     - **Usage**: Called when the locked area is unlocked
-    - **Params**: chip - target chip
+    - **Params**: cells - target cells with chips
     - force - whether to bypass deactivation delay
 - `+ SpawnDeferredChips(): void`
     - **Purpose**: Spawns deferred chips for this locked area when triggered (e.g., via Animation Event)
     - **Usage**: Called from Animation Event during area unlock animation or directly from code
-- `- ActivateSubEffectCoroutine(Chip chip, SubEffect se): IEnumerator`
-- `- DeactivateSubEffectCoroutine(Chip chip, SubEffect se): IEnumerator`
+- `- ActivateSubEffectCoroutine(Chip chip, ISubEffect se): IEnumerator`
+- `- DeactivateSubEffectCoroutine(List<ICell> cells, ISubEffect se): IEnumerator`
+- `- DeactivateSubEffectOnCells(List<ICell> cells, int effectId, bool force): void`
 - `- Expecto.MergeBase.ILockedAreaEffect.get_gameObject(): GameObject`
 - `- HasTrigger(string name): bool`
 - `- OnDestroy(): void`
@@ -3476,7 +3505,7 @@
 - `- spawnedDeferredAreaIds: HashSet<int>`
 - `- unlockedAreaIds: HashSet<int>`
 #### Methods
-- `+ ApplyToChip(Chip chip, ICell cell): void`
+- `+ ApplyAreaEffectToChip(Chip chip, ICell cell): void`
     - **Purpose**: Applies locked-area blocking settings and sub-effects to a chip on a cell if covered by an active locked area
     - **Usage**: Called by ChipFactory upon chip creation when the target cell is blocked
     - **Params**: chip - newly instantiated chip
@@ -3497,12 +3526,6 @@
     - **Params**: areaId - unique identifier from FieldData.LockedAreas
     - **Notes**: Guaranteed to be idempotent
     - subsequent calls for the same area are ignored
-- `+ TryGetEffect(Vector2Int cellPosition, ILockedAreaEffect& effect): bool`
-    - **Purpose**: Attempts to retrieve the active locked area effect for the given cell position
-    - **Usage**: Called by ChipFactory or gameplay systems to check if a cell is covered by an active locked area effect
-    - **Params**: cellPosition - field grid coordinates
-    - effect - receives the active effect if found
-    - **Returns**: True if an active locked area effect covers this cell
 - `+ UnlockArea(int areaId, bool force): void`
     - **Purpose**: Opens a locked area and materializes any deferred chips inside it
     - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
@@ -3511,7 +3534,6 @@
     - **Notes**: Unblocks cells first so spawned chips can behave as normal cells immediately after creation
 - `- AddAreaCellsToActiveDict(LockedAreaData area, ILockedAreaEffect effect): void`
 - `- AddCellsToActiveDict(Vector2Int[] cells, ILockedAreaEffect effect): void`
-- `- DeactivateEffects(int areaId, bool immediate): void`
 - `- RemoveAreaCellsFromActiveDict(LockedAreaData area): void`
 - `- RemoveCellsFromActiveDict(Vector2Int[] cells): void`
 - `- RemoveEffectFromAreaChips(LockedAreaData area, ILockedAreaEffect effect, bool force): void`
@@ -4133,6 +4155,19 @@
     - **Params**: progress - 0.0 is fully visible, 1.0 is fully hidden
 - `- StartFade(float targetProgress, float duration, Action onComplete): void`
 - `- UpdateMaterialProperties(): void`
+---
+
+## SubEffect
+
+> - **Purpose**: Sub-effect configuration linked to an owner with configurable activation and deactivation delays
+> - **Usage**: Configured in inspector of Effect and LockedAreaEffect prefabs
+> - read via ISubEffect by owners
+> - **Notes**: EffectId uses [EffectSelector] for inspector dropdown
+> - delays <= 0 trigger immediately
+#### Fields
+- `+- ActivateDelay: float`
+- `+- DeactivateDelay: float`
+- `+- EffectId: int`
 ---
 
 ## TapEvolutionModule

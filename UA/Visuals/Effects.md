@@ -42,22 +42,28 @@
 Доступ до ефектів відбувається через методи `GetEffect(hash)` та `GetEffect<T>(hash)` у базовому класі `Chip`.
 
 ### `IEffect`
-Основний контракт для всіх ефектів:
+Основний контракт для всіх ефектів фішок (наслідує `ISubEffectOwner`):
 - **`GetId()`**: Повертає унікальний ID ефекту (з `EffectConsts`).
 - **`Init(Chip chip, int effectId)`**: Ініціалізація з посиланням на чіп та ідентифікатором ефекту.
 - **`Activate(Chip chip) → bool`**: Активація ефекту. Повертає `false`, якщо `effectId` міститься в `chip.BlockingState.HideEffectIds` (ефект приховано іншим блокуючим ефектом). При успішній активації викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
-- **`Activate(Chip chip, IEffect parentEffect) → bool`**: Активація ефекту із зазначенням батьківського ефекту. Додає `parentEffect` до `ParentEffects` і активує ефект, якщо він ще не був активним.
 - **`Deactivate(Chip chip, bool force)`**: Деактивація ефекту. При `force = true` форсує негайну зміну стану (корисно для миттєвого очищення).
-- **`Deactivate(Chip chip, IEffect parentEffect, bool force)`**: Деактивація ефекту із зазначенням батьківського ефекту. Видаляє `parentEffect` з `ParentEffects` і виконує деактивацію лише тоді, коли `ParentEffects.Count == 0`.
-- **`ParentEffects`** (`HashSet<IEffect>`): Множина активних батьківських ефектів, що наразі утримують цей ефект в активному стані.
 - **`SendTrigger(string triggerName, bool allowRepeat)`**: Відправка довільного тригеру в Animator.
 - **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`).
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Обробка зміни стану руху (початок перетягування або системне переміщення).
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Перевіряє, чи досяг ефект порогу руйнування.
 - **`BlockingSettings`** (`EffectBlockingSettings`): Конфігурація блокувань чіпа при активації ефекту. Детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocking-system).
 - **`DestroyingSettings`** (`EffectDestroyingSettings`): Конфігурація руйнування ефекту при сусідніх злиттях. Детальніше: [Effect Destroying System](../Features/ChipEffectBlockers.md#effect-destroying-system).
+- **Методи саб-ефектів (успадковані від `ISubEffectOwner`)**: `Owners`, `SubEffects`, `ActivateByOwner(Chip, ISubEffectOwner)`, `DeactivateByOwner(Chip, ISubEffectOwner, bool)`.
 
-###
+### `ISubEffectOwner` and `ISubEffect`
+Контракт для керування саб-ефектами та батьківськими залежностями:
+- **`ISubEffect`**: Інтерфейс конфігурації саб-ефекту (`EffectId`, `ActivateDelay`, `DeactivateDelay`). Реалізується класом `SubEffect`.
+- **`ISubEffectOwner`**: Інтерфейс компонента, що володіє або керується саб-ефектами. Реалізується `IEffect` (і базовим класом `Effect`) та `ILockedAreaEffect` (і класом `LockedAreaEffect`):
+  - **`SubEffects`** (`ISubEffect[]`): Масив сконфігурованих саб-ефектів.
+  - **`Owners`** (`HashSet<ISubEffectOwner>`): Множина активних власників, що наразі утримують цей ефект в активному стані.
+  - **`ActivateByOwner(Chip chip, ISubEffectOwner owner) → bool`**: Активація ефекту із зазначенням батьківського контексту. Додає `owner` до `Owners` і активує ефект, якщо він ще не був активним.
+  - **`DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force = false)`**: Деактивація ефекту із зазначенням батьківського контексту. Видаляє `owner` з `Owners` і виконує деактивацію лише тоді, коли `Owners.Count == 0`.
+
 Докладніше про систему блокувань (Blocking Settings, Combined Blocking State) див. у документі **[Chip Effect Blockers](../Features/ChipEffectBlockers.md)**.
 
 ---
@@ -66,10 +72,10 @@
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
 - **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
 - **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При успішній активації сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, true)` та викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
-- **`Activate(Chip chip, IEffect parentEffect) → bool`**: Реєструє `parentEffect` у списку `parentEffects` (`ParentEffects`) і викликає `Activate(chip)`, якщо ефект ще не активний.
+- **`ActivateByOwner(Chip chip, ISubEffectOwner owner) → bool`**: Реєструє `owner` у списку `owners` (`Owners`) і викликає `Activate(chip)`, якщо ефект ще не активний.
 - **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. Сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, false)`. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)` та `animator.Update(0f)`.
-- **`Deactivate(Chip chip, IEffect parentEffect, bool force = false)`**: Видаляє `parentEffect` з `parentEffects`. Якщо `parentEffects.Count == 0` (всі батьківські ефекти деактивувалися), викликає `Deactivate(chip, force)`.
-- **`ParentEffects`**: Публічна властивість для доступу до активних батьківських ефектів (`HashSet<IEffect>`).
+- **`DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force = false)`**: Видаляє `owner` з `owners`. Якщо `owners.Count == 0` (всі батьківські ефекти деактивувалися), викликає `Deactivate(chip, force)`.
+- **`Owners`**: Публічна властивість для доступу до активних батьківських ефектів (`HashSet<ISubEffectOwner>`).
 - **`GetId()`**: Повертає збережений `effectId`.
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`) під час Drag-and-Drop.
@@ -105,19 +111,18 @@
 - **`SendTrigger(string triggerName, bool allowRepeat = false)`**: Дозволяє відправити довільний тригер в `Animator` ефекту. Використовується для спеціальних взаємодій, таких як анімація при спробі перетягнути заблокований чіп (`MoveLocked`). Параметр `allowRepeat` дозволяє ігнорувати налаштування `dontRepeatTrigger` для конкретних викликів.
 - **`ResetTrigger(string triggerName)`**: Скидає вказаний анімаційний тригер в `Animator` ефекту. Викликається при переключенні анімаційних станів, щоб запобігти конфліктам між протилежними тригерами (наприклад, скидає `"Deactivate"` перед надсиланням `"Activate"`). Безпечно обробляє випадок, коли `Animator` значення `null`.
 
-**Підсистема сабефектів (`Effect.SubEffects.cs`)**:
-Базовий клас `Effect` підтримує масив сабефектів (`SubEffects`), що дозволяє зв'язувати дочірні ефекти з основним ефектом:
-- **`Effect.SubEffect`**:
-  - `effectId` (`[EffectSelector] int`): ID сабефекту з `EffectConsts`.
-  - `activateDelay` (`float`, дефолт `-1`): Затримка перед активацією. Значення `< 0` означає миттєву активацію, `> 0` — запуск корутіни із затримкою.
-  - `deactivateDelay` (`float`, дефолт `-1`): Затримка перед деактивацією. Значення `< 0` або виклик з `force = true` означає миттєву деактивацію, `> 0` — запуск корутіни із затримкою.
-  - `subEffect` (`IEffect`): Посилання на екземпляр сабефекту, кешується з `Chip.GetEffect(effectId)` під час `Init` або резолвиться ліниво.
-  - `delayCoroutine` (`Coroutine`): Посилання на активну корутіну затримки (автоматично очищається/зупиняється при зміні стану або знищенні).
+**Підсистема сабефектів (`Effect.SubEffects.cs`, `SubEffect.cs`)**:
+Базовий клас `Effect` реалізує `ISubEffectOwner` та підтримує масив сабефектів (`SubEffects`), що дозволяє зв'язувати дочірні ефекти з основним ефектом:
+- **`SubEffect : ISubEffect`**:
+  - `effectId` (`[SerializeField] private int`): ID сабефекту з `EffectConsts`.
+  - `activateDelay` (`[SerializeField] private float`, дефолт `-1`): Затримка перед активацією. Значення `<= 0` означає миттєву активацію, `> 0` — запуск корутини із затримкою.
+  - `deactivateDelay` (`[SerializeField] private float`, дефолт `-1`): Затримка перед деактивацією. Значення `<= 0` або виклик з `force = true` означає миттєву деактивацію, `> 0` — запуск корутини із затримкою.
 - **Синхронізація життєвого циклу та множинні батьки**:
-  - При `Activate(chip)`: зупиняє активні корутіни та викликає `se.subEffect.Activate(chip, this)` для всіх сабефектів (миттєво або з затримкою `activateDelay`). Передає `this` як батьківський ефект.
-  - При `Deactivate(chip, force)`: зупиняє активні корутіни та викликає `se.subEffect.Deactivate(chip, this, force)` (миттєво при `force` чи `deactivateDelay <= 0`, або з затримкою `deactivateDelay`). Передає `this` як батьківський ефект.
-  - **Множинні батьки (Multiple Parents)**: якщо саб-ефект одночасно прив'язаний до кількох батьківських ефектів (наприклад, до Parent A та Parent B), кожен батько реєструє себе в `ParentEffects` саб-ефекту. При деактивації Parent A саб-ефект залишається активним (`IsActive == true`), оскільки `ParentEffects.Count > 0` (Parent B ще активний). Саб-ефект деактивується лише тоді, коли деактивується останній активний батько (`ParentEffects.Count == 0`).
-  - При `OnDestroy()`: гарантовано зупиняє всі запущені delay-корутіни.
+  - Керування корутинами затримок інкапсульовано у словнику `delayCoroutines` (`Dictionary<int, Coroutine>` в `Effect` та `Dictionary<int, Coroutine>` в `LockedAreaEffect`).
+  - При `ActivateSubEffects(chip)`: зупиняє активні корутини та викликає `chip.GetEffect(se.EffectId)?.ActivateByOwner(chip, this)` для всіх сабефектів (миттєво або з затримкою `ActivateDelay`). Передає `this` як батьківський `ISubEffectOwner`.
+  - При `DeactivateSubEffects(chip, force)`: зупиняє активні корутини та викликає `chip.GetEffect(se.EffectId)?.DeactivateByOwner(chip, this, force)` (миттєво при `force` чи `DeactivateDelay <= 0`, або з затримкою `DeactivateDelay`). Передає `this` як батьківський `ISubEffectOwner`.
+  - **Множинні батьки (Multiple Parents)**: якщо саб-ефект одночасно прив'язаний до кількох батьківських ефектів (наприклад, до блокера на фішці та до `LockedAreaEffect` ділянки), кожен батько реєструє себе в `Owners` саб-ефекту (`HashSet<ISubEffectOwner>`). При знятті одного з батьків саб-ефект залишається активним (`IsActive == true`), оскільки `Owners.Count > 0`. Саб-ефект деактивується лише тоді, коли деактивується останній активний батько (`Owners.Count == 0`).
+  - При `OnDestroy()`: гарантовано зупиняє всі запущені delay-корутини.
 
 ---
 
