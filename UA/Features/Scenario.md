@@ -101,7 +101,7 @@ namespace Expecto.MergeBase
 
 ### 3.5 Area Unlocking (OnAreaUnlocked)
 
-- **Метод `LockedAreaManager.UnlockArea()`** викликає `scenarioEventHandler.RaiseAreaUnlocked(areaId)` після відкриття клітинок зони, спавну всіх відкладених фішок через `ChipFactory` та деактивації візуальних ефектів блокування (туман/ворота).
+- **Метод `LockedAreaManager.UnlockArea()`** викликає `scenarioEventHandler.RaiseAreaUnlocked(areaId)` після відкриття клітинок зони, спавну всіх відкладених фішок та завершення анімації деактивації візуального ефекту блокування (туман/ворота) через колбек `onComplete` (або негайно, якщо `force == true` чи зареєстрований ефект ділянки відсутній).
 
 ---
 

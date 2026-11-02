@@ -182,14 +182,15 @@
 ## ActivateTutorialNode
 **Inherits**: `Unit`
 
-> - **Purpose**: Activates a tutorial by name via ITutorialManager and suspends graph execution until it is deactivated.
+> - **Purpose**: Activates a tutorial by name via ITutorialManager and optionally suspends graph execution until it is deactivated.
 > - **Usage**: Connect to a control flow
-> - provide tutorialName matching the tutorial prefab name. Must be run as a coroutine (enable Coroutine on starting event node).
+> - provide tutorialName matching the tutorial prefab name, and optional waitForDeactivation (default true). Must be run as a coroutine if waiting for deactivation.
 > - **Notes**: TutorialManager must be set in Scene Variables during scene initialization by MergeBaseVScriptingInitializer.
 #### Fields
 - `+- InputTrigger: ControlInput`
 - `+- OutputTrigger: ControlOutput`
 - `+- TutorialName: ValueInput`
+- `+- WaitForDeactivation: ValueInput`
 #### Methods
 - `~ Definition(): void`
 - `- TriggerCoroutine(Flow flow): IEnumerator`
@@ -1647,12 +1648,14 @@
 ## DeactivateTutorialNode
 **Inherits**: `Unit`
 
-> - **Purpose**: Deactivates the currently active tutorial via ITutorialManager.
-> - **Usage**: Connect to a control flow. Resolves ITutorialManager from Scene Variables and calls Deactivate() without requiring a tutorial name.
+> - **Purpose**: Deactivates the currently active tutorial, or a specific tutorial by name via ITutorialManager.
+> - **Usage**: Connect to a control flow. Resolves ITutorialManager from Scene Variables and calls Deactivate(tutorialName). Enable SpecifyTutorialName header toggle to provide a specific tutorial name port.
 > - **Notes**: TutorialManager must be set in Scene Variables during scene initialization by MergeBaseVScriptingInitializer.
 #### Fields
+- `++ SpecifyTutorialName: bool`
 - `+- InputTrigger: ControlInput`
 - `+- OutputTrigger: ControlOutput`
+- `+- TutorialName: ValueInput`
 #### Methods
 - `~ Definition(): void`
 - `- Trigger(Flow flow): ControlOutput`
@@ -3129,10 +3132,11 @@
     - **Purpose**: Applies locked-area blocking settings and sub-effects to a chip
     - **Usage**: Called when a chip is spawned on or covered by this locked area
     - **Params**: chip - target chip receiving the locked area effects
-- `+ Deactivate(bool force): void`
+- `+ Deactivate(bool force, Action onComplete): void`
     - **Purpose**: Deactivates the visual overlay animation or display
     - **Usage**: Called by ILockedAreaManager when the area is unlocked
     - **Params**: force - if true, immediately forces visual into deactivated state without transition
+    - onComplete - optional callback invoked when deactivation transition completes
 - `+ Init(): void`
     - **Purpose**: Registers the effect with ILockedAreaManager
     - **Usage**: Called after level visual prefab is instantiated and dependencies are injected
@@ -3355,10 +3359,10 @@
     - **Usage**: Called by ActivateTutorialNode or gameplay logic
     - tutorialName must match ITutorial.TutorialName
     - **Notes**: Logs a warning if no tutorial with that name is registered
-- `+ Deactivate(): void`
-    - **Purpose**: Deactivates the currently active tutorial
-    - **Usage**: Called by DeactivateTutorialNode or gameplay logic without requiring a tutorial name
-    - **Notes**: Logs a warning if no tutorial is currently active
+- `+ Deactivate(string tutorialName): void`
+    - **Purpose**: Deactivates the currently active tutorial, or a specific tutorial by name if tutorialName is provided
+    - **Usage**: Called by DeactivateTutorialNode or gameplay logic with an optional tutorial name
+    - **Notes**: If tutorialName is null or empty, deactivates the latest active tutorial. Logs a warning if no matching tutorial is active or registered
 - `+ RegisterTutorial(ITutorial tutorial): void`
     - **Purpose**: Registers a tutorial instance so the manager can route Activate/Deactivate calls to it
     - **Usage**: Called from ITutorial MonoBehaviour Start() after VContainer injection
@@ -3454,8 +3458,10 @@
 - `+- SubEffects: ISubEffect[]`
 - `- animator: Animator`
 - `- chipCollections: IChipCollections`
+- `- deactivationCoroutine: Coroutine`
 - `- delayCoroutines: Dictionary<int, Coroutine>`
 - `- lockedAreaManager: ILockedAreaManager`
+- `- pendingDeactivateCallback: Action`
 #### Methods
 - `+ Activate(): void`
     - **Purpose**: Activates the visual overlay animation
@@ -3465,10 +3471,11 @@
     - **Purpose**: Applies locked-area blocking settings and activates sub-effects on the specified chip
     - **Usage**: Called when a chip is created on or added to this locked area
     - **Params**: chip - target chip receiving the locked area effects
-- `+ Deactivate(bool force): void`
-    - **Purpose**: Deactivates the visual overlay animation
+- `+ Deactivate(bool force, Action onComplete): void`
+    - **Purpose**: Deactivates the visual overlay animation and notifies upon completion
     - **Usage**: Called by LockedAreaManager when the area is unlocked
     - **Params**: force - if true, immediately forces animator into end Deactivate state
+    - onComplete - optional callback invoked when deactivation animation finishes
 - `+ DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force): void`
 - `+ Init(): void`
     - **Purpose**: Registers this level visual effect with the locked-area runtime manager
@@ -3487,6 +3494,9 @@
 - `- Expecto.MergeBase.ILockedAreaEffect.get_gameObject(): GameObject`
 - `- HasTrigger(string name): bool`
 - `- OnDestroy(): void`
+- `- OnDisable(): void`
+- `- StopDeactivationCoroutine(bool invokePendingCallback): void`
+- `- WaitForDeactivationCompleteRoutine(): IEnumerator`
 ---
 
 ## LockedAreaManager
@@ -4305,6 +4315,7 @@
 > - **Notes**: Tutorial names are case-sensitive and must match the prefab GameObject name
 #### Fields
 - `+- ActiveTutorial: ITutorial`
+- `- activeTutorials: List<ITutorial>`
 - `- OnTutorialDeactivated: Action<string>`
 - `- tutorials: Dictionary<string, ITutorial>`
 #### Methods
@@ -4312,10 +4323,10 @@
     - **Purpose**: Activates the tutorial with the given name if it is registered
     - **Usage**: Called by ActivateTutorialNode or gameplay logic
     - **Notes**: Logs a warning when tutorialName is not found in the registry
-- `+ Deactivate(): void`
-    - **Purpose**: Deactivates the currently active tutorial
-    - **Usage**: Called by DeactivateTutorialNode or gameplay logic without specifying a tutorial name
-    - **Notes**: Logs a warning when no tutorial is currently active
+- `+ Deactivate(string tutorialName): void`
+    - **Purpose**: Deactivates the currently active tutorial, or a specific tutorial by name if tutorialName is provided
+    - **Usage**: Called by DeactivateTutorialNode or gameplay logic with an optional tutorial name
+    - **Notes**: If tutorialName is null or empty, deactivates the latest active tutorial. Logs a warning if no matching tutorial is active or registered
 - `+ RegisterTutorial(ITutorial tutorial): void`
     - **Purpose**: Adds an ITutorial instance to the routing dictionary
     - **Usage**: Called from ITutorial.Start() after VContainer injects ITutorialManager

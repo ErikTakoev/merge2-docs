@@ -1,6 +1,6 @@
 [← На Головну](../Main.md)
 
-# Tutorial System (Система туторіалів)
+# Tutorial System
 
 Цей документ описує архітектуру системи туторіалів у Merge2, включаючи керування життєвим циклом туторіальних префабів (`ITutorialManager`), блокування вводу гравця (`ITutorialInputBlocker`), візуальні підказки руки (`TutorialHandHelper` / `TutorialDragNDrop`) та ноди Unity Visual Scripting (UVS).
 
@@ -28,8 +28,8 @@ graph TD
 
 ### 2.1 ITutorial & Tutorial
 
-- **Файл**: [Tutorial.cs](../../Core/Scripts/Tutorials/Tutorial.cs)
-- **Інтерфейс**: [ITutorial.cs](../../Core/Scripts/Tutorials/ITutorial.cs)
+- **Файл**: [Tutorial.cs](../../../Core/Scripts/Tutorials/Tutorial.cs)
+- **Інтерфейс**: [ITutorial.cs](../../../Core/Scripts/Tutorials/ITutorial.cs)
 
 `ITutorial` — контракт для окремого туторіалу. Реалізується на префабі туторіалу.
 
@@ -41,8 +41,8 @@ graph TD
 
 ### 2.2 ITutorialManager & TutorialManager
 
-- **Файл**: [TutorialManager.cs](../../Core/Scripts/Tutorials/TutorialManager.cs)
-- **Інтерфейс**: [ITutorialManager.cs](../../Core/Scripts/Tutorials/ITutorialManager.cs)
+- **Файл**: [TutorialManager.cs](../../../Core/Scripts/Tutorials/TutorialManager.cs)
+- **Інтерфейс**: [ITutorialManager.cs](../../../Core/Scripts/Tutorials/ITutorialManager.cs)
 
 Singleton-сервіс, який реєструється у `Merge2LifetimeScope` і керує активним туторіалом.
 
@@ -52,13 +52,13 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 
 **Основні методи**:
 - `void RegisterTutorial(ITutorial tutorial)` — реєструє екземпляр туторіалу в словнику за ім'ям `TutorialName`.
-- `void UnregisterTutorial(ITutorial tutorial)` — видаляє туторіал із реєстрації.
-- `void Activate(string tutorialName)` — деактивує поточний активний туторіал (якщо є) і запускає туторіал за вказаним ім'ям.
-- `void Deactivate()` — деактивує поточний `ActiveTutorial` та викликає подібну подію `OnTutorialDeactivated`.
+- `void UnregisterTutorial(ITutorial tutorial)` — видаляє туторіал із реєстрації та списку активних.
+- `void Activate(string tutorialName)` — запускає туторіал за вказаним ім'ям (дозволяє одночасну роботу кількох паралельних туторіалів).
+- `void Deactivate(string tutorialName = null)` — деактивує конкретний туторіал за ім'ям (якщо `tutorialName` передано) або поточний останній активний `ActiveTutorial` (якщо `null` або порожній), та викликає подію `OnTutorialDeactivated`.
 
 ### 2.3 TutorialHandHelper
 
-- **Файл**: [TutorialHandHelper.cs](../../Core/Scripts/Tutorials/TutorialHandHelper.cs)
+- **Файл**: [TutorialHandHelper.cs](../../../Core/Scripts/Tutorials/TutorialHandHelper.cs)
 
 Допоміжний компонент для візуалізації підказок руки на дочірньому об'єкті префабу.
 
@@ -73,8 +73,8 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 
 ### 3.1 ITutorialInputBlocker & TutorialInputBlocker
 
-- **Файл**: [TutorialInputBlocker.cs](../../Core/Scripts/Tutorials/TutorialInputBlocker.cs)
-- **Інтерфейс**: [ITutorialInputBlocker.cs](../../Core/Scripts/VContainer/Interfaces/ITutorialInputBlocker.cs)
+- **Файл**: [TutorialInputBlocker.cs](../../../Core/Scripts/Tutorials/TutorialInputBlocker.cs)
+- **Інтерфейс**: [ITutorialInputBlocker.cs](../../../Core/Scripts/VContainer/Interfaces/ITutorialInputBlocker.cs)
 
 Сервіс блокування вводу, що реєструється в `Merge2LifetimeScope` і перевіряється в `DraggableChipLogic` та `FieldEventHandler`.
 
@@ -94,11 +94,11 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 
 ### 4.1 Action Nodes
 
-- **`ActivateTutorialNode`** ([ActivateTutorialNode.cs](../../VScripting/Scripts/Actions/ActivateTutorialNode.cs)): Викликова нода-корутина. Викликає `manager.Activate(tutorialName)` і призупиняє виконання графа до виклику події `OnTutorialDeactivated` із відповідним ім'ям.
-- **`DeactivateTutorialNode`** ([DeactivateTutorialNode.cs](../../VScripting/Scripts/Actions/DeactivateTutorialNode.cs)): Викликає `manager.Deactivate()`.
-- **`BlockTutorialInputNode`** ([BlockTutorialInputNode.cs](../../VScripting/Scripts/Actions/BlockTutorialInputNode.cs)): Встановлює обмежувальні координати дій `allowedStart` та `allowedEnd` через `ITutorialInputBlocker`. Значення `(-1, -1)` (або `Tutorial.LockedPosition`) використовується як сентинель для `null` (повне блокування).
-- **`UnblockTutorialInputNode`** ([UnblockTutorialInputNode.cs](../../VScripting/Scripts/Actions/UnblockTutorialInputNode.cs)): Викликає `blocker.UnblockInput()`.
-- **`CreateChipNode`** ([CreateChipNode.cs](../../VScripting/Scripts/Actions/CreateChipNode.cs)): Нода створення чіпа на полі через `ChipFactory` з опціональними налаштуваннями польоту (прапорець `Use Flight` у заголовку/інспекторі ноди динамічно активує порти `parentWorldPosition`, `flightDuration`, `flightType`), списками ефектів блокування (`blockerEffectIds`), анімаційним тригером (`animatorTrigger`), прапорцем агресивної релокації `aggressive` (автоматично розчищає місце через `IChipMovingLogic`, якщо клітинки зайняті) та виходом результату `success`.
+- **`ActivateTutorialNode`** ([ActivateTutorialNode.cs](../../../VScripting/Scripts/Actions/ActivateTutorialNode.cs)): Викликова нода-корутина. Викликає `manager.Activate(tutorialName)` і призупиняє виконання графа до виклику події `OnTutorialDeactivated` із відповідним ім'ям (якщо прапорець `waitForDeactivation` встановлено в `true`, за замовчуванням `true`; при `false` туторіал активується і потік одразу продовжує виконання).
+- **`DeactivateTutorialNode`** ([DeactivateTutorialNode.cs](../../../VScripting/Scripts/Actions/DeactivateTutorialNode.cs)): Деактивує туторіал через `manager.Deactivate(tutorialName)`. Містить перемикач `Specify Tutorial Name` у заголовку вузла, який відкриває опціональний вхідний порт `tutorialName` (якщо не вказано або вимкнено — деактивує останній активний туторіал).
+- **`BlockTutorialInputNode`** ([BlockTutorialInputNode.cs](../../../VScripting/Scripts/Actions/BlockTutorialInputNode.cs)): Встановлює обмежувальні координати дій `allowedStart` та `allowedEnd` через `ITutorialInputBlocker`. Значення `(-1, -1)` (або `Tutorial.LockedPosition`) використовується як сентинель для `null` (повне блокування).
+- **`UnblockTutorialInputNode`** ([UnblockTutorialInputNode.cs](../../../VScripting/Scripts/Actions/UnblockTutorialInputNode.cs)): Викликає `blocker.UnblockInput()`.
+- **`CreateChipNode`** ([CreateChipNode.cs](../../../VScripting/Scripts/Actions/CreateChipNode.cs)): Нода створення чіпа на полі через `ChipFactory` з опціональними налаштуваннями польоту (прапорець `Use Flight` у заголовку/інспекторі ноди динамічно активує порти `parentWorldPosition`, `flightDuration`, `flightType`), списками ефектів блокування (`blockerEffectIds`), анімаційним тригером (`animatorTrigger`), прапорцем агресивної релокації `aggressive` (автоматично розчищає місце через `IChipMovingLogic`, якщо клітинки зайняті) та виходом результату `success`.
 
 ### 4.2 Event and Wait Nodes
 
@@ -106,7 +106,7 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 
 ### 4.3 TutorialDragNDrop
 
-- **Файл**: [TutorialDragNDrop.cs](../../VScripting/Scripts/Tutorials/TutorialDragNDrop.cs)
+- **Файл**: [TutorialDragNDrop.cs](../../../VScripting/Scripts/Tutorials/TutorialDragNDrop.cs)
 
 Спеціалізований нащадок `Tutorial`, що реалізує анімоване переміщення підказки руки між клітинками поля та інтеграцію із Visual Scripting:
 - **Серіалізовані налаштування**: `startDragPos`, `endDragPos`, `waitDestroyChip`, `handTransform`, `dragDuration`, `movementCurve`, `arcHeight`, `arcCurve`.
@@ -116,7 +116,7 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 
 ### 4.4 TutorialTapChip
 
-- **Файл**: [TutorialTapChip.cs](../../VScripting/Scripts/Tutorials/TutorialTapChip.cs)
+- **Файл**: [TutorialTapChip.cs](../../../VScripting/Scripts/Tutorials/TutorialTapChip.cs)
 
 Спеціалізований нащадок `Tutorial` для реалізації підказки тапу по чіпу:
 - **Серіалізовані налаштування**: `tapPos`, `waitDestroyChip`, `handTransform`.
