@@ -612,10 +612,11 @@
 - `+ SendTrigger(AnimatorTrigger trigger, bool allowRepeat): void`
 - `+ SendTrigger(string trigger, bool allowRepeat): void`
     - **Purpose**: Sends a trigger to the animator and synchronizes the 'Little' state.
-    - **Usage**: Called when a chip state change requires an animation trigger (e.g., Generate, Recharge).
+    - **Usage**: Called when a chip state change requires an animation trigger (e.g., Generate, Recharge, Spawn).
     - **Params**: trigger - the animator trigger name to fire
     - allowRepeat - if true, bypasses the dontRepeatTrigger check
-    - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state. Prevents redundant triggers if dontRepeatTrigger is enabled. Notifies sortingLayer of animation triggers to adjust sorting orders.
+    - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state. If lastTriggerName is empty, plays the state directly via animator.Play to instantly apply the first frame without 1-frame trigger delay
+    - otherwise uses animator.SetTrigger. Prevents redundant triggers if dontRepeatTrigger is enabled. Notifies sortingLayer of animation triggers to adjust sorting orders.
 - `+ SetDragging(bool value): void`
     - **Purpose**: Sets the drag state of the chip and ensures visual consistency
     - **Usage**: Called by DraggableChipLogic when user drag starts (true) or ends (false)
@@ -656,6 +657,11 @@
     - **Usage**: Called internally when neighboring chip interactions are handled, provided CanDestroyEffects is true
     - **Notes**: Skips processing if blockingState.CanDestroyEffects is false or if no prioritizing effect is present
     - increments NeighboringMergeCount and removes the effect if TryDestroyEffect returns true
+- `~ HasState(string name): bool`
+    - **Purpose**: Checks whether the animator contains a state with the specified name across any of its layers
+    - **Usage**: Call before animator.Play to avoid 'State could not be found' warnings or errors
+    - **Params**: name - name of the animator state to verify
+    - **Returns**: True if state exists in any animator layer, false otherwise
 - `~ HasTrigger(string name): bool`
 - `~ InitDestroyingEffectsData(): void`
     - **Purpose**: Scans all registered effects for DestroyingSettings and initializes their runtime destroying data
@@ -1972,6 +1978,11 @@
     - **Notes**: Passes this effect as owner
     - when force is true, delays are ignored and sub-effects are deactivated immediately with force
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
+- `~ HasState(string name): bool`
+    - **Purpose**: Checks whether the animator contains a state with the specified name across any of its layers
+    - **Usage**: Call before animator.Play to avoid 'State could not be found' warnings or errors
+    - **Params**: name - name of the animator state to verify
+    - **Returns**: True if state exists in any animator layer, false otherwise
 - `~ HasTrigger(string name): bool`
 - `~ InitSubEffects(Chip chip): void`
     - **Purpose**: Initializes sub-effects configuration for the owner chip

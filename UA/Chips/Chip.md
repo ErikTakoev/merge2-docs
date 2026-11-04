@@ -36,7 +36,7 @@
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.
   Для повного каталогу див. [Visual Effects](../Visuals/Effects.md). Детальніше про логіку блокувань та руйнування див. [Chip Effect Blockers](../Features/ChipEffectBlockers.md).
-- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`). Підтримує паузу через `PauseAnimator(bool)` на час затримки польоту.
+- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Spawn`, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`). Під час першого виклику `SendTrigger` (коли `lastTriggerName` ще порожній) анімація запускається примусово через `animator.Play(stateName, 0, 0f)` + `animator.Update(0f)` для запобігання 1-кадрового візуального артефакту затримки черги тригерів Mecanim; наступні тригери перемикаються через `animator.SetTrigger(trigger)`. Підтримує паузу через `PauseAnimator(bool)` на час затримки польоту.
 
 ## Effect Management
 
