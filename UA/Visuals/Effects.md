@@ -50,6 +50,7 @@
 - **`SendTrigger(string triggerName, bool allowRepeat)`**: Відправка довільного тригеру в Animator.
 - **`OnChangedCell` / `OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`).
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Обробка зміни стану руху (початок перетягування або системне переміщення).
+- **`OnChipAnimationTrigger(string triggerName)`**: Викликається при надсиланні анімаційного тригеру власнику-чіпу (`Chip.SendTrigger`). Дозволяє ефектам реагувати на зміну анімаційного стану чіпа.
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Перевіряє, чи досяг ефект порогу руйнування.
 - **`BlockingSettings`** (`EffectBlockingSettings`): Конфігурація блокувань чіпа при активації ефекту. Детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#blocking-system).
 - **`DestroyingSettings`** (`EffectDestroyingSettings`): Конфігурація руйнування ефекту при сусідніх злиттях. Детальніше: [Effect Destroying System](../Features/ChipEffectBlockers.md#effect-destroying-system).
@@ -80,6 +81,7 @@
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`) під час Drag-and-Drop.
 - **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Автоматично приховує ефект при початку руху, якщо встановлено `deactivateOnMove = true`, та відновлює стан при зупинці.
+- **`OnChipAnimationTrigger(string triggerName)`**: Віртуальний метод для реакції на анімаційні тригери власника-чіпа. За замовчуванням порожній.
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Якщо `NeighboringMergeCount` не перевищує кількість станів у `AdditionalStates`, відправляє тригер відповідного додаткового стану; коли всі додаткові стани вичерпано (або масив порожній) — деактивує ефект і повертає `true`.
 
 **EffectParentType** (enum):
@@ -286,6 +288,7 @@
   - `transform.localPosition` на основі `shadowOffsetPerOneHeight * height`.
   - `transform.localScale` на основі `shadowScalePerOneHeight * height * Vector3.one`.
 - **Синхронізація альфи (`alphaFollowDuration`)**: Після виклику `Activate` або `Deactivate` ефект відслідковує прозорість (`color.a`) першого спрайт-рендерера чіпа (`chip.SortingLayer.SortingLayers[0].Renderer`) протягом часу `alphaFollowDuration` (за замовчуванням `0.5f`) та дублює її для `shadowRenderer`. Забезпечує плавне відображення або згасання тіні під час анімацій появи чи зникнення чіпа.
+  - При `OnChipAnimationTrigger(string triggerName)` ефект миттєво синхронізує альфу тіні з поточною альфою чіпа (`SetShadowAlpha(chipRenderer.color.a)`), що усуває 1-кадрову затримку на початку анімацій (наприклад, `Spawn`).
   - При `Deactivate(chip, force = true)` відслідковування скасовується, а альфа тіні миттєво встановлюється в `0f`.
   - При `Deactivate(chip, force = false)` запускається корутина відслідковування згасання альфи до повної прозорості одночасно з чіпом.
 - **Сортування**: Під час руху тінь збільшує свій `sortingOrder` на величину `MovingOrderOffset` основного чіпа (`chip.SortingLayer.MovingOrderOffset`), щоб залишатися візуально під чіпом, але над полем.

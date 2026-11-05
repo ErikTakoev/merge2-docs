@@ -36,7 +36,7 @@
   - **LogEnable**: Прапорець для ввімкнення логування подій чіпа в консоль.
 - **Effects**: Керується централізованою системою на основі `Dictionary<int, IEffect>` з хеш-ключами від `EffectConsts`.
   Для повного каталогу див. [Visual Effects](../Visuals/Effects.md). Детальніше про логіку блокувань та руйнування див. [Chip Effect Blockers](../Features/ChipEffectBlockers.md).
-- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Spawn`, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`). Під час першого виклику `SendTrigger` (коли `lastTriggerName` ще порожній) анімація запускається примусово через `animator.Play(stateName, 0, 0f)` + `animator.Update(0f)` для запобігання 1-кадрового візуального артефакту затримки черги тригерів Mecanim; наступні тригери перемикаються через `animator.SetTrigger(trigger)`. Підтримує паузу через `PauseAnimator(bool)` на час затримки польоту.
+- **Animations**: Має посилання на `Animator` для відтворення станів (наприклад, `Spawn`, `Merge`, `Generate`, `MoveLocked`, `TapEvolutionSpawn`, `TapEvolutionDestroy`). Виклик `SendTrigger(trigger)` надсилає тригер в `Animator` через `animator.SetTrigger(trigger)` та примусово оновлює перший кадр через `animator.Update(0f)` для уникнення 1-кадрової затримки Mecanim, після чого сповіщає `SortingLayer` та транслює тригер усім активним ефектам чіпа (`NotifyEffectsOnAnimationTrigger`). Підтримує паузу через `PauseAnimator(bool)` на час затримки польоту.
 
 ## Effect Management
 
@@ -78,7 +78,7 @@
 - **Утиліти**: `GetIdByName(string)` — резолв рядкової назви в ID через словник `nameToId`
 
 ### Effect Lifecycle
-- Всі ефекти, додані до словника `effects`, автоматично отримують сповіщення через методи `OnChangedCell()`, `OnInteractionOverCellChanged()` та `OnInteractionUnderCellChanged()`.
+- Всі ефекти, додані до словника `effects`, автоматично отримують сповіщення через методи `OnChangedCell()`, `OnInteractionOverCellChanged()`, `OnInteractionUnderCellChanged()`, а також `OnChipAnimationTrigger(trigger)` при надсиланні анімаційних тригерів через `Chip.SendTrigger`.
 - **Effect Destroying**: Ефекти з `DestroyingSettings` підтримують поступове руйнування при сусідніх злиттях (детальніше: [Chip Effect Blockers](../Features/ChipEffectBlockers.md#effect-destroying-system)):
   - `InitDestroyingEffectsData()` сканує ефекти і створює `EffectDestroyingRuntimeData` записи.
   - `UpdatePrioritizingDestroyingEffect()` обирає ефект з найвищим `Priority` як `effectOfPrioritizingDestroying` (доступний через публічну властивість `EffectOfPrioritizingDestroying`).
@@ -165,7 +165,7 @@
   - `string TriggerName`: назва тригера / стану в `Animator`.
   - `int AdditionalOrder`: додатковий зсув сортування, який додається до базового порядку всіх рендерерів на час анімації.
 - **Механізм роботи (`OnAnimationTrigger`)**:
-  1. Коли `Chip.SendTrigger(trigger)` надсилає тригер в `Animator`, він автоматично сповіщає `sortingLayer?.OnAnimationTrigger(trigger)`.
+  1. Коли `Chip.SendTrigger(trigger)` надсилає тригер в `Animator`, він автоматично сповіщає `sortingLayer?.OnAnimationTrigger(trigger)` та викликає `NotifyEffectsOnAnimationTrigger(trigger)` для трансляції тригера активним ефектам.
   2. Якщо для `trigger` налаштовано зсув у `AnimationsSortingData`:
      - Негайно зупиняється будь-яка попередня активна корутина анімаційного сортування та скидається попередній оффсет.
      - Компонент автоматично визначає точну тривалість анімації (`duration`): перевіряє поточний стан `animator.GetCurrentAnimatorStateInfo(0)` та наступний стан `animator.GetNextAnimatorStateInfo(0)`, знаходить стан з іменем `triggerName` і зчитує `state.length`.

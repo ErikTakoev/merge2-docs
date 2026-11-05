@@ -684,6 +684,10 @@
     - **Notes**: Automatically calls Init(this) on the instantiated effect
     - return value can be added to the effects list
     - T must be a class and implement IEffect
+- `~ NotifyEffectsOnAnimationTrigger(string trigger): void`
+    - **Purpose**: Broadcasts chip animation trigger events to all attached effects
+    - **Usage**: Called from Chip.SendTrigger when an animation trigger is fired on the chip
+    - **Params**: trigger - name of the trigger being fired on the chip
 - `~ NotifyEffectsOnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `~ NotifyEffectsOnMovingStateChanged(bool isMoving): void`
     - **Purpose**: Broadcasts movement state changes to all attached effects
@@ -1913,6 +1917,10 @@
     - targetCell - the cell the chip is moved to
     - **Notes**: Restores local position and scale after changing parent transform
     - only applies if effectForCell is true
+- `+ OnChipAnimationTrigger(string triggerName): void`
+    - **Purpose**: Called on the effect when an animation trigger is sent to the owner chip
+    - **Usage**: Override in derived effect classes to react to owner chip animation triggers
+    - **Params**: triggerName - name of the trigger sent to the chip
 - `+ OnInteractionOverCellChanged(ICell prevCell, ICell currentCell, ICell underCell): void`
     - **Purpose**: Called when the chip's cell changes during drag
     - **Usage**: Handle logic when a chip is dragged from one cell to another during drag-and-drop
@@ -2922,6 +2930,10 @@
 - `+ GetId(): int`
 - `+ Init(Chip chip, int effectHash): void`
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
+- `+ OnChipAnimationTrigger(string triggerName): void`
+    - **Purpose**: Called on the effect when an animation trigger is sent to the owner chip
+    - **Usage**: Invoked automatically by Chip.SendTrigger to notify active effects of chip animation state transitions
+    - **Params**: triggerName - name of the trigger sent to the chip
 - `+ OnInteractionOverCellChanged(ICell prevCell, ICell currentCell, ICell underCell): void`
 - `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
 - `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
@@ -4081,6 +4093,10 @@
     - configures shadow sprite from chip's sorting layer and establishes moving order offset
     - **Params**: chip - owner chip
     - effectId - unique effect identifier
+- `+ OnChipAnimationTrigger(string triggerName): void`
+    - **Purpose**: Reacts to owner chip animation triggers by immediately synchronizing shadow alpha for the current frame
+    - **Usage**: Called by Chip.NotifyEffectsOnAnimationTrigger via IEffect.OnChipAnimationTrigger
+    - **Params**: triggerName - name of the trigger sent to the chip
 - `+ OnHeightChanged(float height): void`
     - **Purpose**: Updates the shadow sprite renderer's local position and scale to visually simulate height changes
     - **Usage**: Implements IShadowEffect.OnHeightChanged
