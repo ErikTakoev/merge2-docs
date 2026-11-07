@@ -22,7 +22,7 @@ Before starting merge, system checks:
 When merge is confirmed:
 1. **Result definition**: `MergeResult` is obtained via `sourceCell.Chip.MergeData.GetNextChip(mainCell.Chip.Data)`.
 2. **Position check**: If result chip is larger (for example, [Multi-cell Chip](../Features/MultiCellChip.md)), system checks whether it fits field bounds.
-3. **Neighbor relocation**: If new chip requires more space, [Chip Relocation](../Features/ChipRelocation.md) system is called to free space. If freeing space on main position fails, system automatically checks all 8 neighboring cells to find an alternative placement.
+3. **Neighbor relocation**: If the new chip requires more space, the [Chip Relocation](../Features/ChipRelocation.md) system is called. The system prioritizes positions requiring zero relocations (primary cell first, then 8 neighbors according to `NeighborOffsets`: orthogonal first, then diagonal). If placement without relocations is not possible, it selects the position requiring the fewest relocated chips (ties favor the primary cell).
 4. **Field update**:
    - Previous chips are destroyed.
    - New chip is created through `ChipFactory`.

@@ -92,9 +92,10 @@
     4. Якщо `force` є істиною або відсутній `Animator`, викликає `FinishDestroy()` негайно.
     5. Інакше деактивує активні ефекти через `DeactivateAllEffects()` та надсилає вказаний тригер аніматора `destroyTrigger` (наприклад, `AnimatorTrigger.Destroy` чи `AnimatorTrigger.TapEvolutionDestroy`).
   - **`FinishDestroy()`**: Завершує руйнування об'єкта. Може бути викликаний безпосередньо з `Destroy`, або через Unity Animation Event наприкінці анімації руйнування.
-    1. Викликає `module.DestroyModule()` для кожного зареєстрованого модуля.
-    2. Знищує та очищає всі прив'язані ефекти через `RemoveAllEffects()`.
-    3. Знищує GameObject чіпа (`OnDestroy` також гарантує виклики `RemoveAllEffects()` та `DestroyModule()`). При форсованому знищенні (`force: true`) приховує `animationNode` і відкладає `Destroy(gameObject)` на 1 кадр через корутину `DeferredDestroyRoutine`, щоб слухачі подій (наприклад, `WaitForChipRemovedNode`) встигли коректно обробити посилання на фішку до її остаточного видалення з пам'яті рушієм.
+    1. Зупиняє активну корутину підйому через `LiftController.StopLiftCoroutine()`.
+    2. Викликає `module.DestroyModule()` для кожного зареєстрованого модуля.
+    3. Знищує та очищає всі прив'язані ефекти через `RemoveAllEffects()`.
+    4. Знищує GameObject чіпа (`OnDestroy` також гарантує виклики `RemoveAllEffects()` та `DestroyModule()`). При форсованому знищенні (`force: true`) приховує `animationNode` і відкладає `Destroy(gameObject)` на 1 кадр через корутину `DeferredDestroyRoutine`, щоб слухачі подій (наприклад, `WaitForChipRemovedNode`) встигли коректно обробити посилання на фішку до її остаточного видалення з пам'яті рушієм.
 
     Під час деактивації та видалення ефектів перевіряється властивість `IsSkipDestroy`. Якщо вона дорівнює `true`, цей ефект пропускається (наприклад, коли ефект відв'язано за допомогою `SkipDestroy()` і він має дограти анімацію).
 

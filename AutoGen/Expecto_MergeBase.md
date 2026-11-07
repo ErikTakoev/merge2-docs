@@ -615,8 +615,7 @@
     - **Usage**: Called when a chip state change requires an animation trigger (e.g., Generate, Recharge, Spawn).
     - **Params**: trigger - the animator trigger name to fire
     - allowRepeat - if true, bypasses the dontRepeatTrigger check
-    - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state. If lastTriggerName is empty, plays the state directly via animator.Play to instantly apply the first frame without 1-frame trigger delay
-    - otherwise uses animator.SetTrigger. Prevents redundant triggers if dontRepeatTrigger is enabled. Notifies sortingLayer of animation triggers to adjust sorting orders.
+    - **Notes**: Automatically updates the 'Little' boolean in the animator based on the chip's blocking state. Fires animator.SetTrigger and immediately forces animator.Update(0f) to apply the first animation frame without frame delay. Prevents redundant triggers if dontRepeatTrigger is enabled. Notifies sortingLayer and broadcasts the trigger to all attached effects via NotifyEffectsOnAnimationTrigger.
 - `+ SetDragging(bool value): void`
     - **Purpose**: Sets the drag state of the chip and ensures visual consistency
     - **Usage**: Called by DraggableChipLogic when user drag starts (true) or ends (false)
@@ -1221,7 +1220,7 @@
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
 #### Methods
-- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations): bool`
+- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations, int maxRelocations): bool`
     - **Purpose**: Checks if a chip can move to a target and if conflicting chips can be relocated
     - **Usage**: Internal check before performing actual relocation
     - also used by merge logic for growing chips
@@ -1229,8 +1228,10 @@
     - chipsToExclude - chips to ignore during collision checks
     - chipSize - dimensions of the chip
     - plannedRelocations - output list of moves to perform
+    - maxRelocations - maximum allowed relocations (if occupied chips count >= maxRelocations, aborts early and returns false)
     - **Returns**: True if a valid state is possible for all chips involved
     - **Notes**: Sorted relocation: larger chips are relocated first to minimize fragmentation
+    - prunes search early if conflicting chips count exceeds maxRelocations
 - `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell, ChipFlightSettings flightSettings): void`
     - **Purpose**: Orchestrates the move of a chip to a new position, potentially relocating others
     - **Usage**: Call when a drag operation ends at a specific cell
@@ -2368,6 +2369,7 @@
     - **Purpose**: Clears all chips from cells occupied by the specified cell's chip.
     - **Usage**: Call to remove a chip and its multi-cell occupancy from the field.
     - **Params**: cell - the main or secondary cell to clear.
+- `- Expecto.MergeBase.IFieldGrid.get_transform(): Transform`
 ---
 
 ## FieldInitializeCommand
@@ -2846,13 +2848,14 @@
 > - **Usage**: Use to manage chip movement on the field, including relocation of conflicting chips.
 > - **Notes**: Implemented by ChipMovingLogic.
 #### Methods
-- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations): bool`
+- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations, int maxRelocations): bool`
     - **Purpose**: Checks if a chip can move to a target and plans relocations if necessary.
     - **Usage**: Call before moving a chip to validate if the move is possible.
     - **Params**: leftTopCell - target anchor cell
     - chipsToExclude - chips to ignore during collision checks
     - chipSize - size of the chip being moved
     - plannedRelocations - output list of moves to perform
+    - maxRelocations - maximum allowed number of relocations (if occupied chips count >= maxRelocations, aborts early and returns false)
     - **Returns**: True if the move and all necessary relocations are possible.
 - `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell, ChipFlightSettings flightSettings): void`
     - **Purpose**: Moves a chip to a new cell position, handling potential relocations.
@@ -3031,6 +3034,7 @@
 #### Fields
 - `+- Cells: ICell[]`
 - `+- FieldSize: Vector2Int`
+- `+- transform: Transform`
 #### Methods
 - `+ CreateCells(FieldData fieldData): void`
     - **Purpose**: Initializes the grid
@@ -3398,6 +3402,8 @@
 > - **Purpose**: Contract for the root visual field component created from FieldData.LevelVisualPrefab
 > - **Usage**: Implement on the level visual prefab root so FieldInitializeCommand can initialize field-wide visual services
 > - **Notes**: Use for visual field concerns such as camera bounds without coupling MergeBase to a concrete view implementation
+#### Fields
+- `+- FieldOffset: Vector3`
 #### Methods
 - `+ InitVisualField(FieldData fieldData): void`
 - `+ OnFieldSizeChanged(Vector2Int newSize): void`
@@ -3639,10 +3645,10 @@
     - **Usage**: Called by unified interaction system after CanInteract validation passes
     - **Params**: sourceCell - cell with chip being dragged
     - targetCell - destination cell
-    - **Notes**: If the merged chip is larger than the parent, it uses IChipMovingLogic to relocate neighboring chips if needed. If relocation at the primary position fails, it tries all 8 neighboring offsets (orthogonal first, then diagonal) before giving up.
+    - **Notes**: If the merged chip is larger than the parent, it resolves placement by prioritizing positions requiring zero relocations (primary cell first, then 8 neighboring offsets), falling back to the position with the fewest relocations.
 - `- HandleExtraChip(MergeResult mergeResult, ICell mergedCell, Vector2Int mergedChipSize): void`
 - `- TryResolveCellPosition(ICell primaryCell, Chip[] chipsToExclude, Vector2Int chipSize, ICell& resolvedCell, List`1& plannedRelocations): bool`
-    - **Purpose**: Resolves the final cell position for a merged chip: tries the primary cell first, then all 8 neighbors (orthogonal first, then diagonal)
+    - **Purpose**: Resolves the final cell position for a merged chip: prioritizes positions requiring zero relocations, then minimizes the number of relocated chips
     - **Usage**: Called from ExecuteInteraction when relocation check is needed
     - **Params**: primaryCell - preferred cell to place the chip
     - chipsToExclude - chips to ignore during checks
@@ -4481,7 +4487,10 @@
 > - **Usage**: Attach to visual field prefabs
 > - instantiated dynamically via field initialization.
 #### Fields
+- `+- FieldOffset: Vector3`
+- `+- FieldOffsetTransform: Transform`
 - `- fieldBorderSpriteRenderer: SpriteRenderer`
+- `- fieldGrid: IFieldGrid`
 - `- fieldSpriteRenderer: SpriteRenderer`
 - `- resolver: IObjectResolver`
 #### Methods
@@ -4491,6 +4500,8 @@
     - **Params**: fieldData - configuration specifying grid size and other settings.
 - `+ OnFieldSizeChanged(Vector2Int newSize): void`
 - `- ApplyEffects(): void`
+- `- ApplyFieldOffset(): void`
+- `- ApplySize(Vector2Int newSize): void`
 ---
 
 ## WaitEvolutionModule

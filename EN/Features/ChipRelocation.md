@@ -22,8 +22,9 @@ The process of checking movement possibility and planning relocation works as fo
 1. **Target Position Validation**:
    - System checks whether target cell (`leftTopCell`) is valid at all for placing a chip of given size (`fieldGrid.IsValidCellPos`).
 
-2. **Conflict Detection**:
+2. **Conflict Detection & Early Pruning**:
    - `GetOccupiedCellsInArea` method finds all chips currently occupying cells in the area where new chip wants to be.
+   - **Relocation limit (`maxRelocations`)**: If the number of conflicting chips found is `>= maxRelocations`, the algorithm aborts immediately (`return false`), avoiding subsequent checks and free cell searches.
    - For each conflicting chip, **`chip.CanMoving()`** is checked — if the chip is MoveLocked (e.g., has a `MoveLockedEffect` blocking effect), the entire process is immediately cancelled (`return false`): neither movement nor relocation occurs.
    - A unique list of chips for potential movement is created (`chipsToPotentiallyMove`).
 
