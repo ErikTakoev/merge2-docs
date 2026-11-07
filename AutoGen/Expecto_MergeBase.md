@@ -515,7 +515,8 @@
 - `+ FinishDestroy(): void`
     - **Purpose**: Completes the destruction process by destroying attached effects and the GameObject itself.
     - **Usage**: Called immediately if force is true, or triggered via a Unity Animation Event at the end of the destroy animation.
-    - **Notes**: Defers destruction and sets IsFinishDestroyPending to true if any attached IChipModule returns false from CanFinishDestroy().
+    - **Notes**: Stops active lift coroutine via LiftController
+    - defers destruction and sets IsFinishDestroyPending to true if any attached IChipModule returns false from CanFinishDestroy().
 - `+ GetEffect(int effectHash): IEffect`
     - **Purpose**: Retrieves an effect from the effects dictionary by its EffectConsts hash key
     - **Usage**: Call in methods that need to access a specific effect without type casting
