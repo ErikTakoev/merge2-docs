@@ -61,6 +61,10 @@
 - **Мета**: Перевіряє поведінку генератора, який починає без заряду (`IsStartCharged = false`).
 - **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `IsStartCharged = false` через `GetSpecialData<ChipGeneratorData>()`. Чекає час перезарядки, симулює тап. Перевіряє, що генератор заряджається та створює чіп після тапу.
 
+#### ManualGenerator_CarTomato2_Tap_SpawnedGeneratorsRechargeEffectDeactivated
+- **Мета**: Перевіряє, що ручні генератори, створені внаслідок тапу по фішках `CarTomato_2`, не вмикають ефект перезарядки (`GeneratorCharging`) помилково під час та після спавну і зберігають стан деактивації протягом усього часу очікування (2 секунди).
+- **Сценарій**: Створює 6 багатокоміркових фішок `CarTomato_2` (розміром 3x2) на полі. Симулює тап на кожну з них через `InputHelper.SimulateTap`. Знаходить усі 12 спавнених генераторів (`TomatoPlant_3_2` та `TomatoPlant_3_3`), знаходить їхній ефект перезарядки `EffectConsts.GeneratorCharging`, і покадрово протягом 2 секунд перевіряє `IsActive == false`. Наприкінці перевіряє цілісність сітки поля (`AssertFieldConsistency`).
+
 ### AutoChipGeneratorTests
 Тести функціональності автоматичного генератора чіпів (`IsAutoGeneration = true`).
 

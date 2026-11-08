@@ -72,7 +72,7 @@
 ### `Effect.cs`
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
 - **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
-- **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При успішній активації сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, true)` та викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
+- **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `deactivateOnMove = true` і фішка наразі рухається (`chip.IsMoving`), активація відкладається до завершення руху (`restoreStateAfterMove = true`, `IsActive = false`) і повертається `false`. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При успішній активації сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, true)` та викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
 - **`ActivateByOwner(Chip chip, ISubEffectOwner owner) → bool`**: Реєструє `owner` у списку `owners` (`Owners`) і викликає `Activate(chip)`, якщо ефект ще не активний.
 - **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. Сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, false)`. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)` та `animator.Update(0f)`.
 - **`DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force = false)`**: Видаляє `owner` з `owners`. Якщо `owners.Count == 0` (всі батьківські ефекти деактивувалися), викликає `Deactivate(chip, force)`.
@@ -80,7 +80,9 @@
 - **`GetId()`**: Повертає збережений `effectId`.
 - **`OnChangedCell(ICell sourceCell, ICell targetCell)`**: Викликається при переміщенні фішки. Якщо `parentType` встановлено в `ParentCell`, ефект переприв'язується до нової клітинки.
 - **`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`**: Обробка зміни клітин (`ICell`) під час Drag-and-Drop.
-- **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Автоматично приховує ефект при початку руху, якщо встановлено `deactivateOnMove = true`, та відновлює стан при зупинці.
+- **`OnMovingStateChanged(Chip chip, bool isMoving)`**: Керує відображенням ефекту при зміні стану руху:
+  - При `isMoving == true`: якщо увімкнено `deactivateOnMove`, деактивує ефект (`Deactivate(chip)`) та позначає його для відновлення (`restoreStateAfterMove = true`) ТІЛЬКИ якщо ефект був активний (`IsActive == true`); якщо ефект був неактивний, скидає `restoreStateAfterMove = false`.
+  - При `isMoving == false`: якщо `restoreStateAfterMove == true`, скидає прапорець `restoreStateAfterMove = false` та повторно активує ефект (`Activate(chip)`).
 - **`OnChipAnimationTrigger(string triggerName)`**: Віртуальний метод для реакції на анімаційні тригери власника-чіпа. За замовчуванням порожній.
 - **`TryDestroyEffect(Chip, EffectDestroyingSettings, EffectDestroyingRuntimeData) → bool`**: Якщо `NeighboringMergeCount` не перевищує кількість станів у `AdditionalStates`, відправляє тригер відповідного додаткового стану; коли всі додаткові стани вичерпано (або масив порожній) — деактивує ефект і повертає `true`.
 
@@ -91,8 +93,8 @@
 - `ParentCellWithoutRotation`: Ефект прикріплений до трансформу клітинки, але ігнорує її поворот.
 
 **Налаштування руху**:
-- `deactivateOnMove`: Якщо `true`, ефект автоматично деактивується під час перетягування фішки, щоб зменшити візуальний шум.
-- `restoreStateAfterMove`: Внутрішній прапорець для відновлення стану після завершення руху.
+- `deactivateOnMove`: Якщо `true`, ефект автоматично деактивується під час руху/перетягування фішки, щоб зменшити візуальний шум.
+- `restoreStateAfterMove`: Внутрішній захищений прапорець (`protected bool`) для відновлення активного стану після завершення руху. Встановлюється в `true` тільки тоді, коли ефект був дійсно активний (`IsActive == true`) на момент початку руху або якщо `Activate()` викликано під час руху фішки. Після зупинки фішки скидається в `false` при виклику `Activate(chip)`.
 
 **Налаштування життєвого циклу (Lifecycle Settings)**:
 - `destroyAfterActivate` (bool): Якщо `true`, ефект автоматично запускає самознищення (Destroy) свого `gameObject` після активації.

@@ -1870,6 +1870,9 @@
 - `~ movePositionDependingOnSize: Transform`
 - `~ parentType: EffectParentType`
 - `~ restoreStateAfterMove: bool`
+    - **Purpose**: Tracks whether this effect was active before movement or had activation deferred during movement, so it can be restored when movement finishes
+    - **Usage**: Set in Activate (if moving) or OnMovingStateChanged (if active when movement starts)
+    - cleared and queried in OnMovingStateChanged when movement stops
 - `~ sendAnimatorTrigger: bool`
 #### Methods
 - `+ Activate(Chip chip): bool`
@@ -1878,9 +1881,9 @@
     - trigger 'Activate' animation if configured
     - **Params**: chip - the chip this effect belongs to
     - **Returns**: True if the effect was activated
-    - false if skipped because effectId is in chip.BlockingState.HideEffectIds
+    - false if skipped because effectId is in chip.BlockingState.HideEffectIds or if activation is deferred due to chip movement with deactivateOnMove enabled
     - **Notes**: Pass null only for non-chip visuals
-    - when chip is provided, applies BlockingSettings and respects HideEffectIds
+    - when chip is provided, applies BlockingSettings and respects HideEffectIds. If deactivateOnMove is true and chip is moving, activation is deferred until movement finishes (restoreStateAfterMove set to true).
 - `+ ActivateByOwner(Chip chip, ISubEffectOwner owner): bool`
     - **Purpose**: Activates the effect on the specified chip with an owner reference
     - **Usage**: Called by sub-effect owners during ActivateSubEffects to track active owners
@@ -1942,7 +1945,7 @@
     - **Params**: chip - the owner chip
     - isMoving - true if the chip started moving, false if it stopped
     - **Notes**: Supports automatic hiding of effects during drag/move to prevent visual noise
-    - uses deactivateOnMove and restoreStateAfterMove flags
+    - deactivates only active effects on move start and restores them when movement stops using restoreStateAfterMove
 - `+ OnTap(): void`
     - **Purpose**: Called when the chip is tapped
     - **Usage**: Override in derived classes to implement custom tap reaction visual effects
