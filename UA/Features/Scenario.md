@@ -122,9 +122,11 @@ builder.Register<ScenarioEventHandler>(Lifetime.Singleton).As<IScenarioEventHand
 Вся інтеграція з Unity Visual Scripting винесена в окрему збірку `MergeBase.VScripting.asmdef` (у папці `Assets/Expecto/MergeBase/VScripting`), що дозволяє тримати ядро Merge повністю незалежним від пакета `com.unity.visualscripting`.
 
 Для підключення UVS використовується додатковий дочірній контейнер залежностей `MergeBaseVScriptingLifetimeScope`, який:
-1. Реєструє посилання на сцену `ScriptMachine`.
-2. Реєструє адаптер `VScriptingScenarioEventBridge` як `Singleton`.
-3. Реєструє точку входу `MergeBaseVScriptingInitializer`.
+1. Реєструє посилання на компонент `Transform` кореневого об'єкта під ключем `"Root"`.
+2. Реєструє посилання на компонент `Transform` групи подій (`events`) під ключем `"Events"`.
+3. Реєструє посилання на сцену `ScriptMachine`.
+4. Реєструє адаптер `VScriptingScenarioEventBridge` як `Singleton`.
+5. Реєструє точку входу `MergeBaseVScriptingInitializer`.
 
 ### 5.1 Event Bridge (VScriptingScenarioEventBridge)
 
@@ -159,11 +161,17 @@ public void Initialize()
 ### 5.2 Initialization (MergeBaseVScriptingInitializer)
 
 Під час старту сцени ініціалізатор:
-1. Викликає `bridge.Initialize()` для підписки на івенти та перенаправлення їх в UVS.
-2. Реєструє посилання на `ILockedAreaManager`, `ITutorialManager`, `ITutorialInputBlocker`, `ChipFactory`, `IChipCollections`, `ClickAction` (`UnityEngine.InputSystem.InputAction`), `IFieldGrid` (`FieldGrid`) та `IChipMovingLogic` (`ChipMovingLogic`) у Scene Variables сцени (`Variables.Scene`), що дозволяє усім кастомним UVS-вузлам та стандартним подям у цій сцені взаємодіяти з системами:
+1. Ініціалізує менеджер вводу `inputManager.Init()`.
+2. Викликає `bridge.Initialize()` для підписки на івенти та перенаправлення їх в UVS.
+3. Реєструє посилання на `ILockedAreaManager`, `ITutorialManager`, `ITutorialInputBlocker`, `ChipFactory`, `IChipCollections`, `ClickAction` (`UnityEngine.InputSystem.InputAction`), `IFieldGrid` (`FieldGrid`) та `IChipMovingLogic` (`ChipMovingLogic`) у Scene Variables сцени (`Variables.Scene`), що дозволяє усім кастомним UVS-вузлам та стандартним подіям у цій сцені взаємодіяти з системами.
+4. Активує всі дочірні GameObjects у групі подій `events` (`Events`).
+5. Знаходить усі компоненти `ITutorial` у кореневому об'єкті `root` (`Root`) та реєструє їх у `ITutorialManager`:
 
 ```csharp
+inputManager.Init();
+bridge.Initialize();
 var declarations = Variables.Scene(scriptMachine.gameObject.scene);
+
 declarations.Set("LockedAreaManager", lockedAreaManager);
 declarations.Set("TutorialManager", tutorialManager);
 declarations.Set("TutorialInputBlocker", tutorialInputBlocker);
@@ -172,6 +180,18 @@ declarations.Set("ChipCollections", chipCollections);
 declarations.Set("ClickAction", inputManager.ClickAction);
 declarations.Set("FieldGrid", fieldGrid);
 declarations.Set("ChipMovingLogic", chipMovingLogic);
+
+int eventsCount = events.childCount;
+for (int i = 0; i < eventsCount; i++)
+{
+	events.GetChild(i).gameObject.SetActive(true);
+}
+
+var tutorials = root.GetComponentsInChildren<ITutorial>(true);
+for (int i = 0; i < tutorials.Length; i++)
+{
+	tutorialManager.RegisterTutorial(tutorials[i]);
+}
 ```
 
 ### 5.3 Custom UVS Units
@@ -196,6 +216,13 @@ declarations.Set("ChipMovingLogic", chipMovingLogic);
   - Дозволяє призначати початкові блокер-ефекти `blockerEffectIds` та анімаційний тригер `animatorTrigger`.
   - Повертає посилання на створений чіп `createdChip` (`Chip`) та булевий статус успіху виконання `success`.
 - **`Unlock Area` (`UnlockAreaNode`)**: Команда на розблокування зони з вказаним ID (із можливістю форсованого відкриття `forceUnlock`).
+
+### 5.4 Event Objects Hierarchy (Events)
+
+Для сценарних подій та глобальних слухачів (наприклад, `Event_UnlockArea`, `Event_FullFieldMessage`) використовується окремий дочірній контейнер `Events`:
+- **Структура**: Дочірні об'єкти містять `ScriptMachine` або `EventMachine`, аніматори та візуальні елементи реакцій на події гри.
+- **Стан у префабі/сцені**: Об'єкти подій можуть зберігатися вимкненими (`SetActive(false)`), щоб запобігти передчасному спрацюванню до завершення реєстрації та інжекції залежностей.
+- **Активація**: `MergeBaseVScriptingInitializer` автоматично активує всі дочірні об'єкти `events` після налаштування Scene Variables та мосту з `EventBus`.
 
 ---
 

@@ -4273,7 +4273,7 @@
 > - **Purpose**: Base MonoBehaviour implementation of ITutorial that drives show/hide state via Animator triggers
 > - **Usage**: Place on the root GameObject of a tutorial prefab
 > - assign the Animator in the Inspector
-> - self-registers to ITutorialManager in Start()
+> - registered to ITutorialManager during initialization by MergeBaseVScriptingInitializer
 > - **Notes**: TutorialName returns gameObject.name, which must match the prefab name so VScripting nodes can route by name
 #### Fields
 - `+ LockedPosition: Vector2Int`
@@ -4292,7 +4292,6 @@
     - triggers the Deactivate state in the AnimatorController
     - **Notes**: Logs a warning and no-ops when the Animator is not assigned
 - `+ Destroy(): void`
-- `~ Awake(): void`
 ---
 
 ## TutorialHandHelper
@@ -4348,7 +4347,7 @@
 
 > - **Purpose**: Routes tutorial activation and deactivation calls to registered ITutorial instances by name
 > - **Usage**: Registered as a VContainer singleton
-> - tutorials self-register via RegisterTutorial() in Start()
+> - tutorials are registered via RegisterTutorial() during initialization
 > - **Notes**: Tutorial names are case-sensitive and must match the prefab GameObject name
 #### Fields
 - `+- ActiveTutorial: ITutorial`
@@ -4366,7 +4365,7 @@
     - **Notes**: If tutorialName is null or empty, deactivates the latest active tutorial. Logs a warning if no matching tutorial is active or registered
 - `+ RegisterTutorial(ITutorial tutorial): void`
     - **Purpose**: Adds an ITutorial instance to the routing dictionary
-    - **Usage**: Called from ITutorial.Start() after VContainer injects ITutorialManager
+    - **Usage**: Called during initialization (e.g. from MergeBaseVScriptingInitializer) or when a tutorial instance is created
     - **Notes**: Overwrites the previous entry when the same TutorialName is registered twice, logging a warning
 - `+ UnregisterTutorial(ITutorial tutorial): void`
 ---

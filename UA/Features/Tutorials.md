@@ -39,6 +39,9 @@ graph TD
 - `void Deactivate()` — відправляє тригер `"Deactivate"` в `Animator`.
 - `void Destroy()` — викликається в кінці анімації `"Deactivate"` (зазвичай через Animation Event), скасовує реєстрацію в `ITutorialManager` та знищує GameObject туторіалу.
 
+**Життєвий цикл та реєстрація**:
+- Централізований пошук і реєстрацію виконує `MergeBaseVScriptingInitializer` серед усіх дочірніх об'єктів кореневого контейнера (`Root`) під час старту сцени.
+
 ### 2.2 ITutorialManager & TutorialManager
 
 - **Файл**: [TutorialManager.cs](../../../Core/Scripts/Tutorials/TutorialManager.cs)
@@ -51,7 +54,7 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 - `event Action<string> OnTutorialDeactivated` — подія, яка викликається при деактивації туторіалу та передає його ім'я.
 
 **Основні методи**:
-- `void RegisterTutorial(ITutorial tutorial)` — реєструє екземпляр туторіалу в словнику за ім'ям `TutorialName`.
+- `void RegisterTutorial(ITutorial tutorial)` — реєструє екземпляр туторіалу в словнику за ім'ям `TutorialName`. Викликається централізовано під час ініціалізації (`MergeBaseVScriptingInitializer`) для всіх знайдених під `Root` компонентів `ITutorial`.
 - `void UnregisterTutorial(ITutorial tutorial)` — видаляє туторіал із реєстрації та списку активних.
 - `void Activate(string tutorialName)` — запускає туторіал за вказаним ім'ям (дозволяє одночасну роботу кількох паралельних туторіалів).
 - `void Deactivate(string tutorialName = null)` — деактивує конкретний туторіал за ім'ям (якщо `tutorialName` передано) або поточний останній активний `ActiveTutorial` (якщо `null` або порожній), та викликає подію `OnTutorialDeactivated`.
@@ -91,6 +94,8 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 ---
 
 ## 4. Visual Scripting Integration (UVS) & Special Tutorial Classes
+
+Префаби туторіалів розміщуються в сцені або префабі поля в ієрархії під кореневим об'єктом `Root`. Під час запуску `MergeBaseVScriptingInitializer` знаходить усі компоненти `ITutorial` серед дочірніх об'єктів (`root.GetComponentsInChildren<ITutorial>(true)`) та автоматично реєструє їх у `ITutorialManager`.
 
 ### 4.1 Action Nodes
 
