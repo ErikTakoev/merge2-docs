@@ -781,6 +781,10 @@
 ---
 
 ## ChipContainerData
+
+> - **Purpose**: Configuration data for chip containers, defining accepted chip requirements and evolution provider on fill completion.
+> - **Usage**: Used in ChipData specialDatas to define container behavior and required chips. Edited via Inspector or Chip Creator.
+> - **Notes**: EvolutionProvider uses polymorphic serialization via [SerializeReference] to determine the result chips upon completion.
 #### Fields
 - `+ containers: ContainerInfo[]`
 - `+ EvolutionProvider: IChipEvolutionProvider`
@@ -1336,6 +1340,10 @@
 
 ## ChipSelectorDrawer
 **Inherits**: `PropertyDrawer`
+
+> - **Purpose**: Custom PropertyDrawer for fields decorated with [ChipSelector], rendering a searchable dropdown or text field to pick chips from the active ChipDataCollection.
+> - **Usage**: Applied automatically in Inspector for string or ChipSpawnData fields marked with [ChipSelector].
+> - **Notes**: Queries EditorContext.ActiveChipDataCollection to populate available chip options.
 #### Fields
 - `- s_dropdownState: AdvancedDropdownState`
 #### Methods
