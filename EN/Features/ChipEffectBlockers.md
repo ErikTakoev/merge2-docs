@@ -58,7 +58,7 @@ Blocker effects are a set of optional visual effects configured through `ChipExt
 - **Configuration**: `ChipExtraEffectsData` contains `ExtraEffectData[]` array where each item defines `effectName` (string resolved to ID via `EffectConsts.GetIdByName`) and `Prefab` (effect prefab).
 - **Activation**:
   - Effect activates when its ID is in `ChipRuntimeData.EffectEnables`.
-  - During initialization (`Chip.InitEffects`), `ChipExtraEffectsData.Blockers` array is iterated. For each item whose `EffectId` is in `runtimeData.EffectEnables`, prefab is instantiated and added to effects dictionary.
+  - During initialization (`Chip.InitEffects`), `runtimeData.EffectEnables` list is iterated. For each `EffectId`, configuration is looked up in `ChipExtraEffectsData.BlockersDict`, prefab is instantiated and added to effects dictionary.
   - `Chip.UpdateVisual()` method activates effects whose IDs are in `EffectEnables`.
 - **Deactivation**: When ID is removed from `EffectEnables`.
 - **Blocking**: Each blocker effect has `EffectBlockingSettings`, which are passed into chip `CombinedBlockingState` on activation.

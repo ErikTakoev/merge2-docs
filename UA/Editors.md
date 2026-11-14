@@ -31,19 +31,19 @@
 - **Очищення всього поля**: Через Properties Panel або контекстне меню.
 - **Редагування заблокованих ділянок**: Додавання/видалення ділянок, зміна ID, малювання заблокованих та відкладених клітинок (див. розділ "Редагування заблокованих ділянок").
 
-## Редагування заблокованих ділянок (Locked Areas)
+## Editing Locked Areas
 
 Для налаштування заблокованих ділянок та відкладених фішок використовується спеціальний режим редагування.
 
-### Режими редактора
+### Editor Modes
 
 Level Editor підтримує два режими редагування:
 
-#### Режим 1: "Edit Level" (звичайне редагування)
+#### Mode 1: "Edit Level" (Standard Editing)
 - Стандартне розміщення фішок та редагування сітки.
 - Палітра фішок видима та активна.
 
-#### Режим 2: "Edit Locked Areas" (редагування заблокованих ділянок)
+#### Mode 2: "Edit Locked Areas" (Locked Areas Editing)
 - Відключені операції перетягування фішок.
 - Замість палітри фішок — панель управління заблокованими ділянками:
   - **Додати ділянку (+)**: Новий `LockedAreaData` з унікальним ID.
@@ -52,7 +52,7 @@ Level Editor підтримує два режими редагування:
   - **ID ділянки**: IntField для зміни ID (наприклад, перейменування).
   - **Очистити клітинки**: Кнопка для видалення всіх відмічених клітинок у поточній ділянці.
 
-### Керування на сітці
+### Grid Controls
 
 У режимі "Edit Locked Areas" взаємодія із сіткою змінюється:
 
@@ -132,6 +132,9 @@ Level Editor підтримує два режими редагування:
 ## Technical Implementation
 
 ### Key Components
+- **`EditorContext`**: Централізований провайдер контексту редактора, що надає доступ до активного `FieldData`, налаштувань `ChipCreatorSettings` та поточної `ChipDataCollection`. Зберігає шляхи до асетів в `EditorPrefs` для забезпечення стабільності при роботі в Unity з вимкненим перезавантаженням домену (Enter Play Mode Options).
+- **`ChipEvolutionProviderDrawer`**: Кастомний `PropertyDrawer` для поліморфних полів `IChipEvolutionProvider` (`[SerializeReference]`). Використовує `TypeCache` для швидкого вибору конкретної реалізації стратегії еволюції (`ConstantEvolutionProvider`, `RandomEvolutionProvider`) та рендерингу її внутрішніх полів в інспекторі.
+- **`ChipSelectorDrawer`**: Кастомний `PropertyDrawer` для атрибута `[ChipSelector]`. Відображає випадаючий список із пошуком для швидкого вибору фішки з активної колекції `EditorContext.ActiveChipDataCollection`.
 - **`IChipCreatorCommand`**: Інтерфейс для команд, що керують станом `ChipData`.
 - **`ChipCreatorCommandHistory`**: Керує стеками undo/redo спеціально для контексту редагування фішок.
 - **`ChipCreatorWindow.SpecialDataSection.cs`**: Окремий partial для UI секції `Special Data`.

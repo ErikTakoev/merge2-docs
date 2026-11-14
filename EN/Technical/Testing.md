@@ -57,6 +57,14 @@ Tests of manual chip generator functionality (`IsAutoGeneration = false`).
 - **Goal**: Verifies behavior of generator that starts uncharged (`IsStartCharged = false`).
 - **Scenario**: Creates ChipData copy via `Clone()`, sets `IsStartCharged = false` through `GetSpecialData<ChipGeneratorData>()`. Waits recharge time, simulates tap. Verifies generator charges and creates a chip after tap.
 
+#### Evolution_IntoMultipleChips
+- **Goal**: Verifies that manual generator on its last charge and recharge evolves into 2 chips (`SeedlingContainer_4` and `SeedlingContainer_3`) without triggering `OnNotEnoughSpaceForEvolution`, completely filling the field.
+- **Scenario**: Places generator at `(0,0)`, leaves `(0,1)` and `(6,6)` empty, fills remaining 46 cells with `Tomato_1`. Subscribes to `IScenarioEventHandler.OnNotEnoughSpaceForEvolution`. Simulates tap on `(0,0)`, waits for animations to settle, and verifies `OnNotEnoughSpaceForEvolution` was not invoked and all 49 cells are occupied.
+
+#### Evolution_IntoMultipleChips_NotEnoughSpace
+- **Goal**: Verifies that manual generator on its last charge and recharge aborts evolution and fires `OnNotEnoughSpaceForEvolution` when space is insufficient for all evolved chips, leaving the empty cell untouched.
+- **Scenario**: Places generator at `(0,0)`, leaves only cell `(6,6)` empty, fills remaining 47 cells with `Tomato_1`. Subscribes to `IScenarioEventHandler.OnNotEnoughSpaceForEvolution`. Simulates tap on `(0,0)`, waits, and verifies that `OnNotEnoughSpaceForEvolution` was triggered, no new chip was spawned, cell `(6,6)` remains empty, and field consistency is maintained.
+
 ### AutoChipGeneratorTests
 Tests of automatic chip generator functionality (`IsAutoGeneration = true`).
 
@@ -94,6 +102,14 @@ Tests of chip container functionality (`ChipContainer`).
 #### Container_Filling
 - **Goal**: Verifies process of filling container with chips.
 - **Scenario**: Creates container at position (1, 1). Creates 3 different chips (water_1_1, water_1_2, water_2) and sequentially drags them into container. Verifies chip count on field (should be 1 - container itself) and field consistency.
+
+#### Evolution_IntoMultipleChips
+- **Goal**: Verifies that container on satisfying its final requirement evolves into 2 chips (`SeedlingContainer_3` and `TomatoSeed_2`) without invoking `OnNotEnoughSpaceForEvolution` when exact space is freed (container cell plus dragged chip cell), fully occupying the board.
+- **Scenario**: Places cloned `SeedlingContainer_2` at `(0,0)`, `BagOfSoil_2` at `(6,6)`, and fills remaining 47 cells with `Tomato_1` (all 49 cells occupied). Subscribes to `IScenarioEventHandler.OnNotEnoughSpaceForEvolution`. Simulates dragging `BagOfSoil_2` from `(6,6)` to `(0,0)`, waits for animation settle, and asserts `OnNotEnoughSpaceForEvolution` was not invoked, and all 49 cells are occupied with field consistency intact.
+
+#### Evolution_IntoMultipleChips_NotEnoughSpace
+- **Goal**: Verifies that container aborts filling/evolution, fires `OnNotEnoughSpaceForEvolution`, snaps back the dragged chip, and preserves the original board state when free space is insufficient for all evolved chips.
+- **Scenario**: Places cloned `SeedlingContainer_2` configured with 3 evolution chips (`SeedlingContainer_3`, `TomatoSeed_2`, `TomatoSeed_2`) at `(0,0)`, `BagOfSoil_2` at `(6,6)`, and fills remaining 47 cells with `Tomato_1`. Subscribes to `OnNotEnoughSpaceForEvolution`. Simulates dragging `BagOfSoil_2` to `(0,0)`, asserts `OnNotEnoughSpaceForEvolution` is invoked (count == 1), `SeedlingContainer_2` remains at `(0,0)`, `BagOfSoil_2` snaps back to `(6,6)`, all 49 cells remain occupied, and field consistency holds.
 
 ### ChipPowerBoosterTests
 Tests of chip booster functionality ([ChipPowerBooster](../Chips/ChipPowerBooster.md)) and subscription system.

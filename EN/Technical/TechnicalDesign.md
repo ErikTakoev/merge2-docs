@@ -142,7 +142,7 @@ Project uses ScriptableObjects for storing level state and metadata.
 - **MergeSettings**: Global scene configuration, which includes `CellPrefab` to instantiate default game cells.
 
 ### Runtime State
-In game, information about active blocker effects is stored in `ChipRuntimeData.EffectEnables` (`HashSet<int>`). This set is used as state indicator — `Chip.InitEffects()` and `UpdateVisual()` activate effects whose IDs are in set. Then the effect itself, having `EffectBlockingSettings`, passes specific restrictions into chip global `CombinedBlockingState` (which gameplay logic already uses). Additionally, `EffectDestroyingData` (`Dictionary<int, EffectDestroyingRuntimeData>`) tracks effect destruction progress on neighboring merges. This allows dynamically changing chip states (for example, unlocking after specific conditions), separating visual effects and blocking logic.
+In game, information about active blocker effects is stored in `ChipRuntimeData.EffectEnables` (`List<int>`). This list is used as state indicator — `Chip.InitEffects()` and `UpdateVisual()` activate effects whose IDs are in list. Then the effect itself, having `EffectBlockingSettings`, passes specific restrictions into chip global `CombinedBlockingState` (which gameplay logic already uses). Additionally, `EffectDestroyingData` (`Dictionary<int, EffectDestroyingRuntimeData>`) tracks effect destruction progress on neighboring merges. This allows dynamically changing chip states (for example, unlocking after specific conditions), separating visual effects and blocking logic.
 
 ## Editor Tools
 We provide specialized tools to simplify content creation and setup.

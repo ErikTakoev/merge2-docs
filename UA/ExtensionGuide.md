@@ -467,10 +467,14 @@ public class ChipGeneratorDataEx : ChipGeneratorData
 
 ### Step 3 — Implementing Chip
 
-Створіть свій клас, наслідуючись від `Chip` або вже існуючих спеціалізованих класів:
-- `ChipGenerator` — якщо чіп має щось створювати.
-- `ChipContainer` — якщо чіп має щось зберігати всередині.
-- `Chip` — для унікальної базової логіки.
+Створіть свій модуль або клас відповідно до композиційної архітектури:
+- Створіть компонент, що реалізує `IChipModule` (рекомендований підхід), та приєднайте його до префабу `Chip`.
+- Якщо механіка передбачає перетворення або створення наступних фішок після виконання умови (еволюцію):
+  - Додайте поле `[SerializeReference] public IChipEvolutionProvider EvolutionProvider;` у відповідний `IChipSpecialData`.
+  - Інжектуйте `IChipEvolutionService` через VContainer.
+  - Налаштуйте параметри виконання через `EvolutionExecutionSettings` (анімаційні тригери, точка польоту, затримки).
+  - Перед виконанням перевірте доступність клітинок через `evolutionService.CanEvolve(...)` та за потреби обробіть `EvolutionPlan`.
+  - Виконайте еволюцію через `evolutionService.Evolve(...)`.
 
 ### Step 4 — Creating Effects
 

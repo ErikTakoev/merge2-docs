@@ -52,7 +52,7 @@ Base `Chip` class automatically manages and sends notifications to all visual ef
 
 ### Effect Initialization
 - **`InitEffects()`**: Virtual method called from `Init(...)` to initialize all effects. Base implementation:
-  1. Iterates `ChipExtraEffectsData.Blockers` — for each item whose `EffectId` is in `runtimeData.EffectEnables`, instantiates prefab and adds it into effects dictionary through `AddEffect`
+  1. Iterates `runtimeData.EffectEnables` — for each `EffectId` looks up configuration in `ChipExtraEffectsData.BlockersDict`, instantiates prefab and adds it into effects dictionary through `AddEffect`
   2. Creates and adds `CellHighlightEffect` from `ChipData.CellHighlightPrefab` (key: `EffectConsts.CellHighlight`)
   3. Creates and adds `ChipMergeAvailableEffect` from `ChipData.MergeAvailableEffectPrefab` (key: `EffectConsts.MergeAvailable`)
   4. If `ShadowEffectPrefab` is set, creates and adds `ShadowEffect` (key: `EffectConsts.ShadowEffect`)

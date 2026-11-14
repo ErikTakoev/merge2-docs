@@ -10,6 +10,10 @@
 
 ### 1. `GeneratorModule.cs` (Main Component)
 Клас `GeneratorModule` керує життєвим циклом генератора на чіпі, реалізуючи інтерфейси `IChipModule` та `IPowerBoosterTarget`.
+- **Властивості та конфігурація**:
+  - `rechargeEffect` (`ChargingEffectRef`): Ефект індикації перезарядки.
+  - `chargedEffect` (`EffectRef`): Ефект готовності генератора.
+  - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при вичерпанні циклів генератора (тригери анімацій, прапорець `ForceDestroyOnEmpty`). Доступні публічно через властивість `EvolutionSettings`.
 - **Вхідні дані (Input)**:
   - **Manual**: Обробляє `OnTap` через делегування подій з `Chip` (перевіряє стан блокування `BlockingState.CanBeTaped` та `BlockingState.CanGenerate`).
   - **Auto**: Підписується на `field.OnChangeField`, щоб автоматично спавнити при появі вільного місця (перевіряє `BlockingState.CanGenerate`).
@@ -18,11 +22,15 @@
 - **Залежності**:
   - `IFreeCellFinder`: Логіка пошуку найближчої вільної клітинки.
   - `ChipFactory`: Фабрика для створення нових об'єктів.
+  - `IChipEvolutionService`: Сервіс для валідації та виконання еволюції після вичерпання зарядів/перезарядок.
+  - `IScenarioEventHandler`: Для сповіщень про нестачу вільного місця.
+  - `IFieldGrid`: Для перевірки меж та отримання клітинок поля.
 
 ### 2. `ChipGeneratorData.cs` (Configuration)
 Дані з налаштуванням та алгоритмами вибору. Реалізує `IChipSpecialData` та додається до `ChipData.specialDatas`.
-- **Параметри**: `ChargeCount`, `ChargingTime`, `GenerationInterval`, `TotalRecharges`
+- **Параметри**: `ChargeCount`, `ChargingTime`, `GenerationInterval`, `TotalRecharges`, `EvolutionProvider`
 - **Вибір фішок**: Використовує механізм **Weighted Random** для обрання типу (див. [MergeableChipLogic](../Interactions/MergeableChipLogic.md#result-calculation-weighted-random))
+- **Еволюція**: Поле `EvolutionProvider` типу `IChipEvolutionProvider` визначає фішки для створення після вичерпання всіх циклів перезарядок. Якщо поточна генерація остання перед еволюцією, виконується попередня перевірка вільного місця як під згенеровану фішку (будь-якого розміру), так і під еволюцію через `IChipEvolutionService.CanEvolve(..., cellsToExclude)`. Лише при успішній перевірці обох умов спавниться фішка та викликається `Evolve(chip, plan, evolutionSettings)` з використанням налаштувань `evolutionSettings`.
 
 ### 3. `ChipGeneratorRuntimeData.cs` (Runtime State)
 Реалізує маркерний інтерфейс `IChipSpecialRuntimeData` для зберігання динамічного стану генератора всередині списку `specialRuntimeDatas` у `ChipRuntimeData`.
@@ -31,7 +39,7 @@
 - **`IsCharged`**: Чи готовий генератор до створення нової фішки. Коли `true`, генератор може спавнити чіп (вручну або автоматично).
 - **`ChargeCount`**: Кількість фішок, які генератор може створити в поточному циклі зарядки. Зменшується при кожній генерації.
 - **`ChargingTimeLeft`**: Поточний час зарядки (в секундах). Збільшується в `Update()` до досягнення `CurrentTargetChargingTime`.
-- **`RechargesLeft`**: Кількість циклів перезарядки, що залишилися. Коли досягає 0, генератор еволюціонує в `NextChipData` або знищується.
+- **`RechargesLeft`**: Кількість циклів перезарядки, що залишилися. Коли досягає 0, генератор еволюціонує через `EvolutionProvider` або знищується.
 - **`IsWaitingForSpace`**: Стан очікування вільного місця (тільки для Auto режиму). Коли `true`, генератор чекає на появу вільної клітинки.
 - **`CurrentTargetChargingTime`**: Поточний цільовий час для завершення зарядки. Може дорівнювати:
   - `ChargingTime` — при повній перезарядці (коли `ChargeCount` досяг 0).

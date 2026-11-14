@@ -37,6 +37,8 @@
 - `IFieldGrid`: Робота з координатами поля.
 - `IChipMovingLogic`: Переміщення сусідніх фішок при зміні розміру.
 - `IFreeCellFinder`: Пошук місця для бонусних фішок.
+- `IScenarioEventHandler`: Сповіщення сценарію про події.
+- `ChipDataCollection`: Отримання конфігурацій чіпів за ідентифікатором.
 
 ## Result Calculation: Weighted Random
 

@@ -71,7 +71,9 @@
 
 ### `Effect.cs`
 Базовий клас для всіх ефектів. Реалізує `IEffect` та надає віртуальні методи для керування життєвим циклом ефекту:
-- **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, деактивує за замовчуванням.
+- **`sortingSpriteRenderers`** (`List<SpriteRenderer>`): Список рендерерів ефекту, порядок сортування яких має синхронізуватися з сортуванням чіпа через `IChipSortingLayer`.
+- **`Init(Chip chip, int effectId)`**: Ініціалізує ефект, зберігає `effectId`, налаштовує позицію залежно від розміру чіпа, застосовує `AutoSizeType`, реєструє всі `sortingSpriteRenderers` у `chip.SortingLayer.AddSortingLayer()`, деактивує за замовчуванням.
+- **`OnDestroy()`**: Гарантовано зупиняє delay-корутини саб-ефектів та видаляє всі `sortingSpriteRenderers` з `chip.SortingLayer.RemoveSortingLayer()`.
 - **`Activate(Chip chip) → bool`**: Вмикає ефект. Якщо `deactivateOnMove = true` і фішка наразі рухається (`chip.IsMoving`), активація відкладається до завершення руху (`restoreStateAfterMove = true`, `IsActive = false`) і повертається `false`. Якщо `effectId` є в `HideEffectIds`, викликає `Deactivate` та повертає `false`. При успішній активації сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, true)` та викликає `chip.BlockingState.ApplyBlock(BlockingSettings)`.
 - **`ActivateByOwner(Chip chip, ISubEffectOwner owner) → bool`**: Реєструє `owner` у списку `owners` (`Owners`) і викликає `Activate(chip)`, якщо ефект ще не активний.
 - **`Deactivate(Chip chip, bool force = false)`**: Вимикає ефект. Сповіщає `Chip?.SortingLayer?.SetEffectActive(effectId, false)`. При `force = true` — негайна зміна стану через `animator.Play("Deactivate", -1, 1f)` та `animator.Update(0f)`.
@@ -158,8 +160,11 @@
 ---
 
 ### `ChipSortingLayer.cs`
-Компонент на фішці ([ChipSortingLayer.cs](../../Core/Scripts/Chips/ChipSortingLayer.cs), реалізує `IChipSortingLayer`), що централізовано керує порядком сортування (`sortingOrder`) усіх рендерерів фішки (`SortingLayers`). Зберігає відносну візуальну глибину між шарами чіпа при зміні станів, руху, активації ефектів, програванні анімацій або примусовому ручному оверрайді:
+Компонент на фішці ([ChipSortingLayer.cs](../../Core/Scripts/Chips/ChipSortingLayer.cs), реалізує `IChipSortingLayer`), що централізовано керує порядком сортування (`sortingOrder`) усіх рендерерів фішки (`SortingLayers`, динамічний список `List<SortingLayerData>`). Зберігає відносну візуальну глибину між шарами чіпа при зміні станів, руху, активації ефектів, програванні анімацій або примусовому ручному оверрайді:
 
+- **Dynamic Layer Management**:
+  - `AddSortingLayer(SpriteRenderer renderer)` — динамічно додає рендерер (наприклад, з ефекту), кешує його вихідний `CachedOrder` та миттєво синхронізує його порядок з поточним станом сортування фішки.
+  - `RemoveSortingLayer(SpriteRenderer renderer)` — відновлює вихідний `CachedOrder` рендерера та видаляє його зі списку `SortingLayers`.
 - **Movement Sorting (`MovingOrderOffset`)**: Додає зсув (за замовчуванням `110`) під час перетягування користувачем або польоту фішки (`isMoving == true`).
 - **Effects Sorting (`EffectsSortingData`)**: Масив `EffectSortingData[]` (`EffectId` + `AdditionalOrder`). Ефекти при `Activate` та `Deactivate` автоматично сповіщають `SetEffectActive(effectId, isActive)`.
 - **Animation Sorting (`AnimationsSortingData`)**:
@@ -284,8 +289,7 @@
 
 Забезпечує постійну тінь під фішкою, яка динамічно реагує на стан руху та зміну висоти підйому чіпа.
 - **Особливості**:
-  - **Автоматичне копіювання спрайту**: Якщо спрайт `shadowRenderer.sprite` не заданий, ефект автоматично копіює спрайт та параметри відображення (flipX, flipY) з першого рендерера основного чіпа під час `Init`.
-  - **Масштабування та позиціонування при ініціалізації**: Автоматично копіює масштаб з основного рендерера та зберігає початкові локальні координати і масштаб тіні для подальших трансформацій.
+  - **Динамічне сортування через SortingLayers**: `shadowRenderer` призначається у `sortingSpriteRenderers` і автоматично реєструється в `ChipSortingLayer` під час `Init`. Сортування тіні під час руху, активації ефектів та анімацій централізовано контролюється компонентом сортування чіпа.
 - **Динамічна висота (`OnHeightChanged`)**: Реалізує інтерфейс `IShadowEffect`. Метод `OnHeightChanged(float height)` викликається під час перетягування фішки або польоту та динамічно змінює:
   - `transform.localPosition` на основі `shadowOffsetPerOneHeight * height`.
   - `transform.localScale` на основі `shadowScalePerOneHeight * height * Vector3.one`.
@@ -293,7 +297,7 @@
   - При `OnChipAnimationTrigger(string triggerName)` ефект миттєво синхронізує альфу тіні з поточною альфою чіпа (`SetShadowAlpha(chipRenderer.color.a)`), що усуває 1-кадрову затримку на початку анімацій (наприклад, `Spawn`).
   - При `Deactivate(chip, force = true)` відслідковування скасовується, а альфа тіні миттєво встановлюється в `0f`.
   - При `Deactivate(chip, force = false)` запускається корутина відслідковування згасання альфи до повної прозорості одночасно з чіпом.
-- **Сортування**: Під час руху тінь збільшує свій `sortingOrder` на величину `MovingOrderOffset` основного чіпа (`chip.SortingLayer.MovingOrderOffset`), щоб залишатися візуально під чіпом, але над полем.
+- **Сортування**: Оскільки `shadowRenderer` налаштовується у `sortingSpriteRenderers`, керування сортуванням під час руху, анімацій та оверрайдів повністю делеговано базовому `Effect` та `ChipSortingLayer` (на величину `MovingOrderOffset` чіпа), що гарантує знаходження тіні під спрайтом фішки, але над полем.
 - **Вплив ефектів на Sorting Order**: Ефекти при активації (`Effect.Activate`) та деактивації (`Effect.Deactivate`) автоматично сповіщають `chip.SortingLayer.SetEffectActive(effectId, isActive)`. Якщо на фішці налаштовано `EffectSortingData` для цього ефекту, порядок сортування всіх рендерерів зміщується на `AdditionalOrder`. У системі діє ієрархія пріоритетів `sortingOrderOverride > isMoving > activeEffects > animationOffset`: ручний оверрайд перекриває всі стани, рух має пріоритет над ефектами, а ефекти — над анімаційними зсувами.
 
 ### 9. Merge Light

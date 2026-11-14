@@ -9,8 +9,9 @@
 ### 1. `ContainerModule.cs` (Container)
 Клас `ContainerModule` зберігає стан наповнення та керує візуальними ефектами, реалізуючи інтерфейс `IChipModule`.
 - **Властивості (Data)**:
-  - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, нагорода `NextChipData` типу `ChipSpawnData`), які отримуються через `data.GetSpecialData<ChipContainerData>()`. `NextChipData` зберігає ID нової фішки та список блокерів (`BlockerEffectIds`), які активуються при створенні. Також кожна потрібна фішка визначає префаб візуального елемента через власні спеціальні дані `ChipContainerElementData`.
+  - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, стратегія еволюції `EvolutionProvider` типу `IChipEvolutionProvider`), які отримуються через `data.GetSpecialData<ChipContainerData>()`. `EvolutionProvider` повертає список фішок для створення після заповнення контейнера (з підтримкою накладання `BlockerEffectIds`). Також кожна потрібна фішка визначає префаб візуального елемента через власні спеціальні дані `ChipContainerElementData`.
   - `ContainerRequirements`: Публічна властивість тільки для читання (`IReadOnlyDictionary<ContainerInfo, int>`), що надає доступ до поточних вимог контейнера для підсистеми `ChipCollections`.
+  - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при заповненні контейнера (тригери анімацій, прапорці). Доступні публічно через властивість `EvolutionSettings`.
 - **Події та Делегати**:
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
   - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
@@ -42,19 +43,14 @@
 Основний метод додавання фішки:
 1. Знаходить відповідну вимогу в словнику `containers` за прямим збігом `RequiredChip == chip.Data`.
 2. Якщо лічильник досягає необхідної кількості:
-   - Видаляє вимогу зі словника.
-   - Відправляє тригер анімації `Recharge`.
+   - Якщо це остання активна вимога (`isFull`): попередньо перевіряє доступність місця для еволюції контейнера через `evolutionService.CanEvolve(this.chip, chipContainerData?.EvolutionProvider, evolutionSettings, out evolutionPlan, cellsToFree: cellsToFreeBuffer)`, передаючи клітинки вхідного чіпа `chip` як такі, що звільняються (`cellsToFree`). Якщо місця немає — додавання відхиляється (`return false`), генерується подія `RaiseNotEnoughSpaceForEvolution`, а вхідна фішка залишається неушкодженою.
+   - Видаляє виконану вимогу зі словника.
+   - Знищує вхідну фішку (`chip.Destroy(chipCell, true)`), звільняючи зайняті нею клітинки.
    - Викликає `OnFillContainer` з прапорцем `isFull`.
-   - **Завершення**: Якщо всі вимоги виконані, викликає метод `CreateNextChip()`.
-   - **Часткове виконання**: Якщо вимога виконана, але контейнер має інші активні вимоги, інформує колекції через `chipCollections.OnContainerRequirementsChanged(this, key.RequiredChip)`.
-3. Якщо лічильник ще не повний — просто інкрементує його значення.
+   - **Завершення (`isFull == true`)**: Викликає `evolutionService.Evolve(this.chip, evolutionPlan, evolutionSettings)`, що руйнує сам контейнер та спавнить/переміщує нові фішки згідно з планом еволюції.
+   - **Часткове виконання (`isFull == false`)**: Відправляє контейнеру анімаційний тригер `Recharge` та інформує колекції через `chipCollections.OnContainerRequirementsChanged(this, key.RequiredChip)`.
+3. Якщо лічильник ще не повний — інкрементує його значення, знищує вхідну фішку (`chip.Destroy(chipCell, true)`) та викликає `OnFillContainer` з прапорцем `false`.
 4. **Результат**: Повертає `true`, якщо фішка була успішно прийнята.
-
-### `CreateNextChip()`
-Захищений віртуальний метод створення нагороди після заповнення контейнера:
-1. Отримує `ChipData` через `chipContainerData.NextChipData.GetChipData(chipDataCollection)`.
-2. Знищує поточний контейнер через `this.chip.Destroy(cell, false)`.
-3. Створює нову фішку за допомогою `ChipFactory.CreateChip(...)`, передаючи initializer для накладання блокер-ефектів із `NextChipData.BlockerEffectIds`.
 
 ## Visual Effects
 

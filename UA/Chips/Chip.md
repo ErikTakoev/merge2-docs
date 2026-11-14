@@ -19,8 +19,8 @@
 
 - **Special Data**:
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas`.
-  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`, `ChipUnlockAreaData`.
-  - **INextChipsProvider**: Поліморфна стратегія вибору наступних чіпів у `ChipTapEvolutionData` та `ChipUnlockAreaData` (`[SerializeReference]`). Реалізації: `ConstantNextChipsProvider`, `RandomNextChipsProvider`, `SequentialNextChipsProvider`.
+  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
+  - **IChipEvolutionProvider**: Поліморфна стратегія вибору наступних чіпів для всіх модулів еволюції (`ChipTapEvolutionData`, `ChipUnlockAreaData`, `ChipWaitEvolutionData`, `ChipContainerData`, `ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantEvolutionProvider`, `RandomEvolutionProvider`. Еволюція централізовано виконується через `IChipEvolutionService` (`EvolutionExecutionSettings`).
 
 - **Runtime**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
@@ -56,7 +56,7 @@
 
 ### Effect Initialization
 - **`InitEffects()`**: Віртуальний метод, викликаний з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація:
-  1. Ітерує `ChipExtraEffectsData.Blockers` — для кожного елемента, чий `EffectId` є в `runtimeData.EffectEnables`, інстантіює префаб і додає в словник ефектів через `AddEffect`
+  1. Ітерує `runtimeData.EffectEnables` — для кожного `EffectId` знаходить конфігурацію в `ChipExtraEffectsData.BlockersDict`, інстантіює префаб і додає в словник ефектів через `AddEffect`
   2. Створює та додає `OtherEffects` з `ChipExtraEffectsData`
   3. Реєструє додаткові ефекти з масиву `extraEffects` (`EffectRef[]`), налаштовані на самому префабі чіпа
   4. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
@@ -102,12 +102,12 @@
 ## Modular Architecture and Composition (IChipModule)
 
 Починаючи з версії Merge Toolkit, реалізовано перехід від успадкування спеціалізованих чіпів до композиційного підходу. Клас [Chip](../../../Core/Scripts/Chips/Chip.cs) тепер виступає як контейнер (хост), а спеціалізована логіка винесена в окремі модулі, що реалізують інтерфейс [IChipModule](../../../Core/Scripts/Chips/Interfaces/IChipModule.cs):
-- **`ContainerModule`**: Керує контейнерами та вимогами заповнення.
-- **`GeneratorModule`**: Керує логікою генерації та підсиленням швидкості.
+- **`ContainerModule`**: Керує контейнерами та вимогами заповнення; після заповнення делегує еволюцію в `IChipEvolutionService`.
+- **`GeneratorModule`**: Керує логікою генерації, підсиленням швидкості та еволюцією після завершення циклів через `IChipEvolutionService`.
 - **`PowerBoosterModule`**: Керує логікою підсилювачів та зв'язками з цілями.
-- **`WaitEvolutionModule`**: Керує автоматичною еволюцією чіпа з часом, відстежуючи час очікування і замінюючи поточний чіп на інший.
-- **`TapEvolutionModule`**: Керує еволюцією чіпа при натисканні (тапі) за допомогою стратегій `INextChipsProvider`. Підтримує спавн кількох фішок через `FreeCellFinder.FindFreeCellsForChips`, програє візуальні ефекти (тригери анімації `TapEvolutionSpawn`, `Generate` та `TapEvolutionDestroy`), а при відсутності вільних клітинок викликає `OnNotEnoughSpace` через `ScenarioEventHandler`.
-- **`UnlockAreaModule`**: Керує послідовним розблокуванням зон `LockedArea` при натисканні (тапі) з налаштовуваними часовими затримками між кроками (`UnlockAreaStep`). Підтримує попередню перевірку вільного місця через `FreeCellFinder.FindFreeCellsForChips`, негайний запуск знищення (`chip.Destroy` з тригерами `TapEvolutionSpawn`/`TapEvolutionDestroy`/`Destroy`) та паралельне розблокування зон із відкладенням `FinishDestroy` до повного завершення корутини.
+- **`WaitEvolutionModule`**: Керує автоматичною еволюцією чіпа з часом через `IChipEvolutionService`, відстежуючи час очікування.
+- **`TapEvolutionModule`**: Керує еволюцією чіпа при натисканні (тапі) через `IChipEvolutionService` за допомогою стратегій `IChipEvolutionProvider`.
+- **`UnlockAreaModule`**: Керує послідовним розблокуванням зон `LockedArea` при натисканні (тапі) з налаштовуваними часовими затримками між кроками (`UnlockAreaStep`) та делегує еволюцію в `IChipEvolutionService`.
 - **`PauseAnimationOnDelay`**: Прапорець у `ChipFlightSettings`, що заморожує виконання анімації чіпа через `PauseAnimator(true)` під час активності затримки польоту (`flightDelay`).
 
 ### Lifecycle Delegation to Modules
@@ -126,8 +126,10 @@
 - При видаленні ефекту через `RemoveEffect` викликається `module.OnEffectRemoved(effectId)`.
 
 ### Specialized Runtime Data (IChipSpecialRuntimeData)
-Клас `ChipRuntimeData` тепер містить список поліморфних даних стану:
-- **`specialRuntimeDatas`** (`List<IChipSpecialRuntimeData>` з атрибутом `[SerializeReference]`).
+Клас `ChipRuntimeData` зберігає поточний стан фішки та містить список поліморфних даних:
+- **`EffectEnables`** (`List<int>`): Список ідентифікаторів активних ефектів-блокерів для збереження та завантаження стану.
+- **`EffectDestroyingData`** (`Dictionary<int, EffectDestroyingRuntimeData>`): Відстеження прогресу руйнування ефектів при сусідніх злиттях.
+- **`specialRuntimeDatas`** (`List<IChipSpecialRuntimeData>` з атрибутом `[SerializeReference]`): Список спеціалізованих даних для модулів.
 - **`GetSpecialRuntimeData<T>()`**: Допоміжний метод для отримання конкретного типу даних стану для модуля (наприклад, `ChipGeneratorRuntimeData` або `ChipContainerRuntimeData`).
 
 ### Movement State Management
@@ -149,9 +151,14 @@
 
 #### Initialization and Base Order Caching
 - При виклику `Chip.Init` викликається `sortingLayer.Init()`.
-- Кешуються вихідні значення `CachedOrder` для кожного рендерера з масиву `SortingLayers`.
+- Кешуються вихідні значення `CachedOrder` для кожного рендерера зі списку `SortingLayers` (`List<SortingLayerData>`).
 - Заповнюються словники швидкого пошуку зсувів для активних ефектів (`effectOffsets`) та анімаційних тригерів (`animationOffsets`).
 - Скидаються будь-які активні корутини анімацій, анімаційний оффсет та прапорець оверрайду (`sortingOrderOverride = null`).
+
+#### Dynamic Sorting Layer Registration
+Компонент підтримує динамічну реєстрацію додаткових спрайт-рендерерів (наприклад, візуальних елементів ефектів чи додаткових шарів), які з'являються під час життєвого циклу:
+- **`AddSortingLayer(SpriteRenderer renderer)`**: Додає `SpriteRenderer` до керованого списку `SortingLayers`, кешує його поточний `sortingOrder` у `CachedOrder` і миттєво синхронізує його порядок з поточним активним зсувом сортування фішки. Ігнорує дублікати та `null`.
+- **`RemoveSortingLayer(SpriteRenderer renderer)`**: Видаляє `SpriteRenderer` зі списку керованих рендерерів та повертає його `sortingOrder` до початкового збереженого значення `CachedOrder`. Безпечний до `null`.
 
 #### Movement Sorting
 - **`MovingOrderOffset`** (за замовчуванням `110`): однаковий зсув, що додається до `CachedOrder` усіх рендерерів під час переміщення фішки (`isMoving == true`).

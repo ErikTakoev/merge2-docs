@@ -23,6 +23,7 @@
 - [ChipData](#chipdata)
 - [ChipDataCollection](#chipdatacollection)
 - [ChipEffectUnlockedEventArgs](#chipeffectunlockedeventargs)
+- [ChipEvolutionService](#chipevolutionservice)
 - [ChipExtraEffectsData](#chipextraeffectsdata)
 - [ChipFactory](#chipfactory)
 - [ChipFlightSettings](#chipflightsettings)
@@ -38,7 +39,6 @@
 - [ChipMergeAvailableEffect](#chipmergeavailableeffect)
 - [ChipMergeData](#chipmergedata)
 - [ChipMovingLogic](#chipmovinglogic)
-- [ChipNextChipsRuntimeData](#chipnextchipsruntimedata)
 - [ChipPowerBoosterData](#chippowerboosterdata)
 - [ChipRemovedEventArgs](#chipremovedeventargs)
 - [ChipRuntimeData](#chipruntimedata)
@@ -51,7 +51,7 @@
 - [ChipWaitEvolutionData](#chipwaitevolutiondata)
 - [ChipWaitEvolutionRuntimeData](#chipwaitevolutionruntimedata)
 - [CombinedBlockingState](#combinedblockingstate)
-- [ConstantNextChipsProvider](#constantnextchipsprovider)
+- [ConstantEvolutionProvider](#constantevolutionprovider)
 - [ContainerHintEffect](#containerhinteffect)
 - [ContainerHintNotifier](#containerhintnotifier)
 - [ContainerInfo](#containerinfo)
@@ -81,6 +81,9 @@
 - [EffectSelectorAttribute](#effectselectorattribute)
 - [EffectSelectorDrawer](#effectselectordrawer)
 - [EffectSortingData](#effectsortingdata)
+- [EvolutionExecutionSettings](#evolutionexecutionsettings)
+- [EvolutionPlacementItem](#evolutionplacementitem)
+- [EvolutionPlan](#evolutionplan)
 - [ExtraChip](#extrachip)
 - [FieldData](#fielddata)
 - [FieldEventHandler](#fieldeventhandler)
@@ -97,6 +100,8 @@
 - [IChargingEffect](#ichargingeffect)
 - [IChipChangeNotifier](#ichipchangenotifier)
 - [IChipCollections](#ichipcollections)
+- [IChipEvolutionProvider](#ichipevolutionprovider)
+- [IChipEvolutionService](#ichipevolutionservice)
 - [IChipFinder](#ichipfinder)
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipInteractionLogic](#ichipinteractionlogic)
@@ -122,7 +127,6 @@
 - [ILockedAreaManager](#ilockedareamanager)
 - [IMergeCamera](#imergecamera)
 - [IMergeLifetimeScope](#imergelifetimescope)
-- [INextChipsProvider](#inextchipsprovider)
 - [IPowerBoosterTarget](#ipowerboostertarget)
 - [IScenarioEventHandler](#iscenarioeventhandler)
 - [IShadowEffect](#ishadoweffect)
@@ -150,10 +154,9 @@
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
 - [PowerBoosterModule](#powerboostermodule)
-- [RandomNextChipsProvider](#randomnextchipsprovider)
+- [RandomEvolutionProvider](#randomevolutionprovider)
 - [ScenarioEventHandler](#scenarioeventhandler)
 - [SepiaEffect](#sepiaeffect)
-- [SequentialNextChipsProvider](#sequentialnextchipsprovider)
 - [ShadowEffect](#shadoweffect)
 - [ShadowEffectRef](#shadoweffectref)
 - [SortingLayerData](#sortinglayerdata)
@@ -175,6 +178,7 @@
 - [WaitForChipEffectUnlockedNode](#waitforchipeffectunlockednode)
 - [WaitForChipRemovedNode](#waitforchipremovednode)
 - [WaitForFreeCellsNode](#waitforfreecellsnode)
+- [WaitForNotEnoughSpaceForEvolutionNode](#waitfornotenoughspaceforevolutionnode)
 - [WaitForNotEnoughSpaceNode](#waitfornotenoughspacenode)
 
 ---
@@ -672,9 +676,8 @@
     - **Purpose**: Initializes all effects for the chip by instantiating effect prefabs and adding them to the effects dictionary
     - **Usage**: Called from Init
     - override in derived classes to add custom effects while maintaining base effect initialization
-    - **Notes**: First iterates ChipExtraEffectsData.Blockers and instantiates only effects whose EffectId is present in runtimeData.EffectEnables
-    - then specifically looks for ShadowEffect in blockersData.BlockersDict and instantiates it if found
-    - designed for virtual extension pattern
+    - **Notes**: Iterates runtimeData.EffectEnables and instantiates matching blocker effects from extraEffectsData.BlockersDict
+    - then instantiates OtherEffects and activates all enabled blocker effects
 - `~ InstantiateEffect(GameObject prefab): T`
     - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
     - **Usage**: Call during Init or whenever a new visual effect needs to be added to the chip
@@ -780,7 +783,7 @@
 ## ChipContainerData
 #### Fields
 - `+ containers: ContainerInfo[]`
-- `+ NextChipData: ChipSpawnData`
+- `+ EvolutionProvider: IChipEvolutionProvider`
 ---
 
 ## ChipContainerElementData
@@ -867,6 +870,38 @@
 #### Fields
 - `+ Chip: Chip`
 - `+ EffectId: int`
+---
+
+## ChipEvolutionService
+
+> - **Purpose**: Centralized implementation of IChipEvolutionService coordinating chip evolution across all chip modules.
+> - **Usage**: Injected as singleton via VContainer into TapEvolutionModule, UnlockAreaModule, WaitEvolutionModule, ContainerModule, GeneratorModule.
+> - **Notes**: Atomically finds free cells before destroying parent
+> - manages flight settings, triggers, blockers, and Confirm call.
+#### Fields
+- `- chipDataCollection: ChipDataCollection`
+- `- chipFactory: ChipFactory`
+- `- fieldGrid: IFieldGrid`
+- `- freeCellFinder: IFreeCellFinder`
+- `- scenarioEventHandler: IScenarioEventHandler`
+#### Methods
+- `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionExecutionSettings settings, EvolutionPlan& plan, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
+    - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements.
+    - **Usage**: Called to test if evolution can be performed
+    - populates plan with pre-allocated cells and notifies if space is insufficient.
+    - **Params**: chip - target parent chip
+    - provider - evolution strategy provider
+    - settings - execution settings controlling notifications
+    - plan - out parameter populated with pre-calculated evolution plan
+    - cellsToExclude - optional cells to exclude from free cell search
+    - **Returns**: True if evolution can proceed
+    - false otherwise
+- `+ Evolve(Chip chip, EvolutionPlan plan, EvolutionExecutionSettings settings): void`
+    - **Purpose**: Executes the full evolution pipeline using a pre-calculated EvolutionPlan: parent destruction, next chip instantiation, flight animation, and provider confirmation.
+    - **Usage**: Called by chip modules only after a successful CanEvolve check.
+    - **Params**: chip - evolving parent chip
+    - plan - pre-calculated evolution plan from CanEvolve
+    - settings - execution configuration parameters
 ---
 
 ## ChipExtraEffectsData
@@ -1023,13 +1058,13 @@
 - `+ ChargeCount: int`
 - `+ ChargingTime: float`
 - `+ Data: GeneratorData[]`
+- `+ EvolutionProvider: IChipEvolutionProvider`
 - `+ GenerationInterval: float`
     - **Purpose**: Defines the cooldown time between consecutive generations in a single charge cycle
     - **Usage**: Used by ChipGenerator to set delay between spawns when multiple charges are available
     - **Notes**: Only applies if ChargeCount > 1
 - `+ IsAutoGeneration: bool`
 - `+ IsStartCharged: bool`
-- `+ NextChipData: ChipData`
 - `+ TotalRecharges: int`
 #### Methods
 - `+ GenerateChipData(): ChipData`
@@ -1253,14 +1288,6 @@
 - `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<ICell>`
 ---
 
-## ChipNextChipsRuntimeData
-
-> - **Purpose**: Stores runtime state for sequential next chip selection during chip evolution.
-> - **Usage**: Created and managed by TapEvolutionModule during InitRuntimeData. Preserves sequential index across gameplay ticks and save/load cycles.
-#### Fields
-- `+ SequentialIndex: int`
----
-
 ## ChipPowerBoosterData
 #### Fields
 - `++ Power: float`
@@ -1286,14 +1313,13 @@
     - value contains neighboring merge count that increments each merge event
     - initialized by Chip.InitDestroyingEffectsData
     - **Notes**: When NeighboringMergeCount reaches threshold, the effect is removed via Chip.RemoveEffect
-- `+ EffectEnables: HashSet<int>`
-    - **Purpose**: Set of blocker effect IDs (from EffectConsts/EffectConsts.Blockers) that should be active on this chip
+- `+ EffectEnables: List<int>`
+    - **Purpose**: List of blocker effect IDs (from EffectConsts/EffectConsts.Blockers) that should be active on this chip
     - **Usage**: Populated from ChipSpawnData.BlockerEffectIds during level load or at runtime
     - queried by Chip.InitEffects and UpdateVisual to determine which extra effects to instantiate and activate
-    - **Notes**: Serialized via effectEnablesArray for save/load support
+    - **Notes**: Serialized directly for save/load support
 - `+- SpecialRuntimeDatas: List<IChipSpecialRuntimeData>`
 - `- effectDestroyingDataArray: EffectDestroyingRuntimeData[]`
-- `- effectEnablesArray: int[]`
 #### Methods
 - `+ GetSpecialRuntimeData(): T`
 - `+ OnAfterDeserialize(): void`
@@ -1310,8 +1336,12 @@
 
 ## ChipSelectorDrawer
 **Inherits**: `PropertyDrawer`
+#### Fields
+- `- s_dropdownState: AdvancedDropdownState`
 #### Methods
 - `+ OnGUI(Rect position, SerializedProperty property, GUIContent label): void`
+- `- HandleDragAndDrop(Rect dropRect, SerializedProperty property): void`
+- `- OpenSearchDropdown(Rect buttonRect, ChipDataCollection collection, SerializedProperty property): void`
 ---
 
 ## ChipSortingLayer
@@ -1327,7 +1357,7 @@
 - `+- EffectsSortingData: EffectSortingData[]`
 - `+- IsSortingOrderOverridden: bool`
 - `+- MovingOrderOffset: int`
-- `+- SortingLayers: SortingLayerData[]`
+- `+- SortingLayers: List<SortingLayerData>`
 - `+- SortingOrderOverride: Nullable<int>`
 - `- activeEffects: List<int>`
 - `- animationCoroutine: Coroutine`
@@ -1338,6 +1368,13 @@
 - `- isAnimationActive: bool`
 - `- isMoving: bool`
 #### Methods
+- `+ AddSortingLayer(SpriteRenderer renderer): void`
+    - **Purpose**: Adds a SpriteRenderer to dynamically managed sorting layers, caching its current sorting order and applying active offsets
+    - **Usage**: Called by effects during Init to register their visual renderers with the chip sorting hierarchy
+    - **Params**: renderer - The SpriteRenderer to register and manage
+    - **Notes**: Null-safe
+    - ignores duplicates
+    - immediately synchronizes renderer sorting order to current chip sorting offset
 - `+ ClearSortingOrderOverride(): void`
     - **Purpose**: Clears any active sorting order offset override and recalculates sorting order based on current states
     - **Usage**: Call when returning chip to standard sorting behavior after override was applied
@@ -1353,6 +1390,12 @@
     - **Notes**: Stops any active animation sorting coroutine and resets offset
     - inspects current and next AnimatorStateInfo for matching state to retrieve animation duration
     - applies offset and restores order when animation completes
+- `+ RemoveSortingLayer(SpriteRenderer renderer): void`
+    - **Purpose**: Removes a SpriteRenderer from managed sorting layers and restores its cached sorting order
+    - **Usage**: Called by effects during OnDestroy to unregister their visual renderers from the chip sorting hierarchy
+    - **Params**: renderer - The SpriteRenderer to unregister
+    - **Notes**: Restores CachedOrder before removing
+    - null-safe
 - `+ SetEffectActive(int effectId, bool value): void`
     - **Purpose**: Updates the active state of an effect for sorting order adjustments
     - **Usage**: Called when an effect is activated or deactivated on the chip
@@ -1399,20 +1442,20 @@
 
 ## ChipTapEvolutionData
 
-> - **Purpose**: Configuration data for chip tap-evolution, defining the next chip provider strategy.
+> - **Purpose**: Configuration data for chip tap-evolution, defining the chip evolution provider strategy.
 > - **Usage**: Used in ChipData specialDatas list. Queried by TapEvolutionModule in Init.
-> - **Notes**: Uses polymorphic INextChipsProvider for flexible evolution selection strategies.
+> - **Notes**: Uses polymorphic IChipEvolutionProvider for flexible evolution selection strategies.
 #### Fields
-- `+ Provider: INextChipsProvider`
+- `+ EvolutionProvider: IChipEvolutionProvider`
 ---
 
 ## ChipUnlockAreaData
 
 > - **Purpose**: Configuration data for chips that unlock locked areas on tap.
 > - **Usage**: Used in ChipData specialDatas list. Queried by UnlockAreaModule in Init.
-> - **Notes**: Supports sequential area unlocking with delays and optional polymorphic evolution strategy via INextChipsProvider.
+> - **Notes**: Supports sequential area unlocking with delays and optional polymorphic evolution strategy via IChipEvolutionProvider.
 #### Fields
-- `++ Provider: INextChipsProvider`
+- `++ EvolutionProvider: IChipEvolutionProvider`
 - `++ Steps: UnlockAreaStep[]`
 ---
 
@@ -1422,14 +1465,9 @@
 > - **Usage**: Used in ChipData specialDatas list. Queried by WaitEvolutionModule in Init.
 > - **Notes**: Evolves into a weighted random chip from NextChips array or gets destroyed if empty.
 #### Fields
+- `+ EvolutionProvider: IChipEvolutionProvider`
 - `+ EvolveTime: float`
 - `+ IsAffectedByBoosters: bool`
-- `+ NextChips: EvolutionTarget[]`
-#### Methods
-- `+ GetRandomNextChip(): ChipData`
-    - **Purpose**: Selects a random target chip from the next available evolution options based on their configured probability weights.
-    - **Usage**: Called during evolution execution to determine which chip type to spawn next.
-    - **Returns**: The selected ChipData config, or null if there are no next chips or if cumulative weight is zero.
 ---
 
 ## ChipWaitEvolutionRuntimeData
@@ -1475,17 +1513,17 @@
 - `~ Reset(): void`
 ---
 
-## ConstantNextChipsProvider
+## ConstantEvolutionProvider
 
-> - **Purpose**: Next chip provider strategy that always returns a fixed constant list of chips.
-> - **Usage**: Configured inside ChipTapEvolutionData via SerializeReference selector.
+> - **Purpose**: Chip evolution provider strategy that always returns a fixed constant list of chips.
+> - **Usage**: Configured inside ChipTapEvolutionData or ChipUnlockAreaData via SerializeReference selector.
 > - **Notes**: Zero allocation strategy returning the internal list directly without caching overhead.
 #### Fields
-- `+ Chips: List<ChipData>`
-- `+- LastResult: List<ChipData>`
+- `+ Chips: List<ChipSpawnData>`
+- `+- LastResult: List<ChipSpawnData>`
 #### Methods
-- `+ Confirm(ChipNextChipsRuntimeData seqData): void`
-- `+ GetNextChips(ChipNextChipsRuntimeData seqData): List<ChipData>`
+- `+ Confirm(): void`
+- `+ GetEvolutionChips(): List<ChipSpawnData>`
 - `+ Init(): void`
 ---
 
@@ -1580,13 +1618,15 @@
 #### Fields
 - `+- Chip: Chip`
 - `+- ContainerRequirements: IReadOnlyDictionary<ContainerInfo, int>`
+- `+- EvolutionSettings: EvolutionExecutionSettings`
+- `- cellsToFreeBuffer: HashSet<ICell>`
 - `- chipCollections: IChipCollections`
 - `~ chipContainerData: ChipContainerData`
-- `- chipDataCollection: ChipDataCollection`
-- `- chipFactory: ChipFactory`
 - `- containerEffect: EffectContainerHintRef`
 - `~ containerRuntimeData: ChipContainerRuntimeData`
 - `~ data: ChipData`
+- `- evolutionService: IChipEvolutionService`
+- `- fieldGrid: IFieldGrid`
 - `- OnFillContainer: FillContainerDelegate`
 #### Methods
 - `+ DestroyModule(): void`
@@ -1623,10 +1663,7 @@
     - Triggers OnFillContainer event
     - If all requirements are met, calls CreateNextChip
 - `+ UpdateVisual(): void`
-- `~ CreateNextChip(): void`
-    - **Purpose**: Spawns the result chip after all container requirements are fulfilled
-    - **Usage**: Called internally by TryAddChip when all requirements are satisfied
-    - **Notes**: Destroys the current container chip and instantiates the next chip specified in NextChipData, applying any blocker effect IDs
+- `- OnDestroy(): void`
 ---
 
 ## CreateChipNode
@@ -1855,6 +1892,7 @@
 - `+~ IsActive: bool`
 - `+- IsSkipDestroy: bool`
 - `+- Owners: HashSet<ISubEffectOwner>`
+- `+- SortingSpriteRenderers: IReadOnlyList<SpriteRenderer>`
 - `+- SubEffects: ISubEffect[]`
 - `~ animator: Animator`
 - `~ autoSize: AutoSizeType`
@@ -2002,6 +2040,8 @@
     - **Usage**: Called during Effect.Init to set up sub-effects state
     - **Params**: chip - The owner chip that hosts the effects
 - `~ OnDestroy(): void`
+    - **Purpose**: Cleans up effect sub-effect coroutines and unregisters managed sorting sprite renderers from the owner chip's sorting layer
+    - **Usage**: Called by Unity lifecycle when the effect GameObject or component is destroyed
 - `~ ResetTrigger(string triggerName): void`
     - **Purpose**: Resets an animation trigger on the effect's animator
     - **Usage**: Internal helper to clear opposing triggers when switching states
@@ -2185,6 +2225,67 @@
 #### Fields
 - `+ AdditionalOrder: int`
 - `+ EffectId: int`
+---
+
+## EvolutionExecutionSettings
+
+> - **Purpose**: Parameters for controlling chip evolution execution in ChipEvolutionService.
+> - **Usage**: Construct and pass to IChipEvolutionService.Evolve() or serialize on chip modules to define animation triggers, flight delays, evolution origin, and empty destruction behaviors.
+#### Fields
+- `+ DelayBeforeFirstSpawn: float`
+    - **Purpose**: Initial flight delay in seconds before the first chip spawns.
+    - **Usage**: Passed from module's delayBeforeFirstSpawn field.
+- `+ DelayBetweenSpawns: float`
+    - **Purpose**: Delay interval in seconds between consecutive chip spawns.
+    - **Usage**: Passed from module's delayBetweenSpawns field.
+- `+ DestroyTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to the parent chip when destruction begins upon successful evolution.
+    - **Usage**: Set to trigger appropriate destruction animation (e.g. TapEvolutionDestroy, WaitEvolutionDestroy, EvolutionDestroy).
+- `+ EmptyDestroyTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to the parent chip when the evolution provider produces no next chips.
+    - **Usage**: Defaults to AnimatorTrigger.Destroy.
+- `+ EvolutionPoint: Transform`
+    - **Purpose**: World transform used as the origin point for new chip flight animations. If null, the parent chip's transform position is used.
+    - **Usage**: Assigned from module's evolutionPoint serialized field.
+- `+ ForceDestroyOnEmpty: bool`
+    - **Purpose**: Whether to force destroy the parent chip (immediate without Mecanim animation) when no next chips are produced.
+    - **Usage**: True for generator evolution into null
+    - false for other modules.
+- `+ MultiSpawnTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to newly spawned chips when spawning multiple chips or with flight delay.
+    - **Usage**: Defaults to AnimatorTrigger.Generate.
+- `+ NotifyNotEnoughSpace: bool`
+    - **Purpose**: Whether to notify scenarioEventHandler (RaiseNotEnoughSpaceForEvolution) when evolution cannot proceed due to insufficient space.
+    - **Usage**: Defaults to true
+    - set to false for modules like WaitEvolutionModule that silently wait for space.
+- `+ PlayMergeLight: bool`
+    - **Purpose**: Whether to activate the IEffectMergeLight effect on the evolving chip if present.
+    - **Usage**: True for tap, unlock area, and wait evolution
+    - false for container and generator.
+- `+ SpawnTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to newly spawned chips when spawning a single chip instantly.
+    - **Usage**: Set to module-specific spawn trigger (e.g. TapEvolutionSpawn, WaitEvolutionSpawn, EvolutionSpawn, Merge).
+- `+- Default: EvolutionExecutionSettings`
+---
+
+## EvolutionPlacementItem
+
+> - **Purpose**: Encapsulates placement information for a single chip spawned during evolution.
+> - **Usage**: Item within EvolutionPlan.Placements list used by IChipEvolutionService.Evolve.
+#### Fields
+- `+- ChipData: ChipData`
+- `+- SpawnData: ChipSpawnData`
+- `+- TargetCell: ICell`
+---
+
+## EvolutionPlan
+
+> - **Purpose**: Pre-calculated evolution plan containing target placement cells and spawn data.
+> - **Usage**: Created by IChipEvolutionService.CanEvolve and passed to IChipEvolutionService.Evolve.
+#### Fields
+- `+- IsEmpty: bool`
+- `+- Placements: IReadOnlyList<EvolutionPlacementItem>`
+- `+- Provider: IChipEvolutionProvider`
 ---
 
 ## ExtraChip
@@ -2489,7 +2590,7 @@
 - `- fieldGrid: IFieldGrid`
 - `- priorityPositionsBuffer: List<Vector2Int>`
 #### Methods
-- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): bool`
+- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, HashSet<ICell> cellsToFree): bool`
     - **Purpose**: Finds free cells for placing multiple chips atomically without GC allocations.
     - **Usage**: Call to locate valid free cells for a batch of chips (e.g. during tap evolution). Returns true if cells for all chips were successfully allocated into resultsBuffer.
     - **Params**: parentPos - origin area position
@@ -2501,7 +2602,7 @@
     - chipsToPotentiallyMove - optional movable chips
     - onlyAround - whether to limit search around origin.
     - **Returns**: True if placement is found for all chips, false otherwise.
-- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, IReadOnlyList<Vector2Int> priorityPositions): ICell`
+- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, IReadOnlyList<Vector2Int> priorityPositions, HashSet<ICell> cellsToFree): ICell`
     - **Purpose**: Finds the nearest free cell for placing a chip, starting the search from a rectangular area.
     - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips. The search is performed first within the specified parent area and then spirally expands around it.
     - **Params**: parentPos - area start
@@ -2512,7 +2613,7 @@
     - chipsToPotentiallyMove - chips allowed to move
     - onlyAround - if true, search only in the immediate neighborhood.
     - **Returns**: The nearest free Cell or null if none found.
-- `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<ICell> excludedCellsSet, HashSet<Chip> movingChipsSet): bool`
+- `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<ICell> excludedCellsSet, HashSet<Chip> movingChipsSet, HashSet<ICell> cellsToFree): bool`
 ---
 
 ## GeneratorModule
@@ -2525,6 +2626,7 @@
 #### Fields
 - `+- AppliedBoosters: HashSet<PowerBoosterModule>`
 - `+- BlockingState: CombinedBlockingState`
+- `+- EvolutionSettings: EvolutionExecutionSettings`
 - `+- IsMoving: bool`
 - `+- JoinPoints: IReadOnlyList<Transform>`
 - `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
@@ -2532,9 +2634,11 @@
 - `- chip: Chip`
 - `- chipFactory: ChipFactory`
 - `- data: ChipData`
+- `- evolutionService: IChipEvolutionService`
 - `- field: IFieldEventHandler`
 - `- fieldGrid: IFieldGrid`
 - `- findFreePlaceForChip: IFreeCellFinder`
+- `- generationExcludedCellsBuffer: HashSet<ICell>`
 - `- generatorData: ChipGeneratorData`
 - `- generatorRuntimeData: ChipGeneratorRuntimeData`
 - `- isAutoGeneration: bool`
@@ -2691,6 +2795,45 @@
 - `+ OnChipBlockingChanged(Chip chip): void`
 - `+ OnContainerRequirementsChanged(ContainerModule container, ChipData fulfilledRequirement): void`
 - `+ RemoveChip(Chip chip): void`
+---
+
+## IChipEvolutionProvider
+
+> - **Purpose**: Interface for chip evolution selection strategies used in evolution mechanics.
+> - **Usage**: Polymorphic field inside ChipTapEvolutionData and ChipUnlockAreaData, initialized and queried by TapEvolutionModule and UnlockAreaModule.
+> - **Notes**: Implementations should be sealed classes with [Serializable] for polymorphic serialization via SerializeReference.
+#### Fields
+- `+- LastResult: List<ChipSpawnData>`
+#### Methods
+- `+ Confirm(): void`
+- `+ GetEvolutionChips(): List<ChipSpawnData>`
+- `+ Init(): void`
+---
+
+## IChipEvolutionService
+
+> - **Purpose**: Centralized service managing chip evolution, cell space finding, parent destruction, and result chip instantiation.
+> - **Usage**: Injected via VContainer (IChipEvolutionService) into chip modules (TapEvolutionModule, UnlockAreaModule, WaitEvolutionModule, ContainerModule, GeneratorModule).
+> - **Notes**: Coordinates with IFreeCellFinder, ChipFactory, IFieldGrid, and IScenarioEventHandler.
+#### Methods
+- `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionExecutionSettings settings, EvolutionPlan& plan, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
+    - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements.
+    - **Usage**: Call before initiating evolution
+    - computes EvolutionPlan with assigned cells and notifies if space is insufficient according to settings.
+    - **Params**: chip - the parent chip undergoing evolution
+    - provider - strategy yielding target ChipSpawnData configurations
+    - settings - execution settings controlling notifications
+    - plan - out parameter populated with pre-calculated evolution plan
+    - cellsToExclude - optional cells to exclude from free cell search
+    - cellsToFree - optional external cells to consider freed despite existing chips
+    - **Returns**: True if space is available and evolution can proceed
+    - false otherwise
+- `+ Evolve(Chip chip, EvolutionPlan plan, EvolutionExecutionSettings settings): void`
+    - **Purpose**: Executes the chip evolution using a pre-calculated EvolutionPlan: destroys the parent chip, spawns next chips, and plays effects.
+    - **Usage**: Called only after a successful CanEvolve check.
+    - **Params**: chip - the parent chip undergoing evolution
+    - plan - pre-calculated evolution plan from CanEvolve
+    - settings - execution configuration (triggers, delays, evolution point, FX)
 ---
 
 ## IChipFinder
@@ -2879,22 +3022,24 @@
 
 ## IChipSortingLayer
 
-> - **Purpose**: Defines the contract for managing chip sorting layers, movement-based, effect-based, animation-based, and manual override sorting adjustments
+> - **Purpose**: Defines the contract for managing chip sorting layers, dynamic renderer registration, movement-based, effect-based, animation-based, and manual override sorting adjustments
 > - **Usage**: Implemented by ChipSortingLayer
-> - used by Chip and effects to adjust visual depth during movement, active effects, animation playback, or manual overrides
-> - **Notes**: Supports multiple renderers per chip
+> - used by Chip and effects to register renderers and adjust visual depth during movement, active effects, animation playback, or manual overrides
+> - **Notes**: Supports dynamic additions and removals of renderers per chip
 > - manual override takes precedence over other sorting offsets
 #### Fields
 - `+- AnimationsSortingData: AnimationSortingData[]`
 - `+- EffectsSortingData: EffectSortingData[]`
 - `+- IsSortingOrderOverridden: bool`
 - `+- MovingOrderOffset: int`
-- `+- SortingLayers: SortingLayerData[]`
+- `+- SortingLayers: List<SortingLayerData>`
 - `+- SortingOrderOverride: Nullable<int>`
 #### Methods
+- `+ AddSortingLayer(SpriteRenderer renderer): void`
 - `+ ClearSortingOrderOverride(): void`
 - `+ Init(): void`
 - `+ OnAnimationTrigger(string triggerName): void`
+- `+ RemoveSortingLayer(SpriteRenderer renderer): void`
 - `+ SetEffectActive(int effectId, bool value): void`
 - `+ SetMoving(bool value): void`
 - `+ SetSortingOrderOverride(int offset): void`
@@ -3119,7 +3264,7 @@
 > - **Usage**: Injected into components that need to spawn or relocate chips.
 > - **Notes**: Provides logic for nearest free cell search with spiral expansion.
 #### Methods
-- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround): bool`
+- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, HashSet<ICell> cellsToFree): bool`
     - **Purpose**: Finds free cells for placing multiple chips atomically.
     - **Usage**: Call to find suitable cells for a list of chips, returning true only if all chips can be placed.
     - **Params**: parentPos - search origin
@@ -3129,9 +3274,10 @@
     - resultsBuffer - ref list to store (ChipData, TargetCell) pairs
     - cellsToExclude - set of cells to skip
     - chipsToPotentiallyMove - set of chips allowed to move
-    - onlyAround - if true, limits search to immediate neighborhood.
+    - onlyAround - if true, limits search to immediate neighborhood
+    - cellsToFree - optional external cells to consider freed despite existing chips.
     - **Returns**: True if all chips in the list can be assigned free cells, false otherwise.
-- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, IReadOnlyList<Vector2Int> priorityPositions): ICell`
+- `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, IReadOnlyList<Vector2Int> priorityPositions, HashSet<ICell> cellsToFree): ICell`
     - **Purpose**: Finds the nearest free cell for placing a chip.
     - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips.
     - **Params**: parentPos - search origin
@@ -3244,19 +3390,6 @@
 - `+- Container: IObjectResolver`
 ---
 
-## INextChipsProvider
-
-> - **Purpose**: Interface for next chip selection strategies used in evolution mechanics.
-> - **Usage**: Polymorphic field inside ChipTapEvolutionData, initialized and queried by TapEvolutionModule.
-> - **Notes**: Implementations should be sealed classes with [Serializable] for polymorphic serialization via SerializeReference.
-#### Fields
-- `+- LastResult: List<ChipData>`
-#### Methods
-- `+ Confirm(ChipNextChipsRuntimeData seqData): void`
-- `+ GetNextChips(ChipNextChipsRuntimeData seqData): List<ChipData>`
-- `+ Init(): void`
----
-
 ## IPowerBoosterTarget
 
 > - **Purpose**: Contract for entities that can be influenced by ChipPowerBooster instances.
@@ -3297,6 +3430,7 @@
 - `+ RaiseChipRemoved(Chip chip): void`
 - `+ RaiseChipTapped(Chip chip): void`
 - `+ RaiseNotEnoughSpace(Chip chip): void`
+- `+ RaiseNotEnoughSpaceForEvolution(Chip chip): void`
 ---
 
 ## IShadowEffect
@@ -3635,6 +3769,7 @@
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
 - `- NeighborOffsets: Vector2Int[]`
+- `- scenarioEventHandler: IScenarioEventHandler`
 #### Methods
 - `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Validates if two cells can perform a merge interaction.
@@ -3993,20 +4128,20 @@
 - `+ UpdateVisual(): void`
 ---
 
-## RandomNextChipsProvider
+## RandomEvolutionProvider
 
-> - **Purpose**: Next chip provider strategy that selects a weighted random provider.
-> - **Usage**: Configured inside ChipTapEvolutionData via SerializeReference selector.
+> - **Purpose**: Chip evolution provider strategy that selects a weighted random provider.
+> - **Usage**: Configured inside ChipTapEvolutionData or ChipUnlockAreaData via SerializeReference selector.
 > - **Notes**: Pre-computes total weight in Init to achieve zero per-tap allocations.
 #### Fields
 - `+ Entries: WeightedProviderEntry[]`
-- `+- LastResult: List<ChipData>`
+- `+- LastResult: List<ChipSpawnData>`
 - `- cachedTotalWeight: int`
 #### Methods
-- `+ Confirm(ChipNextChipsRuntimeData seqData): void`
-- `+ GetNextChips(ChipNextChipsRuntimeData seqData): List<ChipData>`
+- `+ Confirm(): void`
+- `+ GetEvolutionChips(): List<ChipSpawnData>`
 - `+ Init(): void`
-- `- SelectWeightedRandom(): INextChipsProvider`
+- `- SelectWeightedRandom(): IChipEvolutionProvider`
 ---
 
 ## ScenarioEventHandler
@@ -4022,6 +4157,7 @@
 - `- OnChipRemoved: Action<Chip>`
 - `- OnChipTapped: Action<Chip>`
 - `- OnNotEnoughSpace: Action<Chip>`
+- `- OnNotEnoughSpaceForEvolution: Action<Chip>`
 #### Methods
 - `+ RaiseAreaUnlocked(int areaId): void`
 - `+ RaiseChipCreated(Chip chip, ICell cell): void`
@@ -4029,6 +4165,7 @@
 - `+ RaiseChipRemoved(Chip chip): void`
 - `+ RaiseChipTapped(Chip chip): void`
 - `+ RaiseNotEnoughSpace(Chip chip): void`
+- `+ RaiseNotEnoughSpaceForEvolution(Chip chip): void`
 ---
 
 ## SepiaEffect
@@ -4048,20 +4185,6 @@
     - **Params**: dt - delta time since last update (0f on initial activation)
 ---
 
-## SequentialNextChipsProvider
-
-> - **Purpose**: Next chip provider strategy that cycles sequentially through a configured list of sub-providers.
-> - **Usage**: Configured inside ChipTapEvolutionData via SerializeReference selector.
-> - **Notes**: Advances its index on Confirm using ChipNextChipsRuntimeData.
-#### Fields
-- `+ Providers: INextChipsProvider[]`
-- `+- LastResult: List<ChipData>`
-#### Methods
-- `+ Confirm(ChipNextChipsRuntimeData seqData): void`
-- `+ GetNextChips(ChipNextChipsRuntimeData seqData): List<ChipData>`
-- `+ Init(): void`
----
-
 ## ShadowEffect
 **Inherits**: `Effect`
 
@@ -4075,12 +4198,10 @@
     - **Purpose**: Duration in seconds to track and mirror the owner chip's alpha after activation and deactivation
     - **Usage**: Configured in inspector
     - controls the duration of FollowAlphaRoutine coroutine
-- `- cashedLayerOrder: int`
 - `- chipRenderer: SpriteRenderer`
 - `- initialLocalPosition: Vector3`
 - `- initialLocalScale: Vector3`
 - `- isInitialized: bool`
-- `- movingOrderOffset: int`
 - `- shadowOffsetPerOneHeight: Vector3`
 - `- shadowRenderer: SpriteRenderer`
 - `- shadowScalePerOneHeight: float`
@@ -4098,9 +4219,9 @@
     - **Params**: chip - owner chip
     - force - whether to immediately set alpha to 0 without tracking
 - `+ Init(Chip chip, int effectId): void`
-    - **Purpose**: Initializes the shadow effect, caching the chip's primary renderer, matching sprite visuals, and recording baseline transform values
+    - **Purpose**: Initializes the shadow effect and records baseline transform values
     - **Usage**: Called by Chip during effect initialization
-    - configures shadow sprite from chip's sorting layer and establishes moving order offset
+    - registers with base effect lifecycle
     - **Params**: chip - owner chip
     - effectId - unique effect identifier
 - `+ OnChipAnimationTrigger(string triggerName): void`
@@ -4113,9 +4234,8 @@
     - modifies localPosition based on shadowOffsetPerOneHeight and localScale based on shadowScalePerOneHeight
     - **Params**: height - the current height value of the chip
 - `+ OnMovingStateChanged(Chip chip, bool isMoving): void`
-    - **Purpose**: Reacts to chip movement by sending appropriate animator triggers
-    - **Usage**: Called by Chip.NotifyEffectsOnMovingStateChanged
-    - sends 'Move' when isMoving is true, and 'Stop' otherwise
+    - **Purpose**: Reacts to chip movement by delegating to base effect movement handling
+    - **Usage**: Called by Chip.NotifyEffectsOnMovingStateChanged when movement starts or stops
     - **Params**: chip - owner chip
     - isMoving - current movement state
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
@@ -4220,24 +4340,17 @@
 ## TapEvolutionModule
 **Inherits**: `MonoBehaviour`
 
-> - **Purpose**: Modular component attached to a Chip that handles evolution on user tap using INextChipsProvider architecture.
+> - **Purpose**: Modular component attached to a Chip that handles evolution on user tap using IChipEvolutionProvider architecture.
 > - **Usage**: Attach to chip prefabs that evolve on tap
 > - implements IChipModule
-> - **Notes**: Evolves into next chips provided by INextChipsProvider strategy, respects chip movement/drag deferral, and handles priority cell placement and multi-chip flight animations.
+> - **Notes**: Evolves into next chips provided by IChipEvolutionProvider strategy, respects chip movement/drag deferral, and delegates execution to IChipEvolutionService.
 #### Fields
-- `- cachedSeqData: ChipNextChipsRuntimeData`
+- `+- EvolutionSettings: EvolutionExecutionSettings`
 - `- chip: Chip`
-- `- chipFactory: ChipFactory`
 - `- data: ChipData`
-- `- delayBeforeFirstSpawn: float`
-- `- delayBetweenSpawns: float`
 - `- evolutionData: ChipTapEvolutionData`
-- `- fieldGrid: IFieldGrid`
-- `- freeCellFinder: IFreeCellFinder`
-- `- generationPoint: Transform`
+- `- evolutionService: IChipEvolutionService`
 - `- hintEffect: EffectHintRef`
-- `- resolver: IObjectResolver`
-- `- scenarioEventHandler: IScenarioEventHandler`
 #### Methods
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
@@ -4247,10 +4360,6 @@
     - data - configuration settings of the chip
     - runtimeData - mutable state of the chip
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the special runtime data structure for tap evolution sequential index if needed.
-    - **Usage**: Called before module initialization to prepare the initial state for the chip's runtime data collection.
-    - **Params**: data - configuration settings of the chip
-    - runtimeData - mutable state container of the chip
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `+ OnDrag(Vector2 position, ICell anchorCell): void`
 - `+ OnDragEnd(): void`
@@ -4263,7 +4372,7 @@
     - **Purpose**: Updates the visual state of the tap evolution hint effect based on whether the chip can currently be tapped.
     - **Usage**: Called when chip visual state is refreshed, activating or deactivating the TapHint effect according to CanBeTaped.
 - `- ExecuteTapEvolution(): void`
-    - **Purpose**: Performs tap evolution using INextChipsProvider by finding cells before destruction and spawning new chips.
+    - **Purpose**: Performs tap evolution using IChipEvolutionService by finding cells and spawning new chips.
     - **Usage**: Called internally when the chip is tapped and not moving or being dragged.
 ---
 
@@ -4390,21 +4499,15 @@
 > - **Purpose**: Modular component attached to a Chip that unlocks locked areas on user tap and optionally evolves the chip.
 > - **Usage**: Attach to chip prefabs that unlock areas on tap
 > - implements IChipModule
-> - **Notes**: Unlocks areas sequentially with configured delays, handles free cell pre-checks, defers FinishDestroy until coroutine completion, and immediately initiates chip destruction and next chip spawns upon tap.
+> - **Notes**: Unlocks areas sequentially with configured delays, defers FinishDestroy until coroutine completion, and delegates evolution to IChipEvolutionService.
 #### Fields
-- `- cachedSeqData: ChipNextChipsRuntimeData`
+- `+- EvolutionSettings: EvolutionExecutionSettings`
 - `- chip: Chip`
-- `- chipFactory: ChipFactory`
 - `- data: ChipData`
-- `- delayBeforeFirstSpawn: float`
-- `- delayBetweenSpawns: float`
-- `- fieldGrid: IFieldGrid`
-- `- freeCellFinder: IFreeCellFinder`
-- `- generationPoint: Transform`
+- `- evolutionService: IChipEvolutionService`
 - `- hintEffect: EffectHintRef`
 - `- isUnlocking: bool`
 - `- lockedAreaManager: ILockedAreaManager`
-- `- scenarioEventHandler: IScenarioEventHandler`
 - `- unlockCoroutine: Coroutine`
 - `- unlockData: ChipUnlockAreaData`
 #### Methods
@@ -4421,10 +4524,6 @@
     - data - configuration settings of the chip
     - runtimeData - mutable state container of the chip
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the special runtime data structure for next chips sequence if provider exists.
-    - **Usage**: Called before module initialization to prepare initial state for the chip runtime data.
-    - **Params**: data - configuration settings of the chip
-    - runtimeData - mutable state container of the chip
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `+ OnDrag(Vector2 position, ICell anchorCell): void`
 - `+ OnDragEnd(): void`
@@ -4442,14 +4541,8 @@
 - `+ UpdateVisual(): void`
     - **Purpose**: Updates visual state of tap hint based on whether the chip can currently be tapped and is not unlocking.
     - **Usage**: Called when chip visual state is refreshed.
-- `- ExecuteDestructionAndSpawn(ICell mainCell, List<ChipData> nextChips, List<ValueTuple<ChipData, ICell>> batchResults): void`
-    - **Purpose**: Initiates chip destruction animation and spawns next chips immediately upon tap.
-    - **Usage**: Called from ExecuteUnlock without waiting for step delays.
-    - **Params**: mainCell - primary occupied cell of the chip
-    - nextChips - list of next chip data configs to spawn
-    - batchResults - mapped destination cells for next chips
 - `- ExecuteUnlock(): void`
-    - **Purpose**: Validates space for next chips, starts the sequential unlock coroutine, and immediately initiates chip destruction and next chips spawn.
+    - **Purpose**: Executes area unlocking and chip evolution via IChipEvolutionService.
     - **Usage**: Called internally when tap is validated.
 - `- OnDestroy(): void`
 - `- UnlockSequenceRoutine(): IEnumerator`
@@ -4517,15 +4610,17 @@
 #### Fields
 - `+- AppliedBoosters: HashSet<PowerBoosterModule>`
 - `+- BlockingState: CombinedBlockingState`
+- `+- EvolutionSettings: EvolutionExecutionSettings`
 - `+- IsMoving: bool`
 - `+- JoinPoints: IReadOnlyList<Transform>`
 - `- chargingEffect: ChargingEffectRef`
 - `- chip: Chip`
-- `- chipFactory: ChipFactory`
 - `- data: ChipData`
 - `- evolutionData: ChipWaitEvolutionData`
 - `- evolutionRuntimeData: ChipWaitEvolutionRuntimeData`
-- `- fieldGrid: IFieldGrid`
+- `- evolutionService: IChipEvolutionService`
+- `- field: IFieldEventHandler`
+- `- isWaitingForSpace: bool`
 - `- OnCharging: Action<float>`
 - `- powerMultiplier: float`
 - `- startDeactivateChargingEffect: bool`
@@ -4561,9 +4656,11 @@
     - **Params**: powerBoosterModule - the booster component to remove
 - `+ UpdateVisual(): void`
 - `- ExecuteEvolution(): void`
-    - **Purpose**: Performs the evolution process by destroying the current chip and spawning the next weighted random chip in the same cell.
+    - **Purpose**: Performs the evolution process via IChipEvolutionService when wait evolution timer expires.
     - **Usage**: Called internally when wait evolution timer expires and the chip is not moving or dragged.
-    - **Notes**: If no next chip configuration is determined, the current chip is just destroyed.
+    - **Notes**: If no free space is available, subscribes to OnChangeField to retry once board state updates.
+- `- OnDestroy(): void`
+- `- OnFieldChanged(): void`
 - `- RecalculatePowerMultiplier(): void`
 - `- Update(): void`
 ---
@@ -4699,6 +4796,24 @@
     - size - area dimensions
     - **Returns**: True if all positions and size are valid
     - false if any are invalid or the positions list is null/empty.
+---
+
+## WaitForNotEnoughSpaceForEvolutionNode
+**Inherits**: `Unit`
+
+> - **Purpose**: Suspends graph execution until a chip evolution fails due to lack of space.
+> - **Usage**: Connect to a control flow
+> - registers to EventBus dynamically when reached, resumes flow when event triggers.
+> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
+#### Fields
+- `+- CellPosition: ValueOutput`
+- `+- Chip: ValueOutput`
+- `+- ChipData: ValueOutput`
+- `+- InputTrigger: ControlInput`
+- `+- OutputTrigger: ControlOutput`
+#### Methods
+- `~ Definition(): void`
+- `- TriggerCoroutine(Flow flow): IEnumerator`
 ---
 
 ## WaitForNotEnoughSpaceNode

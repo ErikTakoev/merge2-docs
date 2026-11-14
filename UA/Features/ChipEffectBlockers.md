@@ -60,7 +60,7 @@ Extra-ефекти — це набір опціональних візуальн
 - **Конфігурація**: `ChipExtraEffectsData` містить масив `ExtraEffectData[]`, де кожен елемент визначає `effectName` (рядок, що резолвиться в ID через `EffectConsts.GetIdByName`) та `Prefab` (ефект-префаб).
 - **Активація**:
   - Ефект активується, коли його ID є в `ChipRuntimeData.EffectEnables`.
-  - При ініціалізації (`Chip.InitEffects`) ітерується масив `ChipExtraEffectsData.Blockers`. Для кожного, чий `EffectId` є в `runtimeData.EffectEnables`, інстантіюється префаб і додається в словник ефектів.
+  - При ініціалізації (`Chip.InitEffects`) ітерується список `runtimeData.EffectEnables`. Для кожного `EffectId` знаходиться конфігурація в `ChipExtraEffectsData.BlockersDict`, інстантіюється префаб і додається в словник ефектів.
   - Метод `Chip.UpdateVisual()` активує ефекти, чиї ID є в `EffectEnables`.
 - **Деактивація**: Коли ID видаляється з `EffectEnables`.
 - **Blocking**: Кожен extra-ефект має `EffectBlockingSettings`, які при активації передаються в `CombinedBlockingState` чіпа.

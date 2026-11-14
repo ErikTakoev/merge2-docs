@@ -46,12 +46,12 @@
 - **Сценарій**: Створює генератор, який еволюціонує в наступну фішку. Симулює тапи на генератор для створення фішок до вичерпання ліміту зарядів, після чого чекає закінчення інтервалу, робить додатковий тап і перевіряє, що генератор успішно знищився/еволюціонував у наступний чіп.
 
 #### ManualGenerator_EvolutionIntoNull
-- **Мета**: Перевіряє, що генератор знищується після використання всіх перезарядок, коли `NextChipData = null`.
+- **Мета**: Перевіряє, що генератор знищується після використання всіх перезарядок, коли `EvolutionProvider = null`.
 - **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `TotalRecharges = 1` через `GetSpecialData<ChipGeneratorData>()`. Використовує всі заряди генератора. Перевіряє, що генератор був знищений (клітинка порожня).
 
 #### ManualGenerator_EvolutionIntoNextChip
-- **Мета**: Перевіряє, що генератор еволюціонує в `NextChipData` після використання всіх перезарядок.
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `TotalRecharges = 1` та `NextChipData` через `GetSpecialData<ChipGeneratorData>()`. Використовує всі заряди. Перевіряє, що генератор замінився на `NextChipData`.
+- **Мета**: Перевіряє, що генератор еволюціонує в наступну фішку через `EvolutionProvider` після використання всіх перезарядок.
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `TotalRecharges = 1` та `EvolutionProvider` (`ConstantEvolutionProvider`) через `GetSpecialData<ChipGeneratorData>()`. Використовує всі заряди. Перевіряє, що генератор замінився на `nextChipData`.
 
 #### ManualGenerator_NoSpace
 - **Мета**: Перевіряє поведінку генератора при спробі створити чіп, коли на полі немає вільного місця.
@@ -64,6 +64,14 @@
 #### ManualGenerator_CarTomato2_Tap_SpawnedGeneratorsRechargeEffectDeactivated
 - **Мета**: Перевіряє, що ручні генератори, створені внаслідок тапу по фішках `CarTomato_2`, не вмикають ефект перезарядки (`GeneratorCharging`) помилково під час та після спавну і зберігають стан деактивації протягом усього часу очікування (2 секунди).
 - **Сценарій**: Створює 6 багатокоміркових фішок `CarTomato_2` (розміром 3x2) на полі. Симулює тап на кожну з них через `InputHelper.SimulateTap`. Знаходить усі 12 спавнених генераторів (`TomatoPlant_3_2` та `TomatoPlant_3_3`), знаходить їхній ефект перезарядки `EffectConsts.GeneratorCharging`, і покадрово протягом 2 секунд перевіряє `IsActive == false`. Наприкінці перевіряє цілісність сітки поля (`AssertFieldConsistency`).
+
+#### Evolution_IntoMultipleChips
+- **Мета**: Перевіряє, що ручний генератор на останньому заряді та останній перезарядці успішно генерує фішку та еволюціонує у 2 чіпи (`SeedlingContainer_4` та `SeedlingContainer_3`) без виклику події `OnNotEnoughSpaceForEvolution`, повністю заповнюючи поле.
+- **Сценарій**: Розміщує генератор на `(0,0)`, залишає порожніми `(0,1)` та `(6,6)`, а решту 46 клітинок заповнює `Tomato_1`. Підписується на подію `IScenarioEventHandler.OnNotEnoughSpaceForEvolution`. Симулює тап на `(0,0)`, чекає завершення анімацій та перевіряє, що `OnNotEnoughSpaceForEvolution` не викликалась, а всі 49 клітинок сітки зайняті фішками.
+
+#### Evolution_IntoMultipleChips_NotEnoughSpace
+- **Мета**: Перевіряє, що ручний генератор на останньому заряді та останній перезарядці перериває еволюцію та викликає подію `OnNotEnoughSpaceForEvolution`, коли місця для всіх еволюційних чіпів недостатньо, а вільна клітинка залишається незайманою.
+- **Сценарій**: Розміщує генератор на `(0,0)`, залишає порожньою тільки клітинку `(6,6)`, а решту 47 клітинок заповнює `Tomato_1`. Підписується на `OnNotEnoughSpaceForEvolution`. Симулює тап на `(0,0)`, чекає та перевіряє, що подія `OnNotEnoughSpaceForEvolution` була викликана, нова фішка не згенерована, клітинка `(6,6)` залишилась порожньою, а поле консистентне.
 
 ### AutoChipGeneratorTests
 Тести функціональності автоматичного генератора чіпів (`IsAutoGeneration = true`).
@@ -85,12 +93,12 @@
 - **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `IsStartCharged = false` через `GetSpecialData<ChipGeneratorData>()`. Чекає час перезарядки. Перевіряє, що генератор автоматично створив чіп після перезарядки.
 
 #### AutoGenerator_Evolution_IntoNull
-- **Мета**: Перевіряє знищення автоматичного генератора після використання всіх перезарядок, коли `NextChipData = null`.
+- **Мета**: Перевіряє знищення автоматичного генератора після використання всіх перезарядок, коли `EvolutionProvider = null`.
 - **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 2` та `TotalRecharges = 1` через `GetSpecialData<ChipGeneratorData>()`. Чекає завершення всіх циклів генерації. Перевіряє, що генератор був знищений (клітинка порожня).
 
 #### AutoGenerator_Evolution_IntoNextChip
-- **Мета**: Перевіряє еволюцію автоматичного генератора в `NextChipData` після використання всіх перезарядок.
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 2`, `TotalRecharges = 1` та `NextChipData` через `GetSpecialData<ChipGeneratorData>()`. Чекає завершення всіх циклів. Перевіряє, що генератор еволюціонував у `NextChipData`.
+- **Мета**: Перевіряє еволюцію автоматичного генератора через `EvolutionProvider` після використання всіх перезарядок.
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 2`, `TotalRecharges = 1` та `EvolutionProvider` (`ConstantEvolutionProvider`) через `GetSpecialData<ChipGeneratorData>()`. Чекає завершення всіх циклів. Перевіряє, що генератор еволюціонував у вказану фішку.
 
 ### ChipContainerTests
 Тести функціональності контейнера для чіпів (`ChipContainer`). Всі тести використовують `SeedlingContainer_2` як базовий тип контейнера.
@@ -105,7 +113,15 @@
 
 #### Container_Filling
 - **Мета**: Перевіряє процес заповнення контейнера з двома різними вимогами та коректний результат після повного заповнення.
-- **Сценарій**: Клонує `SeedlingContainer_2` через `ChipData.Clone()` та програмно додає другу вимогу (`TomatoSeed_2`) через параметризований конструктор `ContainerInfo`, а також встановлює `NextChipData = new ChipSpawnData { ChipId = tomatoPlant1Data.name }`. Послідовно перетягує `BagOfSoil_2` та `TomatoSeed_2` у контейнер. Після першого перетягування перевіряє `AssertFieldConsistency`. Після другого (фінального) — перевіряє, що на полі залишився рівно 1 чіп (результат `TomatoPlant_1`) та цілісність поля.
+- **Сценарій**: Клонує `SeedlingContainer_2` через `ChipData.Clone()` та програмно додає другу вимогу (`TomatoSeed_2`) через параметризований конструктор `ContainerInfo`, а також встановлює `EvolutionProvider = new ConstantEvolutionProvider { Chips = new() { new ChipSpawnData { ChipId = tomatoPlant1Data.name } } }`. Послідовно перетягує `BagOfSoil_2` та `TomatoSeed_2` у контейнер. Після першого перетягування перевіряє `AssertFieldConsistency`. Після другого (фінального) — перевіряє, що на полі залишився рівно 1 чіп (результат `TomatoPlant_1`) та цілісність поля.
+
+#### Evolution_IntoMultipleChips
+- **Мета**: Перевіряє, що контейнер при заповненні останньої вимоги успішно еволюціонує у 2 чіпи (`SeedlingContainer_3` та `TomatoSeed_2`) без виклику події `OnNotEnoughSpaceForEvolution`, коли доступне точне місце (клітинка контейнера та клітинка перетягнутого чіпа), повністю заповнюючи поле.
+- **Сценарій**: Розміщує клон `SeedlingContainer_2` на `(0,0)`, `BagOfSoil_2` на `(6,6)`, а решту 47 клітинок заповнює `Tomato_1` (всі 49 клітинок зайняті). Підписується на подію `IScenarioEventHandler.OnNotEnoughSpaceForEvolution`. Симулює drag `BagOfSoil_2` з `(6,6)` на `(0,0)`, очікує завершення анімацій та перевіряє, що `OnNotEnoughSpaceForEvolution` не викликалась, а всі 49 клітинок сітки зайняті фішками.
+
+#### Evolution_IntoMultipleChips_NotEnoughSpace
+- **Мета**: Перевіряє, що контейнер перериває заповнення/еволюцію, викликає подію `OnNotEnoughSpaceForEvolution`, повертає перетягнуту фішку на вихідну позицію (snap-back) та зберігає початковий стан поля, коли місця для всіх еволюційних чіпів недостатньо.
+- **Сценарій**: Розміщує клон `SeedlingContainer_2` на `(0,0)` з налаштуванням еволюції у 3 чіпи (`SeedlingContainer_3`, `TomatoSeed_2`, `TomatoSeed_2`), `BagOfSoil_2` на `(6,6)`, а решту 47 клітинок заповнює `Tomato_1`. Підписується на `OnNotEnoughSpaceForEvolution`. Симулює drag `BagOfSoil_2` з `(6,6)` на `(0,0)`, очікує завершення анімацій та перевіряє, що подія `OnNotEnoughSpaceForEvolution` викликана (count == 1), на `(0,0)` залишився `SeedlingContainer_2`, на `(6,6)` повернувся `BagOfSoil_2`, всі 49 клітинок зайняті, а поле залишається консистентним.
 
 ### ChipPowerBoosterTests
 Тести функціональності чіпа-підсилювача ([PowerBoosterModule](../Chips/PowerBoosterModule.md)) та системи підписок.
@@ -187,8 +203,8 @@
 - **Сценарій**: Спавнить фішку і одразу симулює тап (поки `IsSpawning == true`). Перевіряє, що фішка не еволюціонувала. Після очікування 0.5с симулює повторний тап і перевіряє успішну еволюцію в `SeedlingContainer_4`.
 
 #### Evolution_OnTap_WeightedRandomSelection
-- **Мета**: Перевіряє вибір наступної фішки за ймовірнісними вагами при наявності декількох варіантів еволюції через `RandomNextChipsProvider`.
-- **Сценарій**: Налаштовує `ChipTapEvolutionData.Provider` на `RandomNextChipsProvider` із двома рівноважними `ConstantNextChipsProvider` записами (`SeedlingContainer_4` та `TomatoPlant_5`), спавнить 10 фішок, симулює тапи на кожній після спавну та перевіряє, що серед результатів присутні обидва типи фішок.
+- **Мета**: Перевіряє вибір наступної фішки за ймовірнісними вагами при наявності декількох варіантів еволюції через `RandomEvolutionProvider`.
+- **Сценарій**: Налаштовує `ChipTapEvolutionData.EvolutionProvider` на `RandomEvolutionProvider` із двома рівноважними `ConstantEvolutionProvider` записами (`SeedlingContainer_4` та `TomatoPlant_4` через `ChipSpawnData`), спавнить 9 фішок, симулює тапи на кожній після спавну та перевіряє, що серед результатів присутні обидва типи фішок.
 
 #### Evolution_OnTap_BlockedWhenCanBeTapedIsFalse
 - **Мета**: Перевіряє, що еволюція та деактивація підказки тапу (`TapHint`) блокуються, якщо `CanBeTaped == false` (наприклад, при накладанні ефекту `WebEffect`).
