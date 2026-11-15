@@ -52,6 +52,7 @@
 - [ChipWaitEvolutionRuntimeData](#chipwaitevolutionruntimedata)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ConstantEvolutionProvider](#constantevolutionprovider)
+- [ConstantGenerationProvider](#constantgenerationprovider)
 - [ContainerHintEffect](#containerhinteffect)
 - [ContainerHintNotifier](#containerhintnotifier)
 - [ContainerInfo](#containerinfo)
@@ -93,6 +94,7 @@
 - [FindAnyChipNode](#findanychipnode)
 - [FlightType](#flighttype)
 - [FreeCellFinder](#freecellfinder)
+- [GenerationExecutionSettings](#generationexecutionsettings)
 - [GeneratorModule](#generatormodule)
 - [HintEffect](#hinteffect)
 - [ICell](#icell)
@@ -104,6 +106,7 @@
 - [IChipEvolutionService](#ichipevolutionservice)
 - [IChipFinder](#ichipfinder)
 - [IChipFlyAnimation](#ichipflyanimation)
+- [IChipGenerationProvider](#ichipgenerationprovider)
 - [IChipInteractionLogic](#ichipinteractionlogic)
 - [IChipLiftController](#ichipliftcontroller)
 - [IChipMaterialController](#ichipmaterialcontroller)
@@ -155,8 +158,10 @@
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
 - [PowerBoosterModule](#powerboostermodule)
 - [RandomEvolutionProvider](#randomevolutionprovider)
+- [RandomGenerationProvider](#randomgenerationprovider)
 - [ScenarioEventHandler](#scenarioeventhandler)
 - [SepiaEffect](#sepiaeffect)
+- [SequenceGenerationProvider](#sequencegenerationprovider)
 - [ShadowEffect](#shadoweffect)
 - [ShadowEffectRef](#shadoweffectref)
 - [SortingLayerData](#sortinglayerdata)
@@ -385,6 +390,7 @@
 - `~ cellObserverManager: CellObserverManager`
 - `~ chip: Chip`
 - `~ fieldGrid: IFieldGrid`
+- `- NeighborOffsetsCache: Dictionary<Vector2Int, Vector2Int[]>`
 #### Methods
 - `+ OnChipChangedCell(ICell sourceCell, ICell targetCell): void`
     - **Purpose**: Re-subscribes to neighbors whenever the chip is placed or moved to a new cell.
@@ -410,6 +416,12 @@
     - chips - destination set passed by ref and cleared before population
     - **Notes**: Uses caller-owned HashSet to avoid per-call allocations
     - only main chip references present on scanned cells are added.
+- `- GetNeighborOffsets(Vector2Int size): Vector2Int[]`
+    - **Purpose**: Computes and caches relative grid offsets for cells surrounding a chip of given dimensions
+    - **Usage**: Called when subscribing to neighbor cells to avoid redundant offset calculations across chips of identical sizes
+    - **Params**: size - dimensions of the chip in grid cells
+    - **Returns**: Array of relative Vector2Int coordinate offsets for all perimeter neighbors
+    - **Notes**: Caches results in static dictionary to eliminate allocations during gameplay
 - `~ SubscribeToNeighbors(Vector2Int origin): void`
     - **Purpose**: Computes all cells that border the chip's occupied area and subscribes to them via CellObserverManager.
     - **Usage**: Called from OnChipChangedCell with the target cell position after previous subscriptions are removed.
@@ -1055,23 +1067,21 @@
 
 ## ChipGeneratorData
 
-> - **Purpose**: Configuration data for chip generators, defining generation weights, charge settings, and recharge cycles.
+> - **Purpose**: Configuration data for chip generators, defining generation provider strategies, charge settings, and recharge cycles.
 > - **Usage**: Used in ChipData to define generator behavior. Can be edited via Inspector or ScriptableObject.
 > - **Notes**: TotalRecharges = 0 means infinite recharges. ChargeCount defines charges per cycle.
 #### Fields
 - `+ ChargeCount: int`
 - `+ ChargingTime: float`
-- `+ Data: GeneratorData[]`
 - `+ EvolutionProvider: IChipEvolutionProvider`
 - `+ GenerationInterval: float`
     - **Purpose**: Defines the cooldown time between consecutive generations in a single charge cycle
     - **Usage**: Used by ChipGenerator to set delay between spawns when multiple charges are available
     - **Notes**: Only applies if ChargeCount > 1
+- `+ GenerationProvider: IChipGenerationProvider`
 - `+ IsAutoGeneration: bool`
 - `+ IsStartCharged: bool`
 - `+ TotalRecharges: int`
-#### Methods
-- `+ GenerateChipData(): ChipData`
 ---
 
 ## ChipGeneratorRuntimeData
@@ -1089,6 +1099,7 @@
 - `+ IsCharged: bool`
 - `+ IsWaitingForSpace: bool`
 - `+ RechargesLeft: int`
+- `+ SequenceIndex: int`
 ---
 
 ## ChipLiftController
@@ -1532,6 +1543,20 @@
 #### Methods
 - `+ Confirm(): void`
 - `+ GetEvolutionChips(): List<ChipSpawnData>`
+- `+ Init(): void`
+---
+
+## ConstantGenerationProvider
+
+> - **Purpose**: Chip generation provider strategy that always returns a fixed constant list of chips.
+> - **Usage**: Configured inside ChipGeneratorData via SerializeReference selector.
+> - **Notes**: Zero allocation strategy returning the internal list directly without caching overhead.
+#### Fields
+- `+ Chips: List<ChipSpawnData>`
+- `+- LastResult: List<ChipSpawnData>`
+#### Methods
+- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
+- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
 - `+ Init(): void`
 ---
 
@@ -2424,6 +2449,13 @@
     - **Params**: cellPos - top-left position
     - size - area dimensions
     - result - pre-allocated list to fill (cleared internally)
+- `+ GetCells(Vector2Int cellPos, Vector2Int size, HashSet<ICell> result, bool clear): void`
+    - **Purpose**: Fills a caller-provided HashSet with cells in a rectangular area without clearing unless requested
+    - **Usage**: Use to aggregate occupied or excluded cells for multi-cell chips into hash sets without allocations
+    - **Params**: cellPos - top-left position
+    - size - area dimensions
+    - result - target hash set
+    - clear - if true, clears the set first
 - `+ GetCellWorldPosition(Vector2Int cellPos): Vector3`
     - **Purpose**: Calculates the world position of the cell or chip center at the given grid coordinates, handling multi-cell anchors and chip sizes
     - **Usage**: Called by tutorial components and UI helpers to snap finger/hand indicators to grid cells or chips
@@ -2624,6 +2656,17 @@
 - `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<ICell> excludedCellsSet, HashSet<Chip> movingChipsSet, HashSet<ICell> cellsToFree): bool`
 ---
 
+## GenerationExecutionSettings
+
+> - **Purpose**: Parameters for controlling chip generation execution in GeneratorModule.
+> - **Usage**: Serialized on GeneratorModule to define animation triggers and flight delays between spawned chips.
+#### Fields
+- `+ DelayBetweenSpawns: float`
+    - **Purpose**: Delay interval in seconds between consecutive chip spawns when multiple chips are generated.
+    - **Usage**: Passed to flight delay calculations when generating chips.
+- `+- Default: GenerationExecutionSettings`
+---
+
 ## GeneratorModule
 **Inherits**: `MonoBehaviour`
 
@@ -2635,11 +2678,15 @@
 - `+- AppliedBoosters: HashSet<PowerBoosterModule>`
 - `+- BlockingState: CombinedBlockingState`
 - `+- EvolutionSettings: EvolutionExecutionSettings`
+- `+- GenerationSettings: GenerationExecutionSettings`
 - `+- IsMoving: bool`
 - `+- JoinPoints: IReadOnlyList<Transform>`
 - `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
+- `- batchResultsBuffer: List<ValueTuple<ChipData, ICell>>`
 - `- chargedEffect: EffectRef`
 - `- chip: Chip`
+- `- chipDataCollection: ChipDataCollection`
+- `- chipDataListBuffer: List<ChipData>`
 - `- chipFactory: ChipFactory`
 - `- data: ChipData`
 - `- evolutionService: IChipEvolutionService`
@@ -2689,9 +2736,9 @@
 - `- OnFieldChanged(): void`
 - `- RecalculatePowerMultiplier(): void`
 - `- TryGenerateChip(): void`
-    - **Purpose**: Attempts to generate a new chip based on generator configuration and availability of space
+    - **Purpose**: Attempts to generate new chips based on generator configuration and availability of space
     - **Usage**: Triggers on user tap (manual mode) or charging cycle completion (auto mode)
-    - **Notes**: Finds the nearest free cell. Decrements remaining charge count, and handles recharges/evolution when the cycle is completed.
+    - **Notes**: Queries GenerationProvider, finds free cells for all chips, decrements charge count, and handles recharges/evolution when completed.
 - `- Update(): void`
 ---
 
@@ -2875,6 +2922,19 @@
     - **Usage**: Call in Update loop
     - **Params**: deltaTime - time since last frame
     - **Returns**: The current height offset of the flying animation at this frame
+---
+
+## IChipGenerationProvider
+
+> - **Purpose**: Interface for chip generation selection strategies used in GeneratorModule.
+> - **Usage**: Polymorphic field inside ChipGeneratorData, initialized and queried by GeneratorModule.
+> - **Notes**: Implementations should be sealed classes with [Serializable] for polymorphic serialization via SerializeReference.
+#### Fields
+- `+- LastResult: List<ChipSpawnData>`
+#### Methods
+- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
+- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
+- `+ Init(): void`
 ---
 
 ## IChipInteractionLogic
@@ -3209,6 +3269,13 @@
     - **Params**: cellPos - top-left position
     - size - area dimensions
     - result - pre-allocated list to fill (cleared internally)
+- `+ GetCells(Vector2Int cellPos, Vector2Int size, HashSet<ICell> result, bool clear): void`
+    - **Purpose**: Fills a caller-provided HashSet with cells in a rectangular area without clearing unless requested
+    - **Usage**: Use to aggregate occupied or excluded cells for multi-cell chips into hash sets without allocations
+    - **Params**: cellPos - top-left position
+    - size - area dimensions
+    - result - target hash set
+    - clear - if true, clears the set first
 - `+ GetCellWorldPosition(Vector2Int cellPos): Vector3`
     - **Purpose**: Calculates the world position of the cell or chip center at the given grid coordinates, handling multi-cell anchors and chip sizes
     - **Usage**: Called by tutorial components and UI helpers to snap finger/hand indicators to grid cells or chips
@@ -3682,6 +3749,7 @@
 > - deferred chips are created only during unlock
 #### Fields
 - `- activeEffectByCell: Dictionary<Vector2Int, ILockedAreaEffect>`
+- `- cachedAreas: Dictionary<int, CachedLockedArea>`
 - `- chipCollections: IChipCollections`
 - `- effectByAreaId: Dictionary<int, ILockedAreaEffect>`
 - `- fieldData: FieldData`
@@ -3721,9 +3789,9 @@
 - `- AddCellsToActiveDict(Vector2Int[] cells, ILockedAreaEffect effect): void`
 - `- RemoveAreaCellsFromActiveDict(LockedAreaData area): void`
 - `- RemoveCellsFromActiveDict(Vector2Int[] cells): void`
-- `- RemoveEffectFromAreaChips(LockedAreaData area, ILockedAreaEffect effect, bool force): void`
-- `- SetAreaBlocked(LockedAreaData area, bool isBlocked): void`
-- `- SetCellsBlocked(Vector2Int[] cellPositions, bool isBlocked): void`
+- `- RemoveEffectFromAreaChips(CachedLockedArea cachedArea, ILockedAreaEffect effect, bool force): void`
+- `- SetAreaBlocked(CachedLockedArea cachedArea, bool isBlocked): void`
+- `- SetCellsBlocked(List<ICell> cells, bool isBlocked): void`
 - `- TryGetArea(int areaId, LockedAreaData& area): bool`
 ---
 
@@ -4152,6 +4220,23 @@
 - `- SelectWeightedRandom(): IChipEvolutionProvider`
 ---
 
+## RandomGenerationProvider
+
+> - **Purpose**: Chip generation provider strategy that selects a weighted random sub-provider.
+> - **Usage**: Configured inside ChipGeneratorData via SerializeReference selector.
+> - **Notes**: Pre-computes total weight in Init to achieve zero per-tap allocations.
+#### Fields
+- `+ Entries: WeightedProviderEntry[]`
+- `+- LastResult: List<ChipSpawnData>`
+- `- cachedTotalWeight: int`
+- `- selectedProvider: IChipGenerationProvider`
+#### Methods
+- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
+- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
+- `+ Init(): void`
+- `- SelectWeightedRandom(): IChipGenerationProvider`
+---
+
 ## ScenarioEventHandler
 
 > - **Purpose**: Dispatches key board-state transitions (chip created, removed, effect unlocked, area unlocked) to C# subscribers.
@@ -4191,6 +4276,21 @@
     - **Purpose**: Updates the _Intensity shader property on the chip material controller
     - **Usage**: Called automatically on each frame while isMaterialAnimating is true or during activation
     - **Params**: dt - delta time since last update (0f on initial activation)
+---
+
+## SequenceGenerationProvider
+
+> - **Purpose**: Chip generation provider strategy that sequences through sub-providers cyclically.
+> - **Usage**: Configured inside ChipGeneratorData via SerializeReference selector.
+> - **Notes**: Uses SequenceIndex from ChipGeneratorRuntimeData to track current step. Steps loop when reaching the end.
+#### Fields
+- `+ Steps: IChipGenerationProvider[]`
+- `+- LastResult: List<ChipSpawnData>`
+- `- selectedStep: IChipGenerationProvider`
+#### Methods
+- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
+- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
+- `+ Init(): void`
 ---
 
 ## ShadowEffect

@@ -21,7 +21,7 @@
 
 - **`IFieldGrid`** -> `FieldGrid`
   - **Призначення**: Управління станом сітки (2D масив `ICell`).
-  - **Відповідальність**: Створення комірок, валідація координат, перевірка заблокованих зон (`HasBlockedCells`), низькорівневі операції розміщення чіпів (`SetChipInCell`), надання посилання на кореневий `Transform` сітки (`transform`), а також обчислення світових координат клітини чи чіпа (`GetCellWorldPosition`) з урахуванням розміру фішки та якоря `MainCell`.
+  - **Відповідальність**: Створення комірок, валідація координат, перевірка заблокованих зон (`HasBlockedCells`), низькорівневі операції розміщення чіпів (`SetChipInCell`), надання посилання на кореневий `Transform` сітки (`transform`), обчислення світових координат клітини чи чіпа (`GetCellWorldPosition`) з урахуванням розміру фішки та якоря `MainCell`, а також отримання клітинок прямокутної області (`GetCells`) у списки або хеш-сети без зайвих алокацій.
   - **Деталь `SetChipInCell`**: При встановленні чіпа `FieldGrid` призначає `chip.CellPosition` до `IChipChangeNotifier.Enqueue(...)`, щоб підписники отримували подію вже з актуальними координатами. При очищенні спочатку скидає occupancy (`ClearCells`), потім enqueue події `oldChip -> null`.
 
 - **`IMergeLifetimeScope`** (Інтерфейс)
@@ -69,6 +69,10 @@
 - **`IChipEvolutionProvider`** (Інтерфейс)
   - **Призначення**: Стратегія вибору конфігурацій наступних фішок при еволюції.
   - **Відповідальність**: Поліморфна серіалізація через `[SerializeReference]`. Реалізації: `ConstantEvolutionProvider` (повертає фіксований список `ChipSpawnData`), `RandomEvolutionProvider` (зважений вибір серед дочірніх провайдерів із нульовими алокаціями при тапах завдяки попередньому розрахунку загальної ваги в `Init()`). Методи: `Init()`, `GetEvolutionChips()`, `Confirm()`, властивість `LastResult`.
+
+- **`IChipGenerationProvider`** (Інтерфейс)
+  - **Призначення**: Стратегія вибору конфігурацій фішок для створення генератором (`GeneratorModule`).
+  - **Відповідальність**: Поліморфна серіалізація через `[SerializeReference]`. Реалізації: `ConstantGenerationProvider` (фіксований список `ChipSpawnData`), `RandomGenerationProvider` (зважений вибір серед дочірніх провайдерів із нульовими алокаціями при тапах), `SequenceGenerationProvider` (циклічне послідовне перемикання кроків на основі `SequenceIndex` з `ChipGeneratorRuntimeData`). Методи: `Init()`, `GetGenerationChips(runtimeData)`, `Confirm(runtimeData)`, властивість `LastResult`.
 
 - **`IChipMovingLogic`** -> `ChipMovingLogic`
   - **Призначення**: Комплексна логіка переміщення.

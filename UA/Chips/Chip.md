@@ -21,6 +21,7 @@
   - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas`.
   - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
   - **IChipEvolutionProvider**: Поліморфна стратегія вибору наступних чіпів для всіх модулів еволюції (`ChipTapEvolutionData`, `ChipUnlockAreaData`, `ChipWaitEvolutionData`, `ChipContainerData`, `ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantEvolutionProvider`, `RandomEvolutionProvider`. Еволюція централізовано виконується через `IChipEvolutionService` (`EvolutionExecutionSettings`).
+  - **IChipGenerationProvider**: Поліморфна стратегія вибору фішок для генерації в `GeneratorModule` (`ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantGenerationProvider`, `RandomGenerationProvider`, `SequenceGenerationProvider`. Зберігає стан прогресу через `SequenceIndex` у `ChipGeneratorRuntimeData`.
 
 - **Runtime**:
   - **CellPosition**: Поточна позиція фішки на сітці поля (Vector2Int). Оновлюється системою при переміщенні.
