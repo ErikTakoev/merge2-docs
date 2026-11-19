@@ -111,10 +111,10 @@
 - [IChipLiftController](#ichipliftcontroller)
 - [IChipMaterialController](#ichipmaterialcontroller)
 - [IChipModule](#ichipmodule)
+- [IChipModuleData](#ichipmoduledata)
+- [IChipModuleRuntimeData](#ichipmoduleruntimedata)
 - [IChipMovingLogic](#ichipmovinglogic)
 - [IChipSortingLayer](#ichipsortinglayer)
-- [IChipSpecialData](#ichipspecialdata)
-- [IChipSpecialRuntimeData](#ichipspecialruntimedata)
 - [IDragFeedback](#idragfeedback)
 - [IEffect](#ieffect)
 - [IEffectBlockingSettings](#ieffectblockingsettings)
@@ -159,6 +159,7 @@
 - [PowerBoosterModule](#powerboostermodule)
 - [RandomEvolutionProvider](#randomevolutionprovider)
 - [RandomGenerationProvider](#randomgenerationprovider)
+- [RequireModuleDataAttribute](#requiremoduledataattribute)
 - [ScenarioEventHandler](#scenarioeventhandler)
 - [SepiaEffect](#sepiaeffect)
 - [SequenceGenerationProvider](#sequencegenerationprovider)
@@ -538,10 +539,10 @@
     - **Usage**: Call in methods that need to access a specific effect without type casting
     - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.MoveLocked)
     - **Returns**: The IEffect instance or null if not found
-    - **Notes**: Use GetEffect<T>() for type-safe access when specialized interfaces are needed
+    - **Notes**: Use GetEffect<T>() for type-safe access when specific interfaces are needed
 - `+ GetEffect(int effectHash): T`
     - **Purpose**: Retrieves and casts an effect from the effects dictionary by its EffectConsts hash key
-    - **Usage**: Call when you need a specialized effect interface (e.g., IEffectGeneratorCharging)
+    - **Usage**: Call when you need a specific effect interface (e.g., IEffectGeneratorCharging)
     - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.GeneratorCharging)
     - T - Target effect interface type
     - **Returns**: The effect cast to type T, or null if not found or cannot be cast
@@ -795,7 +796,7 @@
 ## ChipContainerData
 
 > - **Purpose**: Configuration data for chip containers, defining accepted chip requirements and evolution provider on fill completion.
-> - **Usage**: Used in ChipData specialDatas to define container behavior and required chips. Edited via Inspector or Chip Creator.
+> - **Usage**: Used in ChipData moduleDatas to define container behavior and required chips. Edited via Inspector or Chip Editor.
 > - **Notes**: EvolutionProvider uses polymorphic serialization via [SerializeReference] to determine the result chips upon completion.
 #### Fields
 - `+ containers: ContainerInfo[]`
@@ -805,8 +806,8 @@
 ## ChipContainerElementData
 
 > - **Purpose**: Holds visual element prefab reference required by containers when displaying filled chips.
-> - **Usage**: Attached to ChipData via specialDatas array. Retrieved by ContainerInfo to display visual items inside container slots.
-> - **Notes**: Implements IChipSpecialData for registration in chip data assets.
+> - **Usage**: Attached to ChipData via moduleDatas array. Retrieved by ContainerInfo to display visual items inside container slots.
+> - **Notes**: Implements IChipModuleData for registration in chip data assets.
 #### Fields
 - `+- ContainerElementPrefab: GameObject`
 ---
@@ -841,16 +842,17 @@
 - `++ DestroyDuration: Nullable<float>`
 - `++ Size: Vector2Int`
 - `+ PrefabLink: GameObject`
-- `+ Type: string`
-- `- specialDatas: List<IChipSpecialData>`
+- `+- ModuleDatas: IReadOnlyList<IChipModuleData>`
 #### Methods
-- `+ AddSpecialData(IChipSpecialData specialData): void`
+- `+ AddModuleData(IChipModuleData moduleData): void`
 - `+ Clone(): ChipData`
     - **Purpose**: Creates a deep copy of this ChipData asset
     - **Usage**: Call at runtime to create a unique instance of ChipData that can be modified without affecting the original asset
     - **Returns**: A new ChipData instance with identical field values
-- `+ CreateSpecialData(): T`
-- `+ GetSpecialData(): T`
+- `+ CreateModuleData(): T`
+- `+ GetModuleData(): T`
+- `+ HasModuleData(): bool`
+- `+ HasModuleData(Type type): bool`
 - `- OnEnable(): void`
 ---
 
@@ -923,7 +925,7 @@
 ## ChipExtraEffectsData
 
 > - **Purpose**: Configures available extra blocker/overlay effects for a chip type via name-to-prefab mappings
-> - **Usage**: Added to ChipData.specialDatas
+> - **Usage**: Added to ChipData.moduleDatas
 > - Chip.InitEffects iterates Blockers and instantiates only those whose EffectId is in runtimeData.EffectEnables
 > - **Notes**: BlockersDict provides O(1) lookup by EffectId
 > - built during serialization callbacks
@@ -1333,10 +1335,10 @@
     - **Usage**: Populated from ChipSpawnData.BlockerEffectIds during level load or at runtime
     - queried by Chip.InitEffects and UpdateVisual to determine which extra effects to instantiate and activate
     - **Notes**: Serialized directly for save/load support
-- `+- SpecialRuntimeDatas: List<IChipSpecialRuntimeData>`
+- `+- ModuleRuntimeDatas: List<IChipModuleRuntimeData>`
 - `- effectDestroyingDataArray: EffectDestroyingRuntimeData[]`
 #### Methods
-- `+ GetSpecialRuntimeData(): T`
+- `+ GetModuleRuntimeData(): T`
 - `+ OnAfterDeserialize(): void`
 - `+ OnBeforeSerialize(): void`
 ---
@@ -1462,7 +1464,7 @@
 ## ChipTapEvolutionData
 
 > - **Purpose**: Configuration data for chip tap-evolution, defining the chip evolution provider strategy.
-> - **Usage**: Used in ChipData specialDatas list. Queried by TapEvolutionModule in Init.
+> - **Usage**: Used in ChipData moduleDatas list. Queried by TapEvolutionModule in Init.
 > - **Notes**: Uses polymorphic IChipEvolutionProvider for flexible evolution selection strategies.
 #### Fields
 - `+ EvolutionProvider: IChipEvolutionProvider`
@@ -1471,7 +1473,7 @@
 ## ChipUnlockAreaData
 
 > - **Purpose**: Configuration data for chips that unlock locked areas on tap.
-> - **Usage**: Used in ChipData specialDatas list. Queried by UnlockAreaModule in Init.
+> - **Usage**: Used in ChipData moduleDatas list. Queried by UnlockAreaModule in Init.
 > - **Notes**: Supports sequential area unlocking with delays and optional polymorphic evolution strategy via IChipEvolutionProvider.
 #### Fields
 - `++ EvolutionProvider: IChipEvolutionProvider`
@@ -1481,7 +1483,7 @@
 ## ChipWaitEvolutionData
 
 > - **Purpose**: Configuration data for chip wait-evolution, defining the time to evolve, next chips with weights, and booster influence toggle.
-> - **Usage**: Used in ChipData specialDatas list. Queried by WaitEvolutionModule in Init.
+> - **Usage**: Used in ChipData moduleDatas list. Queried by WaitEvolutionModule in Init.
 > - **Notes**: Evolves into a weighted random chip from NextChips array or gets destroyed if empty.
 #### Fields
 - `+ EvolutionProvider: IChipEvolutionProvider`
@@ -1670,7 +1672,7 @@
     - **Params**: chip - parent Chip component
     - data - static ChipData configuration
     - runtimeData - persisted runtime state wrapper
-    - **Notes**: Retrieves container-specific special data and sets up visual requirements feedback
+    - **Notes**: Retrieves container-specific module data and sets up visual requirements feedback
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
 - `+ IsChipCompatible(Chip chip): bool`
     - **Purpose**: Checks if a given chip is compatible with any of the container's remaining requirements
@@ -2023,7 +2025,7 @@
 - `+ SendTrigger(string triggerName, bool allowRepeat): void`
     - **Purpose**: Sends a custom animation trigger to the effect's animator
     - **Usage**: Call to trigger custom animations on the effect
-    - used for special interactions like move-locked feedback
+    - used for custom interactions like move-locked feedback
     - **Params**: triggerName - name of the animator trigger to activate
     - allowRepeat - if true, bypasses the dontRepeatTrigger check for this call
     - **Notes**: Safely handles null animator
@@ -3057,6 +3059,18 @@
 - `+ UpdateVisual(): void`
 ---
 
+## IChipModuleData
+
+> - **Purpose**: Base interface for polymorphic module configuration data stored in ChipData.moduleDatas
+> - **Usage**: Implement on module configuration classes (e.g., ChipGeneratorData, ChipContainerData)
+---
+
+## IChipModuleRuntimeData
+
+> - **Purpose**: Marker interface for module runtime data objects held inside ChipRuntimeData
+> - **Usage**: Implement on specific module runtime state classes (e.g., ChipGeneratorRuntimeData, ChipContainerRuntimeData)
+---
+
 ## IChipMovingLogic
 
 > - **Purpose**: Interface for chip movement and relocation logic.
@@ -3111,15 +3125,6 @@
 - `+ SetEffectActive(int effectId, bool value): void`
 - `+ SetMoving(bool value): void`
 - `+ SetSortingOrderOverride(int offset): void`
----
-
-## IChipSpecialData
----
-
-## IChipSpecialRuntimeData
-
-> - **Purpose**: Marker interface for special runtime data objects held inside ChipRuntimeData
-> - **Usage**: Implement on specific module runtime state classes (e.g., ChipGeneratorRuntimeData, ChipContainerRuntimeData)
 ---
 
 ## IDragFeedback
@@ -3208,7 +3213,7 @@
 
 ## IEffectMergeLight
 
-> - **Purpose**: Specialized IEffect contract for MergeLight effects that support a 'little' (small) flash variant.
+> - **Purpose**: Dedicated IEffect contract for MergeLight effects that support a 'little' (small) flash variant.
 > - **Usage**: Implemented by MergeLightEffect. Set Little = true before calling Activate — the setter writes to the Animator directly, routing to the small-flash state.
 > - **Notes**: The Animator bool 'Little' is updated immediately on property set, so no extra Activate override is required.
 #### Fields
@@ -4237,6 +4242,16 @@
 - `- SelectWeightedRandom(): IChipGenerationProvider`
 ---
 
+## RequireModuleDataAttribute
+**Inherits**: `Attribute`
+
+> - **Purpose**: Specifies that an IChipModule component requires a specific IChipModuleData in the ChipData.moduleDatas list
+> - **Usage**: Apply to IChipModule classes (e.g., [RequireModuleData(typeof(ChipTapEvolutionData))])
+> - **Notes**: Used by ChipEditorWindow to display missing data warnings when editing ChipData assets
+#### Fields
+- `+- ModuleDataType: Type`
+---
+
 ## ScenarioEventHandler
 
 > - **Purpose**: Dispatches key board-state transitions (chip created, removed, effect unlocked, area unlocked) to C# subscribers.
@@ -4462,7 +4477,7 @@
 #### Methods
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the module references, caches special runtime data, initializes provider, and registers hint effect.
+    - **Purpose**: Initializes the module references, caches module configuration data, initializes provider, and registers hint effect.
     - **Usage**: Called automatically by Chip during its initialization phase for each attached chip module.
     - **Params**: chip - the parent Chip component
     - data - configuration settings of the chip
@@ -4626,7 +4641,7 @@
     - **Returns**: True if unlocking coroutine is finished, false if unlocking is in progress.
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the module references, caches special unlock data, initializes provider, and registers hint effect.
+    - **Purpose**: Initializes the module references, caches module unlock data, initializes provider, and registers hint effect.
     - **Usage**: Called automatically by Chip during its initialization phase for each attached chip module.
     - **Params**: chip - the parent Chip component
     - data - configuration settings of the chip
@@ -4747,7 +4762,7 @@
     - data - configuration settings of the chip
     - runtimeData - mutable state of the chip
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the special runtime data structure for wait evolution if it does not already exist.
+    - **Purpose**: Initializes the module runtime data structure for wait evolution if it does not already exist.
     - **Usage**: Called before module initialization to prepare the initial state for the chip's runtime data collection.
     - **Params**: data - configuration settings of the chip
     - runtimeData - mutable state container of the chip

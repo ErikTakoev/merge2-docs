@@ -11,7 +11,6 @@ The merge and movement logic itself is moved into dedicated logic classes.
 ### 1. `Chip.cs` (Base Class)
 The `Chip` class is the visual representation and base component.
 - **Data (Configuration - `ChipData`)**: Stores a reference to `ChipData`, which contains settings:
-  - **Type**: Chip type identifier (string).
   - **PrefabLink**: Reference to chip prefab.
   - **Size**: Chip size in cells (Vector2Int).
   - **MergeData**: access to merge configuration. During `Init(ChipData, ChipRuntimeData)` chip caches `data.GetSpecialData<ChipMergeData>()`.

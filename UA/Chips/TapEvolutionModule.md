@@ -7,7 +7,7 @@
 ## Architecture and Responsibility
 
 ### 1. `TapEvolutionModule.cs` (Main Component)
-Клас `TapEvolutionModule` керує обробкою тапу та виконанням еволюції, делегуючи процес сервісу `IChipEvolutionService`.
+Клас `TapEvolutionModule` керує обробкою тапу та виконанням еволюції, делегуючи процес сервісу `IChipEvolutionService`. Помічений атрибутом `[RequireModuleData(typeof(ChipTapEvolutionData))]`.
 - **Властивості та конфігурація**:
   - `hintEffect` (`EffectHintRef`): Посилання на візуальну підказку тапу (`TapHint`).
   - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції (тригери анімацій `TapEvolutionDestroy`/`TapEvolutionSpawn`, точка польоту `EvolutionPoint`, затримки `DelayBeforeFirstSpawn`/`DelayBetweenSpawns`, прапорець `PlayMergeLight = true`). Доступні публічно через гетер `EvolutionSettings`.
@@ -15,7 +15,7 @@
   - `IChipEvolutionService`: Централізований сервіс еволюції для розміщення, спавну та польоту фішок.
 
 ### 2. `ChipTapEvolutionData.cs` (Configuration)
-Конфігураційні дані для еволюції за тапом. Реалізує `IChipSpecialData` та додається до `ChipData.specialDatas`:
+Конфігураційні дані для еволюції за тапом. Реалізує `IChipModuleData` та додається до `ChipData.moduleDatas`:
 - **`EvolutionProvider`** (`IChipEvolutionProvider`): Поліморфна стратегія (`[SerializeReference]`), що визначає результат еволюції (`ConstantEvolutionProvider`, `RandomEvolutionProvider`) у вигляді списку `ChipSpawnData` (з опціональними блокерами `BlockerEffectIds`).
 
 ---

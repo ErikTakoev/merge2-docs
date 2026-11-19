@@ -38,18 +38,18 @@ Merge Toolkit має три залежності:
 
 Цей розділ пояснює, як створити нову мерж-гру з нуля за допомогою вбудованого інструменту **Clean Merge Project**.
 
-### Крок 1 — Відкрийте Clean Merge Project
+### Step 1 — Open Clean Merge Project
 
 У меню Unity: **Window → Expecto → Clean Merge Project**
 
-### Крок 2. Налаштування та створення нової папки гри
+### Step 2 — Configuration and New Game Folder Creation
 1. У вікні **Clean Merge Project** виберіть потрібний шаблон конфігурації у полі **Template Settings** (використовує ScriptableObject асети типу `MergeTemplateSettings`).
 2. Вкажіть бажаний **Namespace** та унікальний **Prefix** для ваших згенерованих файлів (вони будуть використані під час генерації скриптів `MergeLifetimeScope` та `MergeInitializer`).
 3. Натисніть кнопку **Select Folder For Clean Project** та виберіть або створіть порожню папку для нової гри (обов'язково всередині папки `Assets/` вашого проекту).
 
 **Інструмент автоматично:**
 - Створить структуру папок на основі конфігурації у вибраному шаблоні (Data, Scripts, Scenes, Tests тощо).
-- Згенерує `ChipCreatorSettings` та `ChipDataCollection` і автоматично перемкне відкрите вікно **Chip Viewer** на використання нових налаштувань.
+- Згенерує `ChipEditorSettings` та `ChipDataCollection` і автоматично перемкне відкрите вікно **Chip Editor** на використання нових налаштувань.
 - Скопіює базові префаби поля (`FieldPrefab`) та візуального відображення поля (`VisualFieldPrefab`) з шаблону, додавши до них ваш **Prefix**.
 - Згенерує скрипти `MergeLifetimeScope` та `MergeInitializer` із вказаним namespace та prefix.
 - Створить інфраструктуру для інтеграційних тестів: `.Tests.asmdef`, шаблон класу тесту та тестові ассети (`TestSettings`, `FieldData`).

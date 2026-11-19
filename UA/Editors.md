@@ -103,18 +103,20 @@ Level Editor підтримує два режими редагування:
 
 ---
 
-# Chip Creator (Chip Viewer)
+# Chip Editor
 
 Цей інструмент надає централізований інтерфейс для перегляду, створення та модифікації асетів `ChipData`.
 
 ## Main Features
 - **Chip List**: Перегляд усіх фішок у проекті з іконками (ліва панель).
 - **Properties Editor**: Перегляд та редагування серіалізованих даних фішки (права панель).
-- **Special Data Section**: Керування поліморфними даними `ChipData.specialDatas` (типи `IChipSpecialData`) з додаванням/видаленням елементів.
-- **Default Special Data (Create Only)**: У вкладці Settings можна задати шаблони `defaultSpecialDatas`, які автоматично застосовуються лише під час `Create Chip`.
-- **Merge Configuration**: Merge-правила задаються вручну через `ChipMergeData` у секції `Special Data` (без авто-створення self-merge комбінації).
-- **Undo/Redo System**: Повна підтримка скасування змін властивостей та перейменування.
-- **Asset Management**: Кнопки для створення нових фішок, збереження змін та оновлення списку; при відсутності template-prefab показується попередження і створення блокується.
+- **Base Sprite Validation**: Автоматична валідація наявності спрайта у базового рендерера (`IChipSortingLayer.SortingLayers[0].Renderer`). Якщо рендерер призначений, але поле `sprite` порожнє, відображається `HelpBox` з рівнем `Error` та кнопкою `Open`, яка відкриває префаб у Prefab Mode та виділяє відповідний `GameObject` зі `SpriteRenderer`.
+- **Module Data Validation**: Автоматична валідація відповідності модулів префаба конфігураційним даним. Якщо на зв'язаному префабі присутні компоненти `IChipModule` з атрибутом `[RequireModuleData]`, але відповідний тип даних відсутній у `moduleDatas`, під заголовком секції відображається попередження `HelpBox` із зазначенням відсутніх типів.
+- **Module Data Section**: Керування поліморфними даними `ChipData.moduleDatas` (типи `IChipModuleData`) з додаванням/видаленням елементів.
+- **Default Module Data (Create Only)**: У вкладці Settings можна задати шаблони `defaultModuleDatas`, які автоматично застосовуються лише під час `Create Chip`.
+- **Merge Configuration**: Merge-правила задаються вручну через `ChipMergeData` у секції `Module Data` (без авто-створення self-merge комбінації).
+- **Undo/Redo System**: Повна підтримка скасування змін властивостей та перейменування з автоматичним перемиканням на відповідну фішку при глобальному відкаті.
+- **Asset Management**: Створення нових фішок та оновлення списку; автоматичне збереження змін на диск (Save on Switch/Close/Blur) при перемиканні між фішками, відкритті вкладок Settings/Create Chip, закритті або втраті фокусу вікна; при відсутності template-prefab показується попередження і створення блокується.
 
 ## Undo/Redo System
 редактор фішок використовує той самий патерн **Command**, що і Редактор Рівнів, для відстеження змін.
@@ -125,40 +127,50 @@ Level Editor підтримує два режими редагування:
 
 ### Supported Actions
 - **Редагування властивостей**: Усі зміни, зроблені в `SerializedObject` під час редагування в інспекторі.
-- **Редагування Special Data**: Додавання/видалення записів у `specialDatas`, редагування полів конкретного типу (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо).
+- **Редагування Module Data**: Додавання/видалення записів у `moduleDatas`, редагування полів конкретного типу (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо).
 - **Перейменування**: Перейменування асета фішки (також перейменовує пов'язаний префаб).
 - **Стабільний Undo/Redo після rename/type-change**: Після змін імені або `Type` список фішок і фільтри синхронізуються коректно.
 
 ## Technical Implementation
 
 ### Key Components
-- **`EditorContext`**: Централізований провайдер контексту редактора, що надає доступ до активного `FieldData`, налаштувань `ChipCreatorSettings` та поточної `ChipDataCollection`. Зберігає шляхи до асетів в `EditorPrefs` для забезпечення стабільності при роботі в Unity з вимкненим перезавантаженням домену (Enter Play Mode Options).
+- **`EditorContext`**: Централізований провайдер контексту редактора, що надає доступ до активного `FieldData`, налаштувань `ChipEditorSettings` та поточної `ChipDataCollection`. Зберігає шляхи до асетів в `EditorPrefs` для забезпечення стабільності при роботі в Unity з вимкненим перезавантаженням домену (Enter Play Mode Options).
 - **`ChipEvolutionProviderDrawer`**: Кастомний `PropertyDrawer` для поліморфних полів `IChipEvolutionProvider` (`[SerializeReference]`). Використовує `TypeCache` для швидкого вибору конкретної реалізації стратегії еволюції (`ConstantEvolutionProvider`, `RandomEvolutionProvider`) та рендерингу її внутрішніх полів в інспекторі.
 - **`ChipSelectorDrawer`**: Кастомний `PropertyDrawer` для атрибута `[ChipSelector]`. Відображає випадаючий список із пошуком для швидкого вибору фішки з активної колекції `EditorContext.ActiveChipDataCollection`.
-- **`IChipCreatorCommand`**: Інтерфейс для команд, що керують станом `ChipData`.
-- **`ChipCreatorCommandHistory`**: Керує стеками undo/redo спеціально для контексту редагування фішок.
-- **`ChipCreatorWindow.SpecialDataSection.cs`**: Окремий partial для UI секції `Special Data`.
-    - Ліниво знаходить всі реалізації `IChipSpecialData` в завантажених assembly.
-    - Показує кожен елемент `specialDatas` як foldout з редагуванням полів через `SerializeReference`.
+- **`IChipEditorCommand`**: Інтерфейс для команд, що керують станом `ChipData`.
+- **`ChipEditorCommandHistory`**: Керує стеками undo/redo спеціально для контексту редагування фішок.
+- **`ChipEditorWindow.ModuleDataSection.cs`**: Окремий partial для UI секції `Module Data`.
+    - Ліниво знаходить всі реалізації `IChipModuleData` в завантажених assembly.
+    - Реалізує валідацію `DrawMissingModuleDataWarning(SerializedProperty listProp)`, яка перевіряє `RequireModuleDataAttribute` на компонентах `IChipModule` префаба та виводить попередження при відсутності необхідних конфігурацій.
+    - Показує кожен елемент `moduleDatas` як foldout з редагуванням полів через `SerializeReference`.
     - Дозволяє додати лише ті типи, яких ще немає в поточному `ChipData` (без дублювань типів).
     - Дозволяє видалення елемента зі списку.
-- **`ChipCreatorWindow.RightPanel.cs` (Settings)**:
-    - Містить секцію **Default Special Data (Create Only)** для налаштування `defaultSpecialDatas` у `ChipCreatorSettings`.
-    - Дозволяє додавати тільки унікальні типи `IChipSpecialData` (один тип — один запис), редагувати їх поля та видаляти записи.
-- **`ChipCreatorSettings`**:
-    - Зберігає `defaultSpecialDatas` замість окремого поля для default-префаба lock-ефекту.
-    - Рекомендований сценарій для lock-ефекту: додати `ChipMoveLockedData` у `defaultSpecialDatas` і задати `Prefab`.
-- **`ChipCreatorWindow.UndoRedo.cs`**: Містить визначення команд:
+- **`ChipEditorWindow.RightPanel.cs`**:
+    - Відображає деталі чіпа, прев'ю, заголовок, властивості та секції даних.
+    - Здійснює валідацію `DrawMissingBaseSpriteWarning()`: перевіряє `IChipSortingLayer.SortingLayers[0].Renderer.sprite`. Якщо рендерер призначений, але спрайт відсутній — виводить `HelpBox` (Error) з кнопкою `Open`.
+    - Метод `OpenPrefabAndSelectRenderer()` завантажує префаб через `PrefabStageUtility.OpenPrefab()`, знаходить відповідний `GameObject` зі `SpriteRenderer` за шляхом трансформації або через сортувальний шар у сцені префабу, виділяє його (`Selection.activeGameObject`) та фокусує через `EditorGUIUtility.PingObject()`.
+    - У вкладці Settings містить секцію **Default Module Data (Create Only)** для налаштування `defaultModuleDatas` у `ChipEditorSettings`.
+    - Дозволяє додавати тільки унікальні типи `IChipModuleData` (один тип — один запис), редагувати їх поля та видаляти записи.
+- **`ChipEditorSettings`**:
+    - Зберігає `defaultModuleDatas` замість окремого поля для default-префаба lock-ефекту.
+    - Рекомендований сценарій для lock-ефекту: додати `ChipMoveLockedData` у `defaultModuleDatas` і задати `Prefab`.
+- **`ChipEditorWindow.UndoRedo.cs`**: Містить визначення команд:
     - `SetChipPropertyCommand` — записує JSON-знімки стану асета `ChipData` "до" та "після".
     - `RenameChipCommand` — обробляє перейменування асета як для `ChipData`, так і для префаба.
     - При Undo/Redo змін, що впливають на список (name/type), виконується синхронізація `SerializedObject`, сортування списку та оновлення фільтрів.
-- **`ChipCreatorWindow.CreateChip.cs`**:
+- **`ChipEditorWindow.ContextMenu.cs`**:
+    - Реалізує контекстне меню (правий клік по чіпу в лівій панелі).
+    - Містить пункти `Duplicate`, розділювач (сепаратор) та `Delete`.
+    - `Duplicate` переводить редактор у режим створення чіпа (`State.CreateChip`), призначає обраний `ChipData` як джерело (`duplicateSourceChip`) та залишає поле назви порожнім для введення користувачем.
+    - `Delete` запитує підтвердження та безпечно видаляє асет чіпа і пов'язаний префаб (якщо префаб не належить іншим чіпам).
+- **`ChipEditorWindow.CreateChip.cs`**:
     - Кешує список template-префабів для створення нових чіпів.
     - Коректно обробляє порожню папку шаблонів (показує warning замість некоректного створення).
-    - Під час `Create Chip` клонує всі елементи з `DefaultSpecialDatas` у новий `ChipData` (`ApplyDefaultSpecialDataToNewChip` + `CloneSpecialData`).
+    - Під час `Create Chip` клонує всі елементи з `DefaultModuleDatas` у новий `ChipData` (`ApplyDefaultModuleDataToNewChip` + `CloneModuleData`).
+    - У секції `Create Next Level Chip` відображає лише `Chip Name:` (тільки для читання) та кнопку `Create`. При натисканні на `Create` відкриває вкладку `New Chip` (`State.CreateChip`) і попередньо заповнює назву наступного рівня як для дублювання (`duplicateChipName`), так і для створення за шаблоном (`newChipName`), залишаючи `duplicateSourceChip` порожнім (`null`).
 
 ### Workflow (Flow)
-Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Special Data` (зокрема `ChipMergeData`). Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`. Під час створення нового чіпа (`Create Chip`) застосовуються шаблони з `defaultSpecialDatas`, тому default-налаштування `MoveLocked` також переносяться через `ChipMoveLockedData`, а не через окреме поле префаба.
+Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Module Data` (зокрема `ChipMergeData`). Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`. Під час створення нового чіпа (`Create Chip`) застосовуються шаблони з `defaultModuleDatas`, тому default-налаштування `MoveLocked` також переносяться через `ChipMoveLockedData`, а не через окреме поле префаба.
 
 ---
 

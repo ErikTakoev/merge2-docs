@@ -7,7 +7,7 @@
 ## Architecture and Responsibility
 
 ### 1. `UnlockAreaModule.cs` (Module Component)
-Клас `UnlockAreaModule` є реалізацією `IChipModule`, що керує процесом валідації тапу, запуском послідовного розблокування ділянок сітки та синхронізацією життєвого циклу знищення фішки.
+Клас `UnlockAreaModule` є реалізацією `IChipModule`, що керує процесом валідації тапу, запуском послідовного розблокування ділянок сітки та синхронізацією життєвого циклу знищення фішки. Помічений атрибутом `[RequireModuleData(typeof(ChipUnlockAreaData))]`.
 - **Властивості та конфігурація**:
   - `hintEffect` (`EffectHintRef`): Посилання на візуальну підказку тапу (`TapHint`).
   - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції (тригери анімацій знищення/спавну, точка польоту `EvolutionPoint`, затримки `DelayBeforeFirstSpawn`/`DelayBetweenSpawns`, прапорець `PlayMergeLight`). Доступні публічно через властивість `EvolutionSettings`.
@@ -16,7 +16,7 @@
   - `IChipEvolutionService`: Централізований сервіс еволюції для розміщення, спавну та польоту фішок.
 
 ### 1.1. `ChipUnlockAreaData.cs` (Configuration Data)
-Реалізує інтерфейс `IChipSpecialData` для налаштування фішок, які відкривають ділянки поля:
+Реалізує інтерфейс `IChipModuleData` для налаштування фішок, які відкривають ділянки поля:
 - **`Steps`** (`UnlockAreaStep[]`): Послідовний список кроків розблокування. Кожен елемент `UnlockAreaStep` містить:
   - `AreaId` (`int`): Унікальний ID заблокованої ділянки в `ILockedAreaManager`.
   - `Delay` (`float`): Затримка в секундах перед відкриттям цієї конкретної ділянки.

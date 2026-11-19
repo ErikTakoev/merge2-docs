@@ -93,7 +93,7 @@ Singleton-сервіс, який реєструється у `Merge2LifetimeScop
 
 ---
 
-## 4. Visual Scripting Integration (UVS) & Special Tutorial Classes
+## 4. Visual Scripting Integration (UVS) & Tutorial Classes
 
 Префаби туторіалів розміщуються в сцені або префабі поля в ієрархії під кореневим об'єктом `Root`. Під час запуску `MergeBaseVScriptingInitializer` знаходить усі компоненти `ITutorial` серед дочірніх об'єктів (`root.GetComponentsInChildren<ITutorial>(true)`) та автоматично реєструє їх у `ITutorialManager`.
 

@@ -55,7 +55,7 @@
 
 ## Blocker Effects (Move Locked, Web, Box, Box And Web)
 
-Extra-ефекти — це набір опціональних візуальних ефектів, що конфігуруються через `ChipExtraEffectsData` (реалізує `IChipSpecialData`).
+Extra-ефекти — це набір опціональних візуальних ефектів, що конфігуруються через `ChipExtraEffectsData` (реалізує `IChipModuleData`).
 
 - **Конфігурація**: `ChipExtraEffectsData` містить масив `ExtraEffectData[]`, де кожен елемент визначає `effectName` (рядок, що резолвиться в ID через `EffectConsts.GetIdByName`) та `Prefab` (ефект-префаб).
 - **Активація**:
@@ -85,7 +85,7 @@ public struct ChipSpawnData
 }
 ```
 
-Конфігурація lock-ефекту зберігається в `ChipData.specialDatas` через `ChipExtraEffectsData`.
+Конфігурація lock-ефекту зберігається в `ChipData.moduleDatas` через `ChipExtraEffectsData`.
 
 ### Runtime (Chip)
 Клас `Chip` містить `ChipRuntimeData`, який синхронізується з даними рівня:

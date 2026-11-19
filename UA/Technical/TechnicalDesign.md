@@ -145,21 +145,21 @@
 ## State Management
 Проект використовує ScriptableObjects для збереження стану рівнів та метаданих.
 
-### ChipData & SpecialData
-`ChipData` зберігає базові параметри чіпа (тип, префаб, розмір), а розширювані дані винесені в `specialDatas` (`SerializeReference`).
-- **Контракт**: `IChipSpecialData` — базовий інтерфейс для спеціалізованих конфігурацій.
-- **Merge як SpecialData**: `ChipMergeData` є одним із блоків `IChipSpecialData` для конфігурації злиття чіпів.
+### ChipData & ModuleData
+`ChipData` зберігає базові параметри чіпа (тип, префаб, розмір), а розширювані дані винесені в `moduleDatas` (`SerializeReference`).
+- **Контракт**: `IChipModuleData` — базовий інтерфейс для конфігурацій модулів.
+- **Merge як ModuleData**: `ChipMergeData` є одним із блоків `IChipModuleData` для конфігурації злиття чіпів.
 - **Доступ**:
-  - `GetSpecialData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData` тощо).
-  - `CreateSpecialData<T>()` — динамічно створює нову інстанцію спеціальних даних, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
-  - `AddSpecialData(IChipSpecialData)` — додає готовий екземпляр спеціальних даних у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Chip Creator).
+  - `GetModuleData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData` тощо).
+  - `CreateModuleData<T>()` — динамічно створює нову інстанцію даних модуля, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
+  - `AddModuleData(IChipModuleData)` — додає готовий екземпляр даних модуля у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Chip Editor).
     ```csharp
     ChipData clonedData = originalData.Clone();
-    ChipMergeData mergeData = clonedData.CreateSpecialData<ChipMergeData>();
+    ChipMergeData mergeData = clonedData.CreateModuleData<ChipMergeData>();
     mergeData.Combinations = new MergeCombination[] { /* ... */ };
     ```
 - **Перевага**: Дозволяє додавати нові типи даних без розширення базового `ChipData` окремими полями.
-- **Blocker Effects як SpecialData**: Налаштування blocker-ефектів винесені в `ChipExtraEffectsData` (масив `ExtraEffectData[]` з `effectName` + `Prefab`), тому `Chip.InitEffects()` отримує конфігурацію через `GetSpecialData<ChipExtraEffectsData>()`.
+- **Blocker Effects як ModuleData**: Налаштування blocker-ефектів винесені в `ChipExtraEffectsData` (масив `ExtraEffectData[]` з `effectName` + `Prefab`), тому `Chip.InitEffects()` отримує конфігурацію через `GetModuleData<ChipExtraEffectsData>()`.
 - **Runtime доступ до merge**: Під час `Chip.Init` merge-дані кешуються у `Chip.MergeData`; `MergeableChipLogic` використовує саме цей доступ.
 
 ### FieldData & CellData
@@ -176,10 +176,10 @@
 У грі інформація про активні extra-ефекти зберігається у `ChipRuntimeData.EffectEnables` (`List<int>`). Цей список використовується як індикатор стану — `Chip.InitEffects()` та `UpdateVisual()` активують ефекти, чиї ID є в списку. А вже сам ефект, маючи `EffectBlockingSettings`, передає конкретні заборони до загального `CombinedBlockingState` чіпа (з яким вже працює ігрова логіка). Додатково, `EffectDestroyingData` (`Dictionary<int, EffectDestroyingRuntimeData>`) трекає прогрес руйнування ефектів при сусідніх злиттях. Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), розмежовуючи візуальні ефекти та логіку блокування.
 
 ## Editor Tools
-Ми надаємо спеціалізовані інструменти для полегшення процесу створення та налаштування контенту.
+Ми надаємо інструменти редактора для полегшення процесу створення та налаштування контенту.
 - **[Level Editor](../Editors.md)**: Візуальний редактор рівнів та Scene View Overlay toolbar (`LevelEditorOverlay`), що дозволяє налаштовувати сітку, малювати заблоковані зони та розміщувати фішки безпосередньо у Scene View.
-- **Property Drawers**: Спеціалізовані атрибути `[ChipSelector]` та `[EffectBlockerSelector]` інтегровані в `ChipSpawnData` для зручного вибору ID фішок та ефектів прямо в інспекторі.
-- **Chip Creator**: Редактор `ChipData`, який підтримує редагування `specialDatas` (включно з поліморфними типами `IChipSpecialData`).
+- **Property Drawers**: Атрибути `[ChipSelector]` та `[EffectBlockerSelector]` інтегровані в `ChipSpawnData` для зручного вибору ID фішок та ефектів прямо в інспекторі.
+- **Chip Editor**: Редактор `ChipData`, який підтримує редагування `moduleDatas` (включно з поліморфними типами `IChipModuleData`).
 - **Undo/Redo (Command Pattern)**: Всі дії в редакторі інкапсульовані в об'єкти команд (`IEditorCommand`). Це дозволяє реалізувати надійну систему скасування та повторення дій, запобігаючи втраті прогресу при помилках редагування.
 - **Validation**: Система автоматичної перевірки цілісності даних рівня перед збереженням.
 

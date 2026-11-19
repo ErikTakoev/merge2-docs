@@ -160,7 +160,7 @@
 ---
 
 ### `ChipSortingLayer.cs`
-Компонент на фішці ([ChipSortingLayer.cs](../../Core/Scripts/Chips/ChipSortingLayer.cs), реалізує `IChipSortingLayer`), що централізовано керує порядком сортування (`sortingOrder`) усіх рендерерів фішки (`SortingLayers`, динамічний список `List<SortingLayerData>`). Зберігає відносну візуальну глибину між шарами чіпа при зміні станів, руху, активації ефектів, програванні анімацій або примусовому ручному оверрайді:
+Компонент на фішці ([ChipSortingLayer.cs](../../../Core/Scripts/Chips/ChipSortingLayer.cs), реалізує `IChipSortingLayer`), що централізовано керує порядком сортування (`sortingOrder`) усіх рендерерів фішки (`SortingLayers`, динамічний список `List<SortingLayerData>`). Зберігає відносну візуальну глибину між шарами чіпа при зміні станів, руху, активації ефектів, програванні анімацій або примусовому ручному оверрайді:
 
 - **Dynamic Layer Management**:
   - `AddSortingLayer(SpriteRenderer renderer)` — динамічно додає рендерер (наприклад, з ефекту), кешує його вихідний `CachedOrder` та миттєво синхронізує його порядок з поточним станом сортування фішки.

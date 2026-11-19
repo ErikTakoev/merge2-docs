@@ -222,10 +222,10 @@
     - **Usage**: Call in methods that need to access a specific effect without type casting
     - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.MoveLocked)
     - **Returns**: The IEffect instance or null if not found
-    - **Notes**: Use GetEffect<T>() for type-safe access when specialized interfaces are needed
+    - **Notes**: Use GetEffect<T>() for type-safe access when specific interfaces are needed
 - `~ GetEffect(int effectHash): T`
     - **Purpose**: Retrieves and casts an effect from the effects dictionary by its EffectConsts hash key
-    - **Usage**: Call when you need a specialized effect interface (e.g., IEffectGeneratorCharging)
+    - **Usage**: Call when you need a specific effect interface (e.g., IEffectGeneratorCharging)
     - **Params**: effectHash - One of EffectConsts values (e.g., EffectConsts.GeneratorCharging)
     - T - Target effect interface type
     - **Returns**: The effect cast to type T, or null if not found or cannot be cast
@@ -275,22 +275,22 @@
 - `++ Size: Vector2Int`
 - `+ PrefabLink: GameObject`
 - `+ Type: string`
-- `- specialDatas: List<IChipSpecialData>`
+- `- moduleDatas: List<IChipModuleData>`
 #### Methods
-- `+ AddSpecialData(IChipSpecialData specialData): void`
+- `+ AddModuleData(IChipModuleData moduleData): void`
 - `+ Clone(): ChipData`
     - **Purpose**: Creates a deep copy of this ChipData asset
     - **Usage**: Call at runtime to create a unique instance of ChipData that can be modified without affecting the original asset
     - **Returns**: A new ChipData instance with identical field values
-- `+ CreateSpecialData(): T`
-- `+ GetSpecialData(): T`
+- `+ CreateModuleData(): T`
+- `+ GetModuleData(): T`
 - `- OnEnable(): void`
 ---
 
 ## ChipExtraEffectsData
 
 > - **Purpose**: Configures available extra blocker/overlay effects for a chip type via name-to-prefab mappings
-> - **Usage**: Added to ChipData.specialDatas
+> - **Usage**: Added to ChipData.moduleDatas
 > - Chip.InitEffects iterates Blockers and instantiates only those whose EffectId is in runtimeData.EffectEnables
 > - **Notes**: BlockersDict provides O(1) lookup by EffectId
 > - built during serialization callbacks

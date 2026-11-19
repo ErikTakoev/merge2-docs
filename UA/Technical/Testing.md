@@ -47,11 +47,11 @@
 
 #### ManualGenerator_EvolutionIntoNull
 - **Мета**: Перевіряє, що генератор знищується після використання всіх перезарядок, коли `EvolutionProvider = null`.
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `TotalRecharges = 1` через `GetSpecialData<ChipGeneratorData>()`. Використовує всі заряди генератора. Перевіряє, що генератор був знищений (клітинка порожня).
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `TotalRecharges = 1` через `GetModuleData<ChipGeneratorData>()`. Використовує всі заряди генератора. Перевіряє, що генератор був знищений (клітинка порожня).
 
 #### ManualGenerator_EvolutionIntoNextChip
 - **Мета**: Перевіряє, що генератор еволюціонує в наступну фішку через `EvolutionProvider` після використання всіх перезарядок.
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `TotalRecharges = 1` та `EvolutionProvider` (`ConstantEvolutionProvider`) через `GetSpecialData<ChipGeneratorData>()`. Використовує всі заряди. Перевіряє, що генератор замінився на `nextChipData`.
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `TotalRecharges = 1` та `EvolutionProvider` (`ConstantEvolutionProvider`) через `GetModuleData<ChipGeneratorData>()`. Використовує всі заряди. Перевіряє, що генератор замінився на `nextChipData`.
 
 #### ManualGenerator_NoSpace
 - **Мета**: Перевіряє поведінку генератора при спробі створити чіп, коли на полі немає вільного місця.
@@ -59,7 +59,7 @@
 
 #### ManualGenerator_StartsUncharged_Recharges
 - **Мета**: Перевіряє поведінку генератора, який починає без заряду (`IsStartCharged = false`).
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `IsStartCharged = false` через `GetSpecialData<ChipGeneratorData>()`. Чекає час перезарядки, симулює тап. Перевіряє, що генератор заряджається та створює чіп після тапу.
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `IsStartCharged = false` через `GetModuleData<ChipGeneratorData>()`. Чекає час перезарядки, симулює тап. Перевіряє, що генератор заряджається та створює чіп після тапу.
 
 #### ManualGenerator_CarTomato2_Tap_SpawnedGeneratorsRechargeEffectDeactivated
 - **Мета**: Перевіряє, що ручні генератори, створені внаслідок тапу по фішках `CarTomato_2`, не вмикають ефект перезарядки (`GeneratorCharging`) помилково під час та після спавну і зберігають стан деактивації протягом усього часу очікування (2 секунди).
@@ -90,7 +90,7 @@
 
 #### AutoGenerator_SpawnAround
 - **Мета**: Перевіряє, що автоматичний генератор створює чіпи тільки навколо себе (у сусідніх клітинках).
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 100` через `GetSpecialData<ChipGeneratorData>()`. Чекає генерацію 8 чіпів. Перевіряє, що всі чіпи створені навколо генератора (всього 9 чіпів на полі).
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 100` через `GetModuleData<ChipGeneratorData>()`. Чекає генерацію 8 чіпів. Перевіряє, що всі чіпи створені навколо генератора (всього 9 чіпів на полі).
 
 #### AutoGenerator_EntersWaitingStateDuringDrag
 - **Мета**: Перевіряє, що генератор переходить у стан очікування під час перетягування.
@@ -98,15 +98,15 @@
 
 #### AutoGenerator_StartsUncharged_RechargesAndGenerates
 - **Мета**: Перевіряє поведінку автоматичного генератора, який починає без заряду.
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `IsStartCharged = false` через `GetSpecialData<ChipGeneratorData>()`. Чекає час перезарядки. Перевіряє, що генератор автоматично створив чіп після перезарядки.
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `IsStartCharged = false` через `GetModuleData<ChipGeneratorData>()`. Чекає час перезарядки. Перевіряє, що генератор автоматично створив чіп після перезарядки.
 
 #### AutoGenerator_Evolution_IntoNull
 - **Мета**: Перевіряє знищення автоматичного генератора після використання всіх перезарядок, коли `EvolutionProvider = null`.
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 2` та `TotalRecharges = 1` через `GetSpecialData<ChipGeneratorData>()`. Чекає завершення всіх циклів генерації. Перевіряє, що генератор був знищений (клітинка порожня).
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 2` та `TotalRecharges = 1` через `GetModuleData<ChipGeneratorData>()`. Чекає завершення всіх циклів генерації. Перевіряє, що генератор був знищений (клітинка порожня).
 
 #### AutoGenerator_Evolution_IntoNextChip
 - **Мета**: Перевіряє еволюцію автоматичного генератора через `EvolutionProvider` після використання всіх перезарядок.
-- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 2`, `TotalRecharges = 1` та `EvolutionProvider` (`ConstantEvolutionProvider`) через `GetSpecialData<ChipGeneratorData>()`. Чекає завершення всіх циклів. Перевіряє, що генератор еволюціонував у вказану фішку.
+- **Сценарій**: Створює копію ChipData через `Clone()`, встановлює `ChargeCount = 2`, `TotalRecharges = 1` та `EvolutionProvider` (`ConstantEvolutionProvider`) через `GetModuleData<ChipGeneratorData>()`. Чекає завершення всіх циклів. Перевіряє, що генератор еволюціонував у вказану фішку.
 
 ### ChipContainerTests
 Тести функціональності контейнера для чіпів (`ChipContainer`). Всі тести використовують `SeedlingContainer_2` як базовий тип контейнера.
@@ -152,7 +152,7 @@
 
 #### CheckBoosterPower_MoveGenerator
 - **Мета**: Перевіряє, що модифікатор знімається при переміщенні генератора від бустера.
-- **Сценарій**: Створює незаряджений генератор поруч з бустером (`BoostedTargets.Count == 1`) з параметрами через `GetSpecialData<ChipGeneratorData>()`. Переміщує генератор далеко. Чекає `ChargingTime / Power - timeToMove`. Перевіряє, що генератор **не** зарядився (підсилення було знято).
+- **Сценарій**: Створює незаряджений генератор поруч з бустером (`BoostedTargets.Count == 1`) з параметрами через `GetModuleData<ChipGeneratorData>()`. Переміщує генератор далеко. Чекає `ChargingTime / Power - timeToMove`. Перевіряє, що генератор **не** зарядився (підсилення було знято).
 
 #### CheckGeneratorReturnsToBoosterRangeAfterLockedMove
 - **Мета**: Перевіряє, що генератор і бустер повертаються до свого діапазону впливу після невдалого переміщення на `MoveLocked` чіп (snap-back).
@@ -300,7 +300,7 @@
 Класс-конфігурація для тестових налаштувань.
 - **Призначення**: Зберігає шлях до префабу тестової сцени та прапорці для дебагу.
 - **Особливості**:
-  - Посилання на `ChipCreatorSettings` для автоматичного налаштування шляхів до даних та префабів під час виконання тестів.
+  - Посилання на `ChipEditorSettings` для автоматичного налаштування шляхів до даних та префабів під час виконання тестів.
 
 ### TestFieldBuilder
 Клас-помічник для створення тестового оточення.

@@ -9,7 +9,7 @@
 ## Architecture and Responsibility
 
 ### 1. `GeneratorModule.cs` (Main Component)
-Клас `GeneratorModule` керує життєвим циклом генератора на чіпі, реалізуючи інтерфейси `IChipModule` та `IPowerBoosterTarget`.
+Клас `GeneratorModule` керує життєвим циклом генератора на чіпі, реалізуючи інтерфейси `IChipModule` та `IPowerBoosterTarget`. Помічений атрибутом `[RequireModuleData(typeof(ChipGeneratorData))]`.
 - **Властивості та конфігурація**:
   - `rechargeEffect` (`ChargingEffectRef`): Ефект індикації перезарядки.
   - `chargedEffect` (`EffectRef`): Ефект готовності генератора.
@@ -18,7 +18,7 @@
 - **Вхідні дані (Input)**:
   - **Manual**: Обробляє `OnTap` через делегування подій з `Chip` (перевіряє стан блокування `BlockingState.CanBeTaped` та `BlockingState.CanGenerate`).
   - **Auto**: Підписується на `field.OnChangeField`, щоб автоматично спавнити при появі вільного місця (перевіряє `BlockingState.CanGenerate`).
-- **Ініціалізація даних**: У `Init(Chip, ChipData, ChipRuntimeData)` читає конфігурацію через `data.GetSpecialData<ChipGeneratorData>()`. Якщо `ChipGeneratorData` відсутній, логіка генератора не запускається. Ініціалізує провайдери через `generatorData.GenerationProvider?.Init()` та `generatorData.EvolutionProvider?.Init()`.
+- **Ініціалізація даних**: У `Init(Chip, ChipData, ChipRuntimeData)` читає конфігурацію через `data.GetModuleData<ChipGeneratorData>()`. Якщо `ChipGeneratorData` відсутній, логіка генератора не запускається. Ініціалізує провайдери через `generatorData.GenerationProvider?.Init()` та `generatorData.EvolutionProvider?.Init()`.
 - **Update Loop**: У методі `Update` перевіряє стан блокування чіпа (`chip.BlockingState.CanCharge`). Якщо зарядка заблокована, процес заряджання зупиняється; якщо дозволена і генератор розряджений, таймер `ChargingTimeLeft` інкрементується з урахуванням множника швидкості `powerMultiplier`.
 - **Залежності**:
   - `IFreeCellFinder`: Логіка атомарного пошуку вільних клітинок (`FindFreeCellsForChips`).
@@ -29,7 +29,7 @@
   - `IFieldGrid`: Для перевірки меж та отримання клітинок поля.
 
 ### 2. `ChipGeneratorData.cs` (Configuration)
-Дані з налаштуванням та алгоритмами вибору. Реалізує `IChipSpecialData` та додається до `ChipData.specialDatas`.
+Дані з налаштуванням та алгоритмами вибору. Реалізує `IChipModuleData` та додається до `ChipData.moduleDatas`.
 - **Параметри**: `ChargeCount`, `ChargingTime`, `GenerationInterval`, `TotalRecharges`, `EvolutionProvider`, `GenerationProvider`
 - **Стратегії генерації (`IChipGenerationProvider`)**: Поліморфна стратегія (`[SerializeReference]`), що визначає результат генерації у вигляді списку `ChipSpawnData` (з опціональними блокерами `BlockerEffectIds`):
   - **`ConstantGenerationProvider`**: Повертає фіксований список `List<ChipSpawnData> Chips`.
@@ -38,7 +38,7 @@
 - **Еволюція**: Поле `EvolutionProvider` типу `IChipEvolutionProvider` визначає фішки для створення після вичерпання всіх циклів перезарядок. Якщо поточна генерація остання перед еволюцією, виконується попередня перевірка вільного місця як під згенеровані фішки (будь-якого розміру), так і під еволюцію через `IChipEvolutionService.CanEvolve(..., cellsToExclude)`. Лише при успішній перевірці обох умов спавняться фішки та викликається `Evolve(chip, plan, evolutionSettings)` з використанням налаштувань `evolutionSettings`.
 
 ### 3. `ChipGeneratorRuntimeData.cs` (Runtime State)
-Реалізує маркерний інтерфейс `IChipSpecialRuntimeData` для зберігання динамічного стану генератора всередині списку `specialRuntimeDatas` у `ChipRuntimeData`.
+Реалізує маркерний інтерфейс `IChipModuleRuntimeData` для зберігання динамічного стану генератора всередині списку `moduleRuntimeDatas` у `ChipRuntimeData`.
 
 **Власні властивості**:
 - **`IsCharged`**: Чи готовий генератор до створення нової фішки. Коли `true`, генератор може спавнити чіп (вручну або автоматично).
@@ -51,7 +51,7 @@
   - `ChargingTime` — при повній перезарядці (коли `ChargeCount` досяг 0).
   - `GenerationInterval` — при короткій затримці між генераціями в рамках одного циклу.
 
-**Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipGeneratorData` (отриманого через `GetSpecialData<ChipGeneratorData>()`).
+**Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipGeneratorData` (отриманого через `GetModuleData<ChipGeneratorData>()`).
 
 ### Recharge
 1. **Update**: У кожному кадрі збільшується `ChargingTimeLeft` до досягнення `CurrentTargetChargingTime`.

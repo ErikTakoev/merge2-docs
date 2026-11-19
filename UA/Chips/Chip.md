@@ -11,15 +11,17 @@
 ### 1. `Chip.cs` (Base Class)
 Клас `Chip` є візуальним представленням та базовим компонентом.
 - **Data (Configuration - `ChipData`)**: Зберігає посилання на `ChipData`, який містить налаштування:
-  - **Type**: Ідентифікатор типу фішки (string).
   - **PrefabLink**: Посилання на префаб фішки.
   - **Size**: Розмір фішки в клітинках (Vector2Int).
-  - **MergeData**: доступ до merge-конфігурації. Під час `Init(ChipData, ChipRuntimeData)` чіп кешує `data.GetSpecialData<ChipMergeData>()`.
-  - **specialDatas**: Поліморфна колекція для додаткових типізованих налаштувань чіпа.
+  - **MergeData**: доступ до merge-конфігурації. Під час `Init(ChipData, ChipRuntimeData)` чіп кешує `data.GetModuleData<ChipMergeData>()`.
+  - **moduleDatas**: Поліморфна колекція для додаткових типізованих налаштувань чіпа.
 
-- **Special Data**:
-  - **GetSpecialData<T>()**: Типізований доступ до елемента `specialDatas`.
-  - **IChipSpecialData**: Базовий контракт для спеціалізованих даних. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
+- **Module Data**:
+  - **ModuleDatas**: Властивість тільки для читання (`IReadOnlyList<IChipModuleData>`), що надає доступ до списку налаштувань модулів фішки.
+  - **GetModuleData<T>()**: Типізований доступ до елемента `moduleDatas`.
+  - **HasModuleData<T>()** / **HasModuleData(Type)**: Перевірка наявності конфігураційних даних модуля вказаного типу в колекції `moduleDatas`.
+  - **AddModuleData(IChipModuleData)** / **CreateModuleData<T>()**: Допоміжні методи для додавання готового або створення нового екземпляра даних модуля.
+  - **IChipModuleData**: Базовий контракт для даних модулів. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
   - **IChipEvolutionProvider**: Поліморфна стратегія вибору наступних чіпів для всіх модулів еволюції (`ChipTapEvolutionData`, `ChipUnlockAreaData`, `ChipWaitEvolutionData`, `ChipContainerData`, `ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantEvolutionProvider`, `RandomEvolutionProvider`. Еволюція централізовано виконується через `IChipEvolutionService` (`EvolutionExecutionSettings`).
   - **IChipGenerationProvider**: Поліморфна стратегія вибору фішок для генерації в `GeneratorModule` (`ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantGenerationProvider`, `RandomGenerationProvider`, `SequenceGenerationProvider`. Зберігає стан прогресу через `SequenceIndex` у `ChipGeneratorRuntimeData`.
 
@@ -111,6 +113,11 @@
 - **`UnlockAreaModule`**: Керує послідовним розблокуванням зон `LockedArea` при натисканні (тапі) з налаштовуваними часовими затримками між кроками (`UnlockAreaStep`) та делегує еволюцію в `IChipEvolutionService`.
 - **`PauseAnimationOnDelay`**: Прапорець у `ChipFlightSettings`, що заморожує виконання анімації чіпа через `PauseAnimator(true)` під час активності затримки польоту (`flightDelay`).
 
+### RequireModuleData Attribute
+Для декларативного зв'язування компонентів `IChipModule` з їх конфігураційними даними використовується атрибут `[RequireModuleData(Type moduleDataType)]` ([RequireModuleDataAttribute.cs](../../../Core/Scripts/Attributes/RequireModuleDataAttribute.cs)):
+- **Призначення**: Застосовується до класів модулів для вказівки типу даних конфігурації, який модуль вимагає в `ChipData.moduleDatas` (наприклад, `[RequireModuleData(typeof(ChipGeneratorData))]`).
+- **Валідація в редакторі**: Використовується `ChipEditorWindow` для відображення попередження (`HelpBox`), якщо на зв'язаному префабі фішки присутній модуль, але відповідний конфігураційний блок відсутній у списку `moduleDatas` асета `ChipData`.
+
 ### Lifecycle Delegation to Modules
 Клас `Chip` автоматично збирає всі компоненти `IChipModule` на своєму GameObject за допомогою `GetComponents<IChipModule>()` і делегує їм виклики у ключових точках життєвого циклу:
 - **`Init`**: Ініціалізація кожного модуля з передачею посилань на `Chip`, `ChipData` та `ChipRuntimeData`.
@@ -126,12 +133,12 @@
 - При виклику `UpdateVisual` на чіпі, він додатково викликає `module.UpdateVisual()` для кожного зареєстрованого модуля.
 - При видаленні ефекту через `RemoveEffect` викликається `module.OnEffectRemoved(effectId)`.
 
-### Specialized Runtime Data (IChipSpecialRuntimeData)
+### Module Runtime Data (IChipModuleRuntimeData)
 Клас `ChipRuntimeData` зберігає поточний стан фішки та містить список поліморфних даних:
 - **`EffectEnables`** (`List<int>`): Список ідентифікаторів активних ефектів-блокерів для збереження та завантаження стану.
 - **`EffectDestroyingData`** (`Dictionary<int, EffectDestroyingRuntimeData>`): Відстеження прогресу руйнування ефектів при сусідніх злиттях.
-- **`specialRuntimeDatas`** (`List<IChipSpecialRuntimeData>` з атрибутом `[SerializeReference]`): Список спеціалізованих даних для модулів.
-- **`GetSpecialRuntimeData<T>()`**: Допоміжний метод для отримання конкретного типу даних стану для модуля (наприклад, `ChipGeneratorRuntimeData` або `ChipContainerRuntimeData`).
+- **`moduleRuntimeDatas`** (`List<IChipModuleRuntimeData>` з атрибутом `[SerializeReference]`): Список рантайм-даних для модулів.
+- **`GetModuleRuntimeData<T>()`**: Допоміжний метод для отримання конкретного типу даних стану для модуля (наприклад, `ChipGeneratorRuntimeData` або `ChipContainerRuntimeData`).
 
 ### Movement State Management
 Система розрізняє **стан перетягування користувачем** та **візуальний стан переміщення**:
@@ -148,7 +155,7 @@
 - **`IsMoving()`**: Перевіряє візуальний стан переміщення. Повертає `true` як для перетягування користувачем, так і для системного переміщення.
 
 ### Sorting Layer and Visual Depth Management
-Компонент `ChipSortingLayer` ([ChipSortingLayer.cs](../../Core/Scripts/Chips/ChipSortingLayer.cs)), що реалізує контракт `IChipSortingLayer` ([IChipSortingLayer.cs](../../Core/Scripts/Chips/Interfaces/IChipSortingLayer.cs)), керує порядком сортування (`sortingOrder`) усіх рендерерів чіпа. Він гарантує збереження відносного порядку глибини між різними спрайтами однієї фішки при змінах висоти, руху, активних ефектів, анімацій або ручних оверрайдів.
+Компонент `ChipSortingLayer` ([ChipSortingLayer.cs](../../../Core/Scripts/Chips/ChipSortingLayer.cs)), що реалізує контракт `IChipSortingLayer` ([IChipSortingLayer.cs](../../../Core/Scripts/Chips/Interfaces/IChipSortingLayer.cs)), керує порядком сортування (`sortingOrder`) усіх рендерерів чіпа. Він гарантує збереження відносного порядку глибини між різними спрайтами однієї фішки при змінах висоти, руху, активних ефектів, анімацій або ручних оверрайдів.
 
 #### Initialization and Base Order Caching
 - При виклику `Chip.Init` викликається `sortingLayer.Init()`.

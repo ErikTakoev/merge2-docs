@@ -8,7 +8,8 @@
 
 ### 1. `PowerBoosterModule.cs`
 Реалізує інтерфейс `IChipModule`. Основний клас бустера.
-- **Дані (Configuration)**: Зберігає `ChipPowerBoosterData` з параметром `Power` (множник підсилення), читаючи його через `data.GetSpecialData<ChipPowerBoosterData>()`.
+- **Дані (Configuration)**: Зберігає `ChipPowerBoosterData` з параметром `Power` (множник підсилення), читаючи його через `data.GetModuleData<ChipPowerBoosterData>()`.
+- **Вимоги (RequireModuleData)**: Помічений атрибутом `[RequireModuleData(typeof(ChipPowerBoosterData))]` для декларативного зв'язування з налаштуваннями бустера.
 - **Підписки**: Вимагає компонент `PowerBoosterCellSubscriber` (`[RequireComponent]`), який відстежує сусідні клітинки та збирає активні модифікатори.
 - **BoostedTargets**: Делегує колекцію `HashSet<IPowerBoosterTarget>` до `PowerBoosterCellSubscriber.BoostedTargets`.
 - **Fail-fast перевірки**: В `Init(Chip, ChipData, ChipRuntimeData)` перевіряє наявність `PowerBoosterCellSubscriber` і `ChipPowerBoosterData`; при відсутності логіка бустера зупиняється з `Debug.LogError`.
@@ -21,7 +22,7 @@
 
 ### 2. `ChipPowerBoosterData`
 Серіалізований об'єкт налаштувань бустера.
-- Реалізує `IChipSpecialData` і зберігається в `ChipData.specialDatas`.
+- Реалізує `IChipModuleData` і зберігається в `ChipData.moduleDatas`.
 - **`Power`** (`float`): Множник підсилення, який передається через `IPowerBoosterTarget.ApplyPowerBooster`.
 
 ### 3. `IPowerBoosterTarget` (Interface)
@@ -33,14 +34,13 @@
 - **`RemovePowerBooster(PowerBoosterModule)`**: Зняти підсилення.
 - **`NotifyEffectRemoved(int effectId)`**: Сповіщає всі активні бустери про видалення ефекту. Викликається з `RemoveEffect` цілі (або `OnEffectRemoved` її модулів), щоб бустери могли reapply, якщо `CanReceiveModifiers` став `true`.
 
-### 4. `ChipGenerator.PowerBoosterTarget.cs` (Реалізація)
-Часткова реалізація `IPowerBoosterTarget` у `ChipGenerator` (partial class).
-- **`powerMultiplier`** (`float`): Runtime-множник швидкості зарядки (`Update()` використовує `Time.deltaTime * powerMultiplier`).
-- **`joinPoints`** (`Transform[]`): Серіалізовані точки прив'язки на цілі.
-- **`AppliedBoosters`** (`HashSet<ChipPowerBooster>`): Набір активних бустерів для цієї цілі.
+### 4. `IPowerBoosterTarget` Implementations (`GeneratorModule` & `WaitEvolutionModule`)
+Інтерфейс `IPowerBoosterTarget` реалізується безпосередньо модулями, швидкість роботи яких може масштабуватися бустерами ([GeneratorModule.cs](../../../Core/Scripts/Chips/GeneratorModule.cs) та [WaitEvolutionModule.cs](../../../Core/Scripts/Chips/WaitEvolutionModule.cs)).
+- **`powerMultiplier`** (`float`): Runtime-множник швидкості зарядки або перебігу таймера еволюції (`Update()` використовує `Time.deltaTime * powerMultiplier`).
+- **`joinPoints`** (`Transform[]`): Серіалізовані точки прив'язки на цілі для join-лінків бустера.
+- **`AppliedBoosters`** (`HashSet<PowerBoosterModule>`): Набір активних бустерів для цієї цілі.
 - **Логіка**: `RecalculatePowerMultiplier` спочатку перевіряє `BlockingState.CanReceiveModifiers` — якщо `false`, скидає множник до `1f`. При кількох бустерах використовується `Mathf.Max` — береться найбільше значення `Power`. При видаленні останнього бустера `powerMultiplier` скидається до `1f`.
-- **`RemoveEffect(int effectId)`** override: Після `base.RemoveEffect` викликає `NotifyEffectRemoved(effectId)`, щоб усі активні бустери могли reapply (якщо `CanReceiveModifiers` змінився).
-- **`NotifyEffectRemoved(int effectId)`**: Ітерує `appliedBoosters` і викликає `booster.OnTargetChipEffectRemoved(this, effectId)` для кожного.
+- **`OnEffectRemoved(int effectId)`**: При видаленні ефекту на фішці модуль сповіщає всі активні бустери через `booster.OnTargetChipEffectRemoved(this, effectId)`, щоб вони могли повторно застосувати прискорення (`reapply`), якщо `CanReceiveModifiers` став `true`.
 
 ### 5. `IEffectPowerBoosterJoin` + `PowerBoosterJoinEffect.cs`
 - **`IEffectPowerBoosterJoin`**: Контракт для join-візуалізації (`OnJoin`, `OnLeave`, `OnTargetChipMoved`) з серіалізованою обгорткою `EffectPowerBoosterJoinRef`.

@@ -14,7 +14,7 @@
 1. Відкрийте **Window → Expecto → Clean Merge Project**.
 2. Оберіть потрібний шаблон конфігурації у полі **Template Settings** (використовує ScriptableObject асети типу `MergeTemplateSettings`).
 3. Вкажіть бажаний **Namespace**, унікальний **Prefix** та натисніть кнопку **Select Folder For Clean Project**, обравши або створивши папку нової гри.
-4. Інструмент автоматично створить повну структуру папок на основі конфігурації шаблону, сцену, згенерує C# класи `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer`, скопіює та перейменує базові префаби поля, підготує інтеграційні тести (`.Tests.asmdef`, тестові ассети та шаблон класу тесту) та автоматично перемкне відкрите вікно **Chip Viewer** на використання нових налаштувань.
+4. Інструмент автоматично створить повну структуру папок на основі конфігурації шаблону, сцену, згенерує C# класи `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer`, скопіює та перейменує базові префаби поля, підготує інтеграційні тести (`.Tests.asmdef`, тестові ассети та шаблон класу тесту) та автоматично перемкне відкрите вікно **Chip Editor** на використання нових налаштувань.
 
 Після цього ваш проєкт готовий до розширення.
 
@@ -228,13 +228,13 @@ public override void Init(ChipData data, ChipRuntimeData runtimeData)
     base.Init(data, runtimeData); // Важливо! Ініціалізує базові ефекти та runtimeData
     
     // Власна логіка ініціалізації
-    // Наприклад, читання додаткових даних з specialDatas
-    var settings = data.GetSpecialData<ExtensionChipData>();
+    // Наприклад, читання додаткових даних з moduleDatas
+    var settings = data.GetModuleData<ExtensionChipData>();
 }
 ```
 
 > [!TIP]
-> Рекомендовано викликати `GetSpecialData<T>()` лише один раз під час `Init` і кешувати результат у полі чіпа. Не викликайте його повторно в `Update` або інших гарячих ділянках логіки.
+> Рекомендовано викликати `GetModuleData<T>()` лише один раз під час `Init` і кешувати результат у полі чіпа. Не викликайте його повторно в `Update` або інших гарячих ділянках логіки.
 
 ### Step 3 — Add Specific Effects via `InitEffects`
 
@@ -387,9 +387,9 @@ public class MyPureEffect : MonoBehaviour, IEffect
 }
 ```
 
-### Specialized Effect Interfaces
+### Specific Effect Interfaces
 
-Для ефектів з розширеним контрактом існують спеціалізовані інтерфейси:
+Для ефектів з розширеним контрактом існують специфічні інтерфейси:
 
 | Інтерфейс | Метод | Призначення |
 |---|---|---|
@@ -399,7 +399,7 @@ public class MyPureEffect : MonoBehaviour, IEffect
 | `IEffectPowerBoosterJoin` | `OnJoin(IPowerBoosterTarget)` / `OnLeave(IPowerBoosterTarget)` | Відображення зв'язку з бустером |
 
 
-Щоб створити новий спеціалізований ефект:
+Щоб створити новий ефект:
 1. Створіть інтерфейс, що наслідує `IEffect`.
 2. Створіть `InterfaceRef<T>` обгортку для серіалізації в інспекторі:
    ```csharp
@@ -410,7 +410,7 @@ public class MyPureEffect : MonoBehaviour, IEffect
 
 ### Connecting Effect to Chip
 
-1. **Через ChipData.specialDatas**: Для blocker-ефектів або інших додаткових ефектів додайте дані `ChipExtraEffectsData` у `specialDatas` і заповніть список `Blockers` або `OtherEffects`.
+1. **Через ChipData.moduleDatas**: Для blocker-ефектів або інших додаткових ефектів додайте дані `ChipExtraEffectsData` у `moduleDatas` і заповніть список `Blockers` або `OtherEffects`.
 2. **Через InitEffects**: У похідному класі `Chip` створіть ефект через `InstantiateEffect<T>(prefab)` та додайте його за допомогою `AddEffect`.
 
 ### Effect Notifications
@@ -434,20 +434,20 @@ public class MyPureEffect : MonoBehaviour, IEffect
 ### Step 1 — Setting Up ChipData
 
 Починайте з визначення даних. Бажано не захаращувати базовий `ChipData`.
-1. Створіть окремий serializable-клас для параметрів вашої механіки (наприклад, `ExtensionChipData`), який реалізує `IChipSpecialData`.
-2. Додайте цей тип у `ChipData.specialDatas` через `Chip Creator` -> секцію **Special Data**.
-3. В коді чіпа отримуйте дані в `Init` так: `var settings = data.GetSpecialData<ExtensionChipData>();` (рекомендовано викликати один раз і зберігати в полі).
+1. Створіть окремий serializable-клас для параметрів вашої механіки (наприклад, `ExtensionChipData`), який реалізує `IChipModuleData`.
+2. Додайте цей тип у `ChipData.moduleDatas` через `Chip Editor` -> секцію **Module Data**.
+3. В коді чіпа отримуйте дані в `Init` так: `var settings = data.GetModuleData<ExtensionChipData>();` (рекомендовано викликати один раз і зберігати в полі).
 
 ```csharp
 [Serializable]
-public class ChipExtensionData : IChipSpecialData
+public class ChipExtensionData : IChipModuleData
 {
     public float Power = 1.2f;
 }
 ```
 
 > [!TIP]
-> `SpecialData`-класи можна розширювати через наслідування. Наприклад, якщо ви робите власний чіп на базі `ChipGenerator`, зручно наслідуватися від `ChipGeneratorData` і додати тільки нові параметри.
+> `ModuleData`-класи можна розширювати через наслідування. Наприклад, якщо ви робите власний чіп на базі `ChipGenerator`, зручно наслідуватися від `ChipGeneratorData` і додати тільки нові параметри.
 
 ```csharp
 [Serializable]
@@ -469,8 +469,9 @@ public class ChipGeneratorDataEx : ChipGeneratorData
 
 Створіть свій модуль або клас відповідно до композиційної архітектури:
 - Створіть компонент, що реалізує `IChipModule` (рекомендований підхід), та приєднайте його до префабу `Chip`.
+- Позначте клас модуля атрибутом `[RequireModuleData(typeof(YourModuleData))]`, щоб декларативно зв'язати його з відповідним класом конфігурації та увімкнути автоматичну валідацію в `ChipEditorWindow`.
 - Якщо механіка передбачає перетворення або створення наступних фішок після виконання умови (еволюцію):
-  - Додайте поле `[SerializeReference] public IChipEvolutionProvider EvolutionProvider;` у відповідний `IChipSpecialData`.
+  - Додайте поле `[SerializeReference] public IChipEvolutionProvider EvolutionProvider;` у відповідний `IChipModuleData`.
   - Інжектуйте `IChipEvolutionService` через VContainer.
   - Налаштуйте параметри виконання через `EvolutionExecutionSettings` (анімаційні тригери, точка польоту, затримки).
   - Перед виконанням перевірте доступність клітинок через `evolutionService.CanEvolve(...)` та за потреби обробіть `EvolutionPlan`.

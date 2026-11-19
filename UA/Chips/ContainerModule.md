@@ -7,19 +7,19 @@
 ## Architecture and Responsibility
 
 ### 1. `ContainerModule.cs` (Container)
-Клас `ContainerModule` зберігає стан наповнення та керує візуальними ефектами, реалізуючи інтерфейс `IChipModule`.
+Клас `ContainerModule` зберігає стан наповнення та керує візуальними ефектами, реалізуючи інтерфейс `IChipModule`. Помічений атрибутом `[RequireModuleData(typeof(ChipContainerData))]`.
 - **Властивості (Data)**:
-  - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, стратегія еволюції `EvolutionProvider` типу `IChipEvolutionProvider`), які отримуються через `data.GetSpecialData<ChipContainerData>()`. `EvolutionProvider` повертає список фішок для створення після заповнення контейнера (з підтримкою накладання `BlockerEffectIds`). Також кожна потрібна фішка визначає префаб візуального елемента через власні спеціальні дані `ChipContainerElementData`.
+  - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, стратегія еволюції `EvolutionProvider` типу `IChipEvolutionProvider`), які отримуються через `data.GetModuleData<ChipContainerData>()`. `EvolutionProvider` повертає список фішок для створення після заповнення контейнера (з підтримкою накладання `BlockerEffectIds`). Також кожна потрібна фішка визначає префаб візуального елемента через власні дані модуля `ChipContainerElementData`.
   - `ContainerRequirements`: Публічна властивість тільки для читання (`IReadOnlyDictionary<ContainerInfo, int>`), що надає доступ до поточних вимог контейнера для підсистеми `ChipCollections`.
   - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при заповненні контейнера (тригери анімацій, прапорці). Доступні публічно через властивість `EvolutionSettings`.
 - **Події та Делегати**:
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
   - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
 - **Ефекти**:
-  - **[ContainerHintEffect](../Visuals/Effects.md#3-container-requirements)**: Спеціальний ефект, що реалізує `IEffectContainerHint` та візуалізує необхідні предмети ("бабли") над контейнером, а також показує візуальні підказки. Призначається через `EffectContainerHintRef` (InterfaceRef).
+  - **[ContainerHintEffect](../Visuals/Effects.md#3-container-requirements)**: Візуальний ефект, що реалізує `IEffectContainerHint` та візуалізує необхідні предмети ("бабли") над контейнером, а також показує візуальні підказки. Призначається через `EffectContainerHintRef` (InterfaceRef).
 
 ### 1.1. `ChipContainerRuntimeData.cs` (Runtime State)
-Реалізує маркерний інтерфейс `IChipSpecialRuntimeData` для зберігання динамічного стану контейнера всередині списку `specialRuntimeDatas` у `ChipRuntimeData`.
+Реалізує маркерний інтерфейс `IChipModuleRuntimeData` для зберігання динамічного стану контейнера всередині списку `moduleRuntimeDatas` у `ChipRuntimeData`.
 
 **Власні властивості**:
 - **`containers`**: Словник (`Dictionary<ContainerInfo, int>`), що відслідковує поточний прогрес заповнення кожної вимоги.
@@ -28,7 +28,7 @@
   - **Завершення**: Коли вимога виконана повністю (лічильник досягає `ContainerInfo.Count`), вона видаляється зі словника. Коли словник порожній — контейнер вважається заповненим.
   - **Конструктори `ContainerInfo`**: Клас має два конструктори — порожній (для Unity-серіалізації в Inspector) та параметризований `ContainerInfo(ChipData requiredChip, int count = 1)` для створення вимог у runtime-коді (наприклад, при клонуванні `ChipData` у тестах або динамічному формуванні вимог контейнера).
 
-**Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipContainerData` (через `GetSpecialData<ChipContainerData>()`).
+**Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipContainerData` (через `GetModuleData<ChipContainerData>()`).
 
 ### 2. `FillContainerLogic.cs` (Logic)
 Керує процесом додавання фішок до контейнера через механізм `IChipInteractionLogic`.  
