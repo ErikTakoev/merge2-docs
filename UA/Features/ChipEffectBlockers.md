@@ -6,7 +6,7 @@
 
 ## Overview
 
-Блокування в Merge — це стан фішки, який забороняє певні ігрові дії (переміщення, злиття, генерацію тощо). Найчастіше блокування накладається через **Extra-ефекти** (павутина, коробки, комбіновані ефекти), які мають власні правила руйнування.
+Блокування в Merge — це стан фішки, який забороняє певні ігрові дії (переміщення, злиття, генерацію тощо). Найчастіше блокування накладається через **Blocker-ефекти** (павутина, коробки, комбіновані ефекти), які мають власні правила руйнування.
 
 ---
 
@@ -55,16 +55,16 @@
 
 ## Blocker Effects (Move Locked, Web, Box, Box And Web)
 
-Extra-ефекти — це набір опціональних візуальних ефектів, що конфігуруються через `ChipExtraEffectsData` (реалізує `IChipModuleData`).
+Blocker-ефекти — це набір опціональних візуальних ефектів, що конфігуруються через `ChipEffectsData` (реалізує `IChipModuleData`).
 
-- **Конфігурація**: `ChipExtraEffectsData` містить масив `ExtraEffectData[]`, де кожен елемент визначає `effectName` (рядок, що резолвиться в ID через `EffectConsts.GetIdByName`) та `Prefab` (ефект-префаб).
+- **Конфігурація**: `ChipEffectsData` містить масив `BlockerEffectData[]` (`Blockers`) та `EffectData[]` (`OtherEffects`), де кожен елемент визначає `effectId` та `Prefab` (ефект-префаб).
 - **Активація**:
   - Ефект активується, коли його ID є в `ChipRuntimeData.EffectEnables`.
-  - При ініціалізації (`Chip.InitEffects`) ітерується список `runtimeData.EffectEnables`. Для кожного `EffectId` знаходиться конфігурація в `ChipExtraEffectsData.BlockersDict`, інстантіюється префаб і додається в словник ефектів.
+  - При ініціалізації (`Chip.InitEffects`) ітерується список `runtimeData.EffectEnables`. Для кожного `EffectId` знаходиться конфігурація в `ChipEffectsData.BlockersDict`, інстантіюється префаб і додається в словник ефектів.
   - Метод `Chip.UpdateVisual()` активує ефекти, чиї ID є в `EffectEnables`.
 - **Деактивація**: Коли ID видаляється з `EffectEnables`.
-- **Blocking**: Кожен extra-ефект має `EffectBlockingSettings`, які при активації передаються в `CombinedBlockingState` чіпа.
-- **Знищення**: Extra-ефекти підтримують систему руйнування (див. [Effect Destroying System](#effect-destroying-system)).
+- **Blocking**: Кожен blocker-ефект має `EffectBlockingSettings`, які при активації передаються в `CombinedBlockingState` чіпа.
+- **Знищення**: Blocker-ефекти підтримують систему руйнування (див. [Effect Destroying System](#effect-destroying-system)).
 
 ---
 
@@ -85,7 +85,7 @@ public struct ChipSpawnData
 }
 ```
 
-Конфігурація lock-ефекту зберігається в `ChipData.moduleDatas` через `ChipExtraEffectsData`.
+Конфігурація lock-ефекту зберігається в `ChipData.moduleDatas` через `ChipEffectsData`.
 
 ### Runtime (Chip)
 Клас `Chip` містить `ChipRuntimeData`, який синхронізується з даними рівня:

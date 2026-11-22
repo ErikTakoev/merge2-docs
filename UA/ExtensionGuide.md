@@ -241,7 +241,7 @@ public override void Init(ChipData data, ChipRuntimeData runtimeData)
 ```csharp
 protected override void InitEffects()
 {
-    base.InitEffects(); // Ініціалізує стандартні ефекти та ефекти з ChipExtraEffectsData
+    base.InitEffects(); // Ініціалізує стандартні ефекти та ефекти з ChipEffectsData
     
     // Додати специфічні ефекти програмно
     var myEffect = InstantiateEffect<IEffect>(myEffectPrefab);
@@ -410,7 +410,7 @@ public class MyPureEffect : MonoBehaviour, IEffect
 
 ### Connecting Effect to Chip
 
-1. **Через ChipData.moduleDatas**: Для blocker-ефектів або інших додаткових ефектів додайте дані `ChipExtraEffectsData` у `moduleDatas` і заповніть список `Blockers` або `OtherEffects`.
+1. **Через ChipData.moduleDatas**: Для blocker-ефектів або інших додаткових ефектів додайте дані `ChipEffectsData` у `moduleDatas` і заповніть список `Blockers` або `OtherEffects`.
 2. **Через InitEffects**: У похідному класі `Chip` створіть ефект через `InstantiateEffect<T>(prefab)` та додайте його за допомогою `AddEffect`.
 
 ### Effect Notifications

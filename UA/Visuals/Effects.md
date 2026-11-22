@@ -36,7 +36,7 @@
 | [`BoxAndWebEffect`](#104-box-and-web-effect) | 104 | Комбінований ефект коробки та павутини |
 
 **Утиліти**:
-- **`nameToId`** (`Dictionary<string, int>`): Словник для резолвінгу рядкових імен ефектів у цілочисельні ID. Використовується `ExtraEffectData.EffectId` та `EffectBlockingSettings.UpdateHideEffectIds`.
+- **`nameToId`** (`Dictionary<string, int>`): Словник для резолвінгу рядкових імен ефектів у цілочисельні ID. Використовується `EffectData.EffectId` та `EffectBlockingSettings.UpdateHideEffectIds`.
 - **`GetIdByName(string name)`**: Повертає ID ефекту за його ім'ям або `-1`, якщо ім'я не знайдено.
 
 Доступ до ефектів відбувається через методи `GetEffect(hash)` та `GetEffect<T>(hash)` у базовому класі `Chip`.

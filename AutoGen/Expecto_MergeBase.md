@@ -3,6 +3,7 @@
 ## Table of Contents
 - [AnimationSortingData](#animationsortingdata)
 - [BlockedCell](#blockedcell)
+- [BlockerEffectData](#blockereffectdata)
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
 - [CellObserverManager](#cellobservermanager)
@@ -18,8 +19,8 @@
 - [ChipContainerRuntimeData](#chipcontainerruntimedata)
 - [ChipData](#chipdata)
 - [ChipDataCollection](#chipdatacollection)
+- [ChipEffectsData](#chipeffectsdata)
 - [ChipEvolutionService](#chipevolutionservice)
-- [ChipExtraEffectsData](#chipextraeffectsdata)
 - [ChipFactory](#chipfactory)
 - [ChipFlightSettings](#chipflightsettings)
 - [ChipFlyAnimation](#chipflyanimation)
@@ -50,17 +51,16 @@
 - [DraggableChipLogic](#draggablechiplogic)
 - [DragInteractionResult](#draginteractionresult)
 - [Effect](#effect)
-- [EffectBlockerData](#effectblockerdata)
 - [EffectBlockerDefinitionAttribute](#effectblockerdefinitionattribute)
 - [EffectBlockerSelectorAttribute](#effectblockerselectorattribute)
 - [EffectBlockerSelectorDrawer](#effectblockerselectordrawer)
 - [EffectBlockingSettings](#effectblockingsettings)
 - [EffectConsts](#effectconsts)
 - [EffectContainerHintRef](#effectcontainerhintref)
+- [EffectData](#effectdata)
 - [EffectDefinitionAttribute](#effectdefinitionattribute)
 - [EffectDestroyingRuntimeData](#effectdestroyingruntimedata)
 - [EffectDestroyingSettings](#effectdestroyingsettings)
-- [EffectExtraData](#effectextradata)
 - [EffectHintRef](#effecthintref)
 - [EffectMergeLightRef](#effectmergelightref)
 - [EffectPowerBoosterJoinRef](#effectpowerboosterjoinref)
@@ -178,6 +178,17 @@
 - `+ OnDragEnd(Vector2 position): void`
 - `+ OnDragStart(Vector2 position): void`
 - `+ OnTap(Vector2 position): void`
+---
+
+## BlockerEffectData
+
+> - **Purpose**: Serializable entry mapping an effect ID to its prefab for blocker/overlay effects
+> - **Usage**: Configured in ChipEffectsData.blockers array
+> - integrates directly with EffectConsts IDs
+> - **Notes**: effectId is updated via inspector combobox using [EffectSelector]
+#### Fields
+- `+- EffectId: int`
+- `+- Prefab: GameObject`
 ---
 
 ## Cell
@@ -412,8 +423,8 @@
 - `~ chipCollections: IChipCollections`
 - `~ dontRepeatTrigger: bool`
 - `~ effects: Dictionary<int, IEffect>`
+- `~ effectsData: ChipEffectsData`
 - `~ extraEffects: EffectRef[]`
-- `~ extraEffectsData: ChipExtraEffectsData`
 - `~ fieldGrid: IFieldGrid`
 - `~ invertTransformNode: Transform`
 - `~ isDragging: bool`
@@ -614,7 +625,7 @@
     - **Purpose**: Initializes all effects for the chip by instantiating effect prefabs and adding them to the effects dictionary
     - **Usage**: Called from Init
     - override in derived classes to add custom effects while maintaining base effect initialization
-    - **Notes**: Iterates runtimeData.EffectEnables and instantiates matching blocker effects from extraEffectsData.BlockersDict
+    - **Notes**: Iterates runtimeData.EffectEnables and instantiates matching blocker effects from effectsData.BlockersDict
     - then instantiates OtherEffects and activates all enabled blocker effects
 - `~ InstantiateEffect(GameObject prefab): T`
     - **Purpose**: Instantiates an effect prefab and initializes it with the current chip
@@ -803,6 +814,24 @@
 - `- OnValidate(): void`
 ---
 
+## ChipEffectsData
+
+> - **Purpose**: Configures available blocker/overlay effects for a chip type via name-to-prefab mappings
+> - **Usage**: Added to ChipData.moduleDatas
+> - Chip.InitEffects iterates Blockers and instantiates only those whose EffectId is in runtimeData.EffectEnables
+> - **Notes**: BlockersDict provides O(1) lookup by EffectId
+> - built during serialization callbacks
+#### Fields
+- `+- Blockers: BlockerEffectData[]`
+- `+- BlockersDict: Dictionary<int, BlockerEffectData>`
+- `+- OtherEffects: EffectData[]`
+- `+- OtherEffectsDict: Dictionary<int, EffectData>`
+#### Methods
+- `+ OnAfterDeserialize(): void`
+- `+ OnBeforeSerialize(): void`
+- `- UpdateDict(): void`
+---
+
 ## ChipEvolutionService
 
 > - **Purpose**: Centralized implementation of IChipEvolutionService coordinating chip evolution across all chip modules.
@@ -833,24 +862,6 @@
     - **Params**: chip - evolving parent chip
     - plan - pre-calculated evolution plan from CanEvolve
     - settings - execution configuration parameters
----
-
-## ChipExtraEffectsData
-
-> - **Purpose**: Configures available extra blocker/overlay effects for a chip type via name-to-prefab mappings
-> - **Usage**: Added to ChipData.moduleDatas
-> - Chip.InitEffects iterates Blockers and instantiates only those whose EffectId is in runtimeData.EffectEnables
-> - **Notes**: BlockersDict provides O(1) lookup by EffectId
-> - built during serialization callbacks
-#### Fields
-- `+- Blockers: EffectBlockerData[]`
-- `+- BlockersDict: Dictionary<int, EffectBlockerData>`
-- `+- OtherEffects: EffectExtraData[]`
-- `+- OtherEffectsDict: Dictionary<int, EffectExtraData>`
-#### Methods
-- `+ OnAfterDeserialize(): void`
-- `+ OnBeforeSerialize(): void`
-- `- UpdateDict(): void`
 ---
 
 ## ChipFactory
@@ -1850,17 +1861,6 @@
     - **Usage**: Called during cleanup and destruction to prevent orphan coroutines
 ---
 
-## EffectBlockerData
-
-> - **Purpose**: Serializable entry mapping an effect ID to its prefab for extra blocker/overlay effects
-> - **Usage**: Configured in ChipExtraEffectsData.blockers array
-> - integrates directly with EffectConsts IDs
-> - **Notes**: effectId is updated via inspector combobox using [EffectSelector]
-#### Fields
-- `+- EffectId: int`
-- `+- Prefab: GameObject`
----
-
 ## EffectBlockerDefinitionAttribute
 **Inherits**: `EffectDefinitionAttribute`
 
@@ -1913,7 +1913,7 @@
 > - **Purpose**: Centralized registry of integer effect IDs used as keys in the chip effects dictionary
 > - **Usage**: Reference these constants when adding, retrieving, or removing effects via Chip.AddEffect/GetEffect/RemoveEffect
 > - **Notes**: Base IDs are for built-in effects
-> - Extra subclass (101+) is for optional blocker/overlay effects configured through ChipExtraEffectsData
+> - Extra subclass (101+) is for optional blocker/overlay effects configured through ChipEffectsData
 > - nameToId dictionary enables serialized string-to-int resolution. Supports extension via EffectDefinitionAttribute.
 #### Fields
 - `+ CellHighlight: int`
@@ -1940,6 +1940,18 @@
 
 ## EffectContainerHintRef
 **Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
+---
+
+## EffectData
+
+> - **Purpose**: Extended effect data include activation/deactivation triggers
+> - **Usage**: Used in OtherEffects list for chips that need effects with specific lifecycle control
+> - **Notes**: Supports custom activation/deactivation logic during chip initialization
+#### Fields
+- `+- ActivateOnStart: bool`
+- `+- DeactivateOnStart: bool`
+- `+- EffectId: int`
+- `+- Prefab: GameObject`
 ---
 
 ## EffectDefinitionAttribute
@@ -1969,18 +1981,6 @@
 #### Fields
 - `+- AdditionalStates: string[]`
 - `+- Priority: int`
----
-
-## EffectExtraData
-
-> - **Purpose**: Extended effect data include activation/deactivation triggers
-> - **Usage**: Used in OtherEffects list for chips that need effects with specific lifecycle control
-> - **Notes**: Supports custom activation/deactivation logic during chip initialization
-#### Fields
-- `+- ActivateOnStart: bool`
-- `+- DeactivateOnStart: bool`
-- `+- EffectId: int`
-- `+- Prefab: GameObject`
 ---
 
 ## EffectHintRef

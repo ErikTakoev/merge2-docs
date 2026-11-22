@@ -21,7 +21,7 @@
   - **GetModuleData<T>()**: Типізований доступ до елемента `moduleDatas`.
   - **HasModuleData<T>()** / **HasModuleData(Type)**: Перевірка наявності конфігураційних даних модуля вказаного типу в колекції `moduleDatas`.
   - **AddModuleData(IChipModuleData)** / **CreateModuleData<T>()**: Допоміжні методи для додавання готового або створення нового екземпляра даних модуля.
-  - **IChipModuleData**: Базовий контракт для даних модулів. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipExtraEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
+  - **IChipModuleData**: Базовий контракт для даних модулів. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
   - **IChipEvolutionProvider**: Поліморфна стратегія вибору наступних чіпів для всіх модулів еволюції (`ChipTapEvolutionData`, `ChipUnlockAreaData`, `ChipWaitEvolutionData`, `ChipContainerData`, `ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantEvolutionProvider`, `RandomEvolutionProvider`. Еволюція централізовано виконується через `IChipEvolutionService` (`EvolutionExecutionSettings`).
   - **IChipGenerationProvider**: Поліморфна стратегія вибору фішок для генерації в `GeneratorModule` (`ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantGenerationProvider`, `RandomGenerationProvider`, `SequenceGenerationProvider`. Зберігає стан прогресу через `SequenceIndex` у `ChipGeneratorRuntimeData`.
 
@@ -59,8 +59,8 @@
 
 ### Effect Initialization
 - **`InitEffects()`**: Віртуальний метод, викликаний з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація:
-  1. Ітерує `runtimeData.EffectEnables` — для кожного `EffectId` знаходить конфігурацію в `ChipExtraEffectsData.BlockersDict`, інстантіює префаб і додає в словник ефектів через `AddEffect`
-  2. Створює та додає `OtherEffects` з `ChipExtraEffectsData`
+  1. Ітерує `runtimeData.EffectEnables` — для кожного `EffectId` знаходить конфігурацію в `ChipEffectsData.BlockersDict`, інстантіює префаб і додає в словник ефектів через `AddEffect`
+  2. Створює та додає `OtherEffects` з `ChipEffectsData`
   3. Реєструє додаткові ефекти з масиву `extraEffects` (`EffectRef[]`), налаштовані на самому префабі чіпа
   4. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
   5. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
