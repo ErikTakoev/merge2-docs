@@ -35,7 +35,7 @@
 - **`NotifyEffectRemoved(int effectId)`**: Сповіщає всі активні бустери про видалення ефекту. Викликається з `RemoveEffect` цілі (або `OnEffectRemoved` її модулів), щоб бустери могли reapply, якщо `CanReceiveModifiers` став `true`.
 
 ### 4. `IPowerBoosterTarget` Implementations (`GeneratorModule` & `WaitEvolutionModule`)
-Інтерфейс `IPowerBoosterTarget` реалізується безпосередньо модулями, швидкість роботи яких може масштабуватися бустерами ([GeneratorModule.cs](../../../Core/Scripts/Chips/GeneratorModule.cs) та [WaitEvolutionModule.cs](../../../Core/Scripts/Chips/WaitEvolutionModule.cs)).
+Інтерфейс `IPowerBoosterTarget` реалізується безпосередньо модулями, швидкість роботи яких може масштабуватися бустерами ([GeneratorModule.cs](../../../Core/Scripts/Chips/GeneratorModule.cs) та [WaitEvolutionModule.cs](../../../../MergeCommon/WaitEvolution/Scripts/WaitEvolutionModule.cs)). Деталі другого модуля див. у [WaitEvolutionModule.md](../../../../MergeCommon/Docs/UA/Chips/WaitEvolutionModule.md).
 - **`powerMultiplier`** (`float`): Runtime-множник швидкості зарядки або перебігу таймера еволюції (`Update()` використовує `Time.deltaTime * powerMultiplier`).
 - **`joinPoints`** (`Transform[]`): Серіалізовані точки прив'язки на цілі для join-лінків бустера.
 - **`AppliedBoosters`** (`HashSet<PowerBoosterModule>`): Набір активних бустерів для цієї цілі.

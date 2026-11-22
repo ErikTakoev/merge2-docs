@@ -253,7 +253,7 @@
 ### 5. Generator Charging
 **Клас**: `ChargingEffect.cs`
 **Реалізує**: `IChargingEffect`
-**Використовується в**: [GeneratorModule](../Chips/GeneratorModule.md), [WaitEvolutionModule](../Chips/WaitEvolutionModule.md)
+**Використовується в**: [GeneratorModule](../Chips/GeneratorModule.md), [WaitEvolutionModule](../../../../MergeCommon/Docs/UA/Chips/WaitEvolutionModule.md)
 
 Візуалізує процес заряджання таймера (генератора або модуля очікування еволюції). Відображає прогрес у вигляді таймера-секундоміра (через зміну параметра матеріалу `_GrayProgress` та обертання стрілки-вказівника `arrowTransform`).
 - **Метод `OnCharging(float progress)`**: Отримує значення від 0 до 1 та оновлює візуалізацію.

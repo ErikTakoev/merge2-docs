@@ -1,11 +1,8 @@
 # Namespace: Expecto.MergeBase
 
 ## Table of Contents
-- [ActivateTutorialNode](#activatetutorialnode)
 - [AnimationSortingData](#animationsortingdata)
-- [AreaUnlockedEventArgs](#areaunlockedeventargs)
 - [BlockedCell](#blockedcell)
-- [BlockTutorialInputNode](#blocktutorialinputnode)
 - [Cell](#cell)
 - [CellHighlightEffect](#cellhighlighteffect)
 - [CellObserverManager](#cellobservermanager)
@@ -19,16 +16,13 @@
 - [ChipContainerData](#chipcontainerdata)
 - [ChipContainerElementData](#chipcontainerelementdata)
 - [ChipContainerRuntimeData](#chipcontainerruntimedata)
-- [ChipCreatedEventArgs](#chipcreatedeventargs)
 - [ChipData](#chipdata)
 - [ChipDataCollection](#chipdatacollection)
-- [ChipEffectUnlockedEventArgs](#chipeffectunlockedeventargs)
 - [ChipEvolutionService](#chipevolutionservice)
 - [ChipExtraEffectsData](#chipextraeffectsdata)
 - [ChipFactory](#chipfactory)
 - [ChipFlightSettings](#chipflightsettings)
 - [ChipFlyAnimation](#chipflyanimation)
-- [ChipFlyAnimationNode](#chipflyanimationnode)
 - [ChipGeneratorData](#chipgeneratordata)
 - [ChipGeneratorRuntimeData](#chipgeneratorruntimedata)
 - [ChipLiftController](#chipliftcontroller)
@@ -40,16 +34,11 @@
 - [ChipMergeData](#chipmergedata)
 - [ChipMovingLogic](#chipmovinglogic)
 - [ChipPowerBoosterData](#chippowerboosterdata)
-- [ChipRemovedEventArgs](#chipremovedeventargs)
 - [ChipRuntimeData](#chipruntimedata)
 - [ChipSelectorAttribute](#chipselectorattribute)
 - [ChipSelectorDrawer](#chipselectordrawer)
 - [ChipSortingLayer](#chipsortinglayer)
 - [ChipSpawnData](#chipspawndata)
-- [ChipTapEvolutionData](#chiptapevolutiondata)
-- [ChipUnlockAreaData](#chipunlockareadata)
-- [ChipWaitEvolutionData](#chipwaitevolutiondata)
-- [ChipWaitEvolutionRuntimeData](#chipwaitevolutionruntimedata)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ConstantEvolutionProvider](#constantevolutionprovider)
 - [ConstantGenerationProvider](#constantgenerationprovider)
@@ -57,9 +46,6 @@
 - [ContainerHintNotifier](#containerhintnotifier)
 - [ContainerInfo](#containerinfo)
 - [ContainerModule](#containermodule)
-- [CreateChipNode](#createchipnode)
-- [DeactivateTutorialNode](#deactivatetutorialnode)
-- [DeferredCell](#deferredcell)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
 - [DragInteractionResult](#draginteractionresult)
@@ -91,12 +77,12 @@
 - [FieldGrid](#fieldgrid)
 - [FieldInitializeCommand](#fieldinitializecommand)
 - [FillContainerLogic](#fillcontainerlogic)
-- [FindAnyChipNode](#findanychipnode)
 - [FlightType](#flighttype)
 - [FreeCellFinder](#freecellfinder)
 - [GenerationExecutionSettings](#generationexecutionsettings)
 - [GeneratorModule](#generatormodule)
 - [HintEffect](#hinteffect)
+- [HintService](#hintservice)
 - [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
 - [IChargingEffect](#ichargingeffect)
@@ -125,28 +111,23 @@
 - [IFieldEventHandler](#ifieldeventhandler)
 - [IFieldGrid](#ifieldgrid)
 - [IFieldInitializeCommand](#ifieldinitializecommand)
+- [IFieldModuleData](#ifieldmoduledata)
 - [IFreeCellFinder](#ifreecellfinder)
-- [ILockedAreaEffect](#ilockedareaeffect)
-- [ILockedAreaManager](#ilockedareamanager)
+- [IHintService](#ihintservice)
+- [IInputBlocker](#iinputblocker)
 - [IMergeCamera](#imergecamera)
+- [IMergeEventHandler](#imergeeventhandler)
 - [IMergeLifetimeScope](#imergelifetimescope)
 - [IPowerBoosterTarget](#ipowerboostertarget)
-- [IScenarioEventHandler](#iscenarioeventhandler)
 - [IShadowEffect](#ishadoweffect)
 - [ISubEffect](#isubeffect)
 - [ISubEffectOwner](#isubeffectowner)
-- [ITutorial](#itutorial)
-- [ITutorialInputBlocker](#itutorialinputblocker)
-- [ITutorialManager](#itutorialmanager)
 - [IVisualField](#ivisualfield)
-- [LeafHelper](#leafhelper)
-- [LockedAreaEffect](#lockedareaeffect)
-- [LockedAreaManager](#lockedareamanager)
-- [Merge2Initializer](#merge2initializer)
-- [Merge2LifetimeScope](#merge2lifetimescope)
+- [IVisualFieldElement](#ivisualfieldelement)
 - [MergeableChipLogic](#mergeablechiplogic)
 - [MergeCamera](#mergecamera)
 - [MergeCombination](#mergecombination)
+- [MergeEventHandler](#mergeeventhandler)
 - [MergeHintDragFeedback](#mergehintdragfeedback)
 - [MergeHintEffect](#mergehinteffect)
 - [MergeLightDragFeedback](#mergelightdragfeedback)
@@ -160,7 +141,6 @@
 - [RandomEvolutionProvider](#randomevolutionprovider)
 - [RandomGenerationProvider](#randomgenerationprovider)
 - [RequireModuleDataAttribute](#requiremoduledataattribute)
-- [ScenarioEventHandler](#scenarioeventhandler)
 - [SepiaEffect](#sepiaeffect)
 - [SequenceGenerationProvider](#sequencegenerationprovider)
 - [ShadowEffect](#shadoweffect)
@@ -168,42 +148,8 @@
 - [SortingLayerData](#sortinglayerdata)
 - [SpriteDirectionalFadeController](#spritedirectionalfadecontroller)
 - [SubEffect](#subeffect)
-- [TapEvolutionModule](#tapevolutionmodule)
-- [Tutorial](#tutorial)
-- [TutorialHandHelper](#tutorialhandhelper)
-- [TutorialInputBlocker](#tutorialinputblocker)
-- [TutorialManager](#tutorialmanager)
-- [UnblockTutorialInputNode](#unblocktutorialinputnode)
-- [UnlockAreaModule](#unlockareamodule)
-- [UnlockAreaNode](#unlockareanode)
-- [UnlockAreaStep](#unlockareastep)
 - [VisualField](#visualfield)
-- [WaitEvolutionModule](#waitevolutionmodule)
-- [WaitForAreaUnlockedNode](#waitforareaunlockednode)
-- [WaitForChipCreatedNode](#waitforchipcreatednode)
-- [WaitForChipEffectUnlockedNode](#waitforchipeffectunlockednode)
-- [WaitForChipRemovedNode](#waitforchipremovednode)
-- [WaitForFreeCellsNode](#waitforfreecellsnode)
-- [WaitForNotEnoughSpaceForEvolutionNode](#waitfornotenoughspaceforevolutionnode)
-- [WaitForNotEnoughSpaceNode](#waitfornotenoughspacenode)
 
----
-
-## ActivateTutorialNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Activates a tutorial by name via ITutorialManager and optionally suspends graph execution until it is deactivated.
-> - **Usage**: Connect to a control flow
-> - provide tutorialName matching the tutorial prefab name, and optional waitForDeactivation (default true). Must be run as a coroutine if waiting for deactivation.
-> - **Notes**: TutorialManager must be set in Scene Variables during scene initialization by MergeBaseVScriptingInitializer.
-#### Fields
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-- `+- TutorialName: ValueInput`
-- `+- WaitForDeactivation: ValueInput`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
 ---
 
 ## AnimationSortingData
@@ -215,11 +161,6 @@
 #### Fields
 - `+ AdditionalOrder: int`
 - `+ TriggerName: string`
----
-
-## AreaUnlockedEventArgs
-#### Fields
-- `+ AreaId: int`
 ---
 
 ## BlockedCell
@@ -237,22 +178,6 @@
 - `+ OnDragEnd(Vector2 position): void`
 - `+ OnDragStart(Vector2 position): void`
 - `+ OnTap(Vector2 position): void`
----
-
-## BlockTutorialInputNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Blocks all field interactions (drag and tap) during a tutorial step. Optionally allows a single action via AllowedStart / AllowedEnd.
-> - **Usage**: Connect to a control flow in a Visual Scripting graph. Resolves ITutorialInputBlocker from Scene Variables. Set AllowedStart == AllowedEnd for tap-only, AllowedStart != AllowedEnd for drag-only, or leave both at (-1,-1) to block everything.
-> - **Notes**: Positions are top-left grid cell coordinates (Vector2Int). (-1,-1) is treated as null (no exception). Multi-cell chip anchors are resolved automatically in DraggableChipLogic.
-#### Fields
-- `+- AllowedEnd: ValueInput`
-- `+- AllowedStart: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- Trigger(Flow flow): ControlOutput`
 ---
 
 ## Cell
@@ -502,8 +427,8 @@
 - `~ lastTriggerName: string`
 - `- liftControllerRef: ChipLiftControllerRef`
 - `- materialControllerRef: ChipMaterialControllerRef`
+- `~ mergeEventHandler: IMergeEventHandler`
 - `~ resolver: IObjectResolver`
-- `~ scenarioEventHandler: IScenarioEventHandler`
 - `~ transformNode: Transform`
 #### Methods
 - `+ AddEffect(IEffect effect, int effectHash, bool activate, bool deactivate): void`
@@ -830,12 +755,6 @@
     - empty dictionary means container is full
 ---
 
-## ChipCreatedEventArgs
-#### Fields
-- `+ Cell: ICell`
-- `+ Chip: Chip`
----
-
 ## ChipData
 **Inherits**: `ScriptableObject`
 #### Fields
@@ -884,12 +803,6 @@
 - `- OnValidate(): void`
 ---
 
-## ChipEffectUnlockedEventArgs
-#### Fields
-- `+ Chip: Chip`
-- `+ EffectId: int`
----
-
 ## ChipEvolutionService
 
 > - **Purpose**: Centralized implementation of IChipEvolutionService coordinating chip evolution across all chip modules.
@@ -901,7 +814,7 @@
 - `- chipFactory: ChipFactory`
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
-- `- scenarioEventHandler: IScenarioEventHandler`
+- `- mergeEventHandler: IMergeEventHandler`
 #### Methods
 - `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionExecutionSettings settings, EvolutionPlan& plan, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
     - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements.
@@ -945,13 +858,13 @@
 > - **Purpose**: Factory for creating and placing Chip instances on the field grid.
 > - **Usage**: Call Init once during scene initialization (Merge2Initializer) then call CreateChip to instantiate chips from ChipData
 > - pass runtimeDataInitializer to override runtime data before Init.
-> - **Notes**: After SetChipInCell, fires IScenarioEventHandler.RaiseChipCreated so scenario listeners and UVS nodes receive the creation event. Requires ChipData with a valid PrefabLink.
+> - **Notes**: After SetChipInCell, fires IMergeEventHandler.RaiseChipCreated so scenario listeners and UVS nodes receive the creation event. Requires ChipData with a valid PrefabLink.
 #### Fields
 - `~ chipCollections: IChipCollections`
 - `~ fieldGrid: IFieldGrid`
-- `~ lockedAreaManager: ILockedAreaManager`
+- `~ mergeEventHandler: IMergeEventHandler`
+- `- OnChipCreatedBeforeNotify: Action<Chip, ICell>`
 - `~ resolver: IObjectResolver`
-- `~ scenarioEventHandler: IScenarioEventHandler`
 #### Methods
 - `+ CreateChip(ICell cell, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings): Chip`
     - **Purpose**: Instantiates and initializes a new chip on the specified cell
@@ -962,7 +875,7 @@
     - runtimeDataInitializer - optional delegate to modify runtime state before initialization
     - flightSettings - flight animation configuration
     - **Returns**: The initialized Chip instance, or null if creation failed
-    - **Notes**: If the target cell is blocked, applies active locked area effects via lockedAreaManager
+    - **Notes**: Fires OnChipCreatedBeforeNotify before grid placement and IMergeEventHandler.RaiseChipCreated after placement.
 - `+ CreateChip(Vector2Int cellPosition, ChipData chipData, Nullable<Vector3> parentWorldPosition, Action<ChipRuntimeData> runtimeDataInitializer, ChipFlightSettings flightSettings): Chip`
     - **Purpose**: Instantiates and initializes a new chip at the specified grid coordinates
     - **Usage**: Convenience wrapper around the cell-based CreateChip method
@@ -972,17 +885,15 @@
     - runtimeDataInitializer - optional delegate
     - flightSettings - flight animation configuration
     - **Returns**: The initialized Chip instance
-- `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid, IChipCollections chipCollections, IScenarioEventHandler scenarioEventHandler, ILockedAreaManager lockedAreaManager): void`
+- `+ Init(IObjectResolver resolver, IFieldGrid fieldGrid, IChipCollections chipCollections, IMergeEventHandler mergeEventHandler): void`
     - **Purpose**: Wires all dependencies required by the factory before any chip can be created.
     - **Usage**: Called once by Merge2Initializer / IsoMergeInitializer at scene start. Must be called before CreateChip.
     - **Params**: resolver - VContainer object resolver for prefab instantiation
     - fieldGrid - grid for cell placement
     - chipCollections - registry of active chips
-    - scenarioEventHandler - optional
-    - when null, scenario events are silently skipped
-    - lockedAreaManager - optional
-    - when null, locked area effects are skipped
-    - **Notes**: scenarioEventHandler and lockedAreaManager default to null to stay backward-compatible with tests that build ChipFactory without a full lifetime scope.
+    - mergeEventHandler - optional
+    - when null, merge events are silently skipped
+    - **Notes**: mergeEventHandler defaults to null to stay backward-compatible with tests that build ChipFactory without a full lifetime scope.
 ---
 
 ## ChipFlightSettings
@@ -1038,33 +949,6 @@
 - `- ApplyHalfArc(float t): float`
 - `- ApplyHalfArcHalfBounce(float t): float`
 - `- ApplyLinear(float t): float`
----
-
-## ChipFlyAnimationNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Animates a chip flying to a target position using IChipFlyAnimation and scales the chip over flight duration.
-> - **Usage**: Connect to a control flow as a coroutine (ControlInputCoroutine). Provides chip, target local position, duration, flight type, end scale, and reset moving state option.
-> - **Notes**: Instantiates ChipFlyAnimation per execution. Automatically manages chip.SetMoving(true/false) and chip.LiftController.LiftHeight during flight.
-#### Fields
-- `+- ChipInput: ValueInput`
-- `+- DurationInput: ValueInput`
-- `+- EndScaleInput: ValueInput`
-- `+- FlightTypeInput: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- MovedChip: ValueOutput`
-- `+- OutputTrigger: ControlOutput`
-- `+- ResetMovingOnCompleteInput: ValueInput`
-- `+- TargetParentInput: ValueInput`
-- `+- TargetPositionInput: ValueInput`
-- `- lastMovedChip: Chip`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
-    - **Purpose**: Drives the chip flight animation frame by frame until completion
-    - **Usage**: Called when control flow enters inputTrigger in a coroutine flow
-    - **Params**: flow - the Visual Scripting execution flow context
-    - **Returns**: IEnumerator control flow yielding until flight completes
 ---
 
 ## ChipGeneratorData
@@ -1310,11 +1194,6 @@
 - `++ Power: float`
 ---
 
-## ChipRemovedEventArgs
-#### Fields
-- `+ Chip: Chip`
----
-
 ## ChipRuntimeData
 
 > - **Purpose**: Stores runtime state for chips during gameplay, including dynamic properties that change during game execution
@@ -1461,45 +1340,6 @@
     - **Returns**: ChipData instance or null if not found
 ---
 
-## ChipTapEvolutionData
-
-> - **Purpose**: Configuration data for chip tap-evolution, defining the chip evolution provider strategy.
-> - **Usage**: Used in ChipData moduleDatas list. Queried by TapEvolutionModule in Init.
-> - **Notes**: Uses polymorphic IChipEvolutionProvider for flexible evolution selection strategies.
-#### Fields
-- `+ EvolutionProvider: IChipEvolutionProvider`
----
-
-## ChipUnlockAreaData
-
-> - **Purpose**: Configuration data for chips that unlock locked areas on tap.
-> - **Usage**: Used in ChipData moduleDatas list. Queried by UnlockAreaModule in Init.
-> - **Notes**: Supports sequential area unlocking with delays and optional polymorphic evolution strategy via IChipEvolutionProvider.
-#### Fields
-- `++ EvolutionProvider: IChipEvolutionProvider`
-- `++ Steps: UnlockAreaStep[]`
----
-
-## ChipWaitEvolutionData
-
-> - **Purpose**: Configuration data for chip wait-evolution, defining the time to evolve, next chips with weights, and booster influence toggle.
-> - **Usage**: Used in ChipData moduleDatas list. Queried by WaitEvolutionModule in Init.
-> - **Notes**: Evolves into a weighted random chip from NextChips array or gets destroyed if empty.
-#### Fields
-- `+ EvolutionProvider: IChipEvolutionProvider`
-- `+ EvolveTime: float`
-- `+ IsAffectedByBoosters: bool`
----
-
-## ChipWaitEvolutionRuntimeData
-
-> - **Purpose**: Stores runtime state for a chip wait-evolution, tracking the remaining time until evolution.
-> - **Usage**: Created and managed by WaitEvolutionModule. Used to persist state during gameplay.
-> - **Notes**: Updated during update ticks as time progress.
-#### Fields
-- `+ TimeLeft: float`
----
-
 ## CombinedBlockingState
 
 > - **Purpose**: Runtime aggregate of all active effect blocking settings on a chip
@@ -1568,22 +1408,22 @@
 > - **Purpose**: Visual effect controller for ChipContainer, managing spawned elements and displaying visual hints.
 > - **Usage**: Attached to ChipContainer prefab
 > - implements IEffectContainerHint
-> - **Notes**: Triggers Hint animation on spawn (Activate), cell change (OnChangedCell), and tap (OnTap). When force is false, suppresses hints if an active tutorial exists or if no matching chips exist on field.
+> - **Notes**: Triggers Hint animation on spawn (Activate), cell change (OnChangedCell), and tap (OnTap). When force is false, suppresses hints if hints are suppressed (IHintService.CanShowHint() == false) or if no matching chips exist on field.
 #### Fields
 - `- cachedContainers: Dictionary<ContainerInfo, int>`
 - `- chipCollections: IChipCollections`
 - `- delay: float`
 - `- flipX: bool`
 - `- hintCoroutine: Coroutine`
+- `- hintService: IHintService`
 - `- layoutForElements: Transform`
-- `- tutorialManager: ITutorialManager`
 #### Methods
 - `+ Activate(Chip chip): bool`
 - `+ Deactivate(Chip chip, bool force): void`
 - `+ Hint(bool force): void`
     - **Purpose**: Triggers the 'Hint' animator trigger to show a visual container hint, optionally forcing it immediately.
     - **Usage**: Called automatically on activation, cell change, or tap. Pass force=true to trigger immediately.
-    - **Notes**: Stops any active hint coroutine. When force is false, suppresses hints if an active tutorial exists or if no matching chips are on the field. If force is true, triggers immediately.
+    - **Notes**: Stops any active hint coroutine. When force is false, suppresses hints if hints are suppressed (IHintService.CanShowHint() == false) or if no matching chips are on the field. If force is true, triggers immediately.
 - `+ Init(Chip chip, int effectId): void`
     - **Purpose**: Initializes the container hint effect with chip reference and caches the container runtime data reference.
     - **Usage**: Called when effect is added to chip
@@ -1608,25 +1448,25 @@
 
 > - **Purpose**: Listens to chip creation and tap events and triggers visual container hints on fillable containers when a compatible chip is created or tapped.
 > - **Usage**: Registered as a VContainer entry point
-> - receives scenarioEventHandler.OnChipCreated and OnChipTapped, and queries IChipCollections.FillableChipsByData.
+> - receives mergeEventHandler.OnChipCreated and OnChipTapped, and queries IChipCollections.FillableChipsByData.
 > - **Notes**: Checks if the chip can move and is not destroying, then triggers Hint() on active ContainerHintEffects for all matching fillable containers.
 #### Fields
 - `- chipCollections: IChipCollections`
-- `- scenarioEventHandler: IScenarioEventHandler`
+- `- mergeEventHandler: IMergeEventHandler`
 #### Methods
 - `+ Dispose(): void`
-    - **Purpose**: Unsubscribes from scenarioEventHandler events when the lifetime scope is disposed.
+    - **Purpose**: Unsubscribes from mergeEventHandler events when the lifetime scope is disposed.
     - **Usage**: Called automatically by VContainer.
 - `+ Initialize(): void`
-    - **Purpose**: Subscribes to scenarioEventHandler events when the lifetime scope initializes.
+    - **Purpose**: Subscribes to mergeEventHandler events when the lifetime scope initializes.
     - **Usage**: Called automatically by VContainer.
 - `- OnChipCreated(Chip createdChip): void`
     - **Purpose**: Handles chip creation events by finding fillable containers for the new chip and triggering their hint effects if active.
-    - **Usage**: Event handler for scenarioEventHandler.OnChipCreated.
+    - **Usage**: Event handler for mergeEventHandler.OnChipCreated.
     - **Params**: createdChip - The newly spawned chip instance on the board.
 - `- OnChipTapped(Chip tappedChip): void`
     - **Purpose**: Handles chip tap events by finding fillable containers for the tapped chip and triggering their hint effects if active.
-    - **Usage**: Event handler for scenarioEventHandler.OnChipTapped.
+    - **Usage**: Event handler for mergeEventHandler.OnChipTapped.
     - **Params**: tappedChip - The chip instance tapped by the player.
 - `- TriggerContainerHintsForChip(Chip chip, bool force): void`
     - **Purpose**: Finds fillable containers requiring the specified chip data and triggers their visual hint effect.
@@ -1701,84 +1541,6 @@
 - `- OnDestroy(): void`
 ---
 
-## CreateChipNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Creates a chip on the field via ChipFactory with optional flight settings (parentWorldPosition, flightDuration, flightType), blocker effects, animator trigger, and optional aggressive relocation.
-> - **Usage**: Connect to a control flow
-> - provide chipData, cellPosition, optional flight parameters if UseFlight is enabled, optional blockerEffectIds, animatorTrigger, and aggressive flag.
-> - **Notes**: ChipFactory must be set in Scene Variables during scene initialization by MergeBaseVScriptingInitializer. When aggressive is enabled, FieldGrid and ChipMovingLogic are used to relocate conflicting chips to free cells before spawning. Flight parameters are conditionally enabled via the UseFlight header inspectable toggle.
-#### Fields
-- `++ UseFlight: bool`
-- `+- AggressiveInput: ValueInput`
-- `+- AnimatorTriggerInput: ValueInput`
-- `+- BlockerEffectIds: ValueInput`
-- `+- CellPosition: ValueInput`
-- `+- ChipDataInput: ValueInput`
-- `+- CreatedChip: ValueOutput`
-- `+- FlightDuration: ValueInput`
-- `+- FlightTypeInput: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-- `+- ParentWorldPosition: ValueInput`
-- `+- SuccessOutput: ValueOutput`
-- `- lastCreatedChip: Chip`
-- `- lastSuccess: bool`
-#### Methods
-- `~ Definition(): void`
-- `- Trigger(Flow flow): ControlOutput`
----
-
-## DeactivateTutorialNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Deactivates the currently active tutorial, or a specific tutorial by name via ITutorialManager.
-> - **Usage**: Connect to a control flow. Resolves ITutorialManager from Scene Variables and calls Deactivate(tutorialName). Enable SpecifyTutorialName header toggle to provide a specific tutorial name port.
-> - **Notes**: TutorialManager must be set in Scene Variables during scene initialization by MergeBaseVScriptingInitializer.
-#### Fields
-- `++ SpecifyTutorialName: bool`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-- `+- TutorialName: ValueInput`
-#### Methods
-- `~ Definition(): void`
-- `- Trigger(Flow flow): ControlOutput`
----
-
-## DeferredCell
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Add-on component that stores initial chip data until its locked area becomes available
-> - **Usage**: Added automatically by FieldGrid to regular Cell or IsoCell prefabs for locked-area deferred coordinates
-> - **Notes**: Keeps deferred loading independent from the concrete cell class
-> - requires an ICell component on the same GameObject
-#### Fields
-- `- chipFactory: ChipFactory`
-- `- deferredCellData: CellData`
-- `- deferredChipData: ChipData`
-- `- hasDeferredChip: bool`
-- `- ownerCell: ICell`
-#### Methods
-- `+ Init(ICell cell): void`
-    - **Purpose**: Binds this deferred loader to the concrete grid cell it augments
-    - **Usage**: Called by FieldGrid immediately after adding this component to a spawned cell GameObject
-    - **Params**: cell - real Cell or IsoCell implementation that should receive the deferred chip
-    - **Notes**: The component does not implement ICell itself and always delegates chip placement to this owner cell
-- `+ SetupDeferredChip(CellData cellData, ChipData chipData): void`
-    - **Purpose**: Stores level chip configuration without creating the chip immediately
-    - **Usage**: Called by FieldInitializeCommand.LoadChips when the target cell is deferred
-    - **Params**: cellData - serialized cell placement and runtime effect state
-    - chipData - chip definition resolved from the collection
-    - **Notes**: A later call to SpawnDeferredChip consumes this data exactly once
-- `+ SpawnDeferredChip(): Chip`
-    - **Purpose**: Creates the delayed chip when the owning locked area opens
-    - **Usage**: Called by LockedAreaManager.UnlockArea after the cell is unblocked
-    - **Returns**: Created chip instance, or null when there is no stored chip data or creation fails
-    - **Notes**: Copies blocker effect state from FieldData so deferred chips match normal LoadChips initialization
-- `+ TryGet(ICell cell, DeferredCell& deferredCell): bool`
-- `- EnsureOwnerCell(): void`
----
-
 ## DeferredChipChangeNotifier
 
 > - **Purpose**: Plain-class implementation of IChipChangeNotifier.
@@ -1829,6 +1591,7 @@
     - **Notes**: Set in OnDragStart for performance optimization during drag
 - `~ fieldGrid: IFieldGrid`
 - `- filterCellsBuffer: List<ICell>`
+- `~ inputBlocker: IInputBlocker`
 - `~ prevCell: ICell`
 - `~ sourceCell: ICell`
     - **Purpose**: Stores the cell from which the chip was originally dragged
@@ -1842,7 +1605,6 @@
     - used for coordinate transformations during drag
     - **Notes**: Used for coordinate transformations during drag
     - set in OnDragStart
-- `~ tutorialInputBlocker: ITutorialInputBlocker`
 #### Methods
 - `+ GetAnchorPosition(Vector2 originalPosition): Vector2`
     - **Purpose**: Calculates anchor position for chip placement based on its size.
@@ -1876,6 +1638,7 @@
     - **Params**: targetCell - the top-left/anchor cell of the candidate placement area
     - **Returns**: A reference to the shared filterCellsBuffer list populated with relevant cells.
     - **Notes**: Uses pre-allocated internal buffers to avoid per-frame GC allocations in the drag interaction loop.
+- `- InjectInputBlocker(IObjectResolver resolver): void`
 - `- MoveToWorldPosition(Vector3 worldPosition): void`
 - `~ NotifyNeighborsOfInteraction(ICell targetCell, Vector2Int targetChipSize): void`
     - **Purpose**: Notifies neighboring chips that an interaction has occurred on the target cell.
@@ -2339,10 +2102,41 @@
 - `+- Cells: CellData[]`
 - `+- ChipDataCollection: ChipDataCollection`
 - `+- FieldSize: Vector2Int`
-- `+- LockedAreas: LockedAreaData[]`
+- `+- ModuleDatas: IReadOnlyList<IFieldModuleData>`
 - `+- VisualFieldPrefab: GameObject`
-- `+- VScriptingFieldPrefab: GameObject`
 #### Methods
+- `+ AddModuleData(IFieldModuleData moduleData): void`
+    - **Purpose**: Adds a module data instance to moduleDatas collection
+    - **Usage**: Called to attach configuration data for a new field feature
+    - **Params**: moduleData - instance of IFieldModuleData to add
+- `+ GetModuleData(): T`
+    - **Purpose**: Finds and returns the first registered module data instance of type T
+    - **Usage**: Call to retrieve typed configuration for a specific field feature
+    - **Returns**: The module data instance if found
+    - otherwise default (null)
+- `+ HasModuleData(): bool`
+    - **Purpose**: Checks whether a module data instance of type T is registered in moduleDatas
+    - **Usage**: Call to check feature availability on this field before querying its configuration
+- `+ HasModuleData(Type type): bool`
+    - **Purpose**: Checks whether a module data instance matching the specified Type is registered in moduleDatas
+    - **Usage**: Used by editors or reflection tools to check for specific module data types
+    - **Params**: type - Type implementing IFieldModuleData to check for
+- `+ InsertModuleData(int index, IFieldModuleData moduleData): void`
+    - **Purpose**: Inserts a module data instance at the specified index in moduleDatas
+    - **Usage**: Called when restoring module data order during Undo
+    - **Params**: index - insertion index
+    - moduleData - instance to insert
+- `+ RemoveModuleData(IFieldModuleData moduleData): bool`
+    - **Purpose**: Removes a specific module data instance from moduleDatas
+    - **Usage**: Called when detaching a module or deleting its configuration
+    - **Params**: moduleData - instance of IFieldModuleData to remove
+    - **Returns**: True if removed
+    - false if not found or null
+- `+ RemoveModuleData(): bool`
+    - **Purpose**: Removes the first module data instance of type T from moduleDatas
+    - **Usage**: Called when removing a module configuration by type
+    - **Returns**: True if an instance of type T was found and removed
+    - otherwise false
 - `+ SetBlockedCells(Vector2Int[] newBlockedCells): void`
     - **Purpose**: Editor-only setter for blocked cells array
     - **Usage**: Called by LevelEditorWindow when saving level data to assign blocked cells array
@@ -2363,14 +2157,6 @@
     - **Purpose**: Editor-only setter for the level visual prefab reference
     - **Usage**: Called by level editing tools when assigning visuals that contain LockedAreaEffect components
     - **Params**: prefab - prefab instantiated during runtime locked-area initialization
-- `+ SetLockedAreas(LockedAreaData[] newLockedAreas): void`
-    - **Purpose**: Editor-only setter for the lockedAreas array
-    - **Usage**: Called by LevelEditorWindow when saving level data after editing locked areas
-    - **Params**: newLockedAreas - array of locked area definitions to persist
-- `+ SetVScriptingFieldPrefab(GameObject prefab): void`
-    - **Purpose**: Editor-only setter for VScripting field prefab reference
-    - **Usage**: Called by level editing tools or inspectors when assigning VScripting field prefab
-    - **Params**: prefab - prefab instantiated during runtime initialization
 - `+ ValidateLevel(List`1& errors): bool`
     - **Purpose**: Validates level data for errors and inconsistencies
     - **Usage**: Call before saving to check for overlapping chips and out-of-bounds placements
@@ -2390,9 +2176,9 @@
 - `- chipChangeNotifier: IChipChangeNotifier`
 - `~ draggableChip: DraggableChipLogic`
 - `~ fieldGrid: IFieldGrid`
+- `~ inputBlocker: IInputBlocker`
 - `- OnChangeField: Action`
 - `~ shouldNotifyFieldChanged: bool`
-- `- tutorialInputBlocker: ITutorialInputBlocker`
 #### Methods
 - `+ NotifyFieldChanged(): void`
     - **Purpose**: Notifies subscribers that the field state has changed.
@@ -2416,6 +2202,7 @@
     - **Usage**: Used by OnDrag and OnDragEnd to ensure consistent position clamping
     - **Params**: position - screen position to clamp
     - **Returns**: Clamped anchor position that keeps the chip within field boundaries
+- `- InjectInputBlocker(IObjectResolver resolver): void`
 ---
 
 ## FieldGrid
@@ -2499,19 +2286,6 @@
     - chip - chip instance to place (null means clear).
     - **Notes**: When placing, CellPosition is assigned before chipChangeNotifier.Enqueue so observers handling the event read the chip at its new logical coordinates
     - when clearing, all occupied cells are reset via ClearCells before enqueueing old/new chip state.
-- `- AddDeferredCell(GameObject cellGO, ICell cell): void`
-    - **Purpose**: Attaches the deferred chip loader to a spawned real cell
-    - **Usage**: Called during CreateCells for coordinates listed in CellsToLockAndDeferred
-    - **Params**: cellGO - spawned cell GameObject
-    - cell - ICell implementation on that GameObject
-    - **Notes**: Supports both base Cell and derived cells such as IsoCell without requiring a DeferredCell prefab
-- `- BuildDeferredCellsSet(FieldData fieldData): HashSet<Vector2Int>`
-    - **Purpose**: Collects grid coordinates that need deferred chip loading during field creation
-    - **Usage**: Called once from CreateCells before prefab selection begins
-    - **Params**: fieldData - level configuration containing locked-area definitions
-    - **Returns**: Set of coordinates whose chips should be loaded only after area unlock
-    - **Notes**: Coordinates keep their normal cell prefab
-    - FieldGrid adds a DeferredCell component after spawning
 - `- ClearCells(ICell cell): void`
     - **Purpose**: Clears all chips from cells occupied by the specified cell's chip.
     - **Usage**: Call to remove a chip and its multi-cell occupancy from the field.
@@ -2533,7 +2307,6 @@
 - `- chipFactory: ChipFactory`
 - `- fieldData: FieldData`
 - `- fieldGrid: IFieldGrid`
-- `- lockedAreaManager: ILockedAreaManager`
 - `- mergeCamera: IMergeCamera`
 - `- resolver: IObjectResolver`
 - `- visualFieldInstance: GameObject`
@@ -2595,25 +2368,6 @@
     - **Params**: sourceCell - cell with chip being dragged
     - targetCell - cell with container chip
     - **Notes**: Adds chip to container and destroys source chip if successful.
----
-
-## FindAnyChipNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Finds any (random) chip matching the given ChipData from the selected ChipCollections dictionary via IChipCollections.GetCollection.
-> - **Usage**: Connect to a control flow
-> - provide chipData and collectionType. Outputs foundChip (or null if no matching chips are active).
-> - **Notes**: IChipCollections must be set in Scene Variables during scene initialization by MergeBaseVScriptingInitializer.
-#### Fields
-- `+- ChipDataInput: ValueInput`
-- `+- CollectionTypeInput: ValueInput`
-- `+- FoundChip: ValueOutput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-- `- lastFoundChip: Chip`
-#### Methods
-- `~ Definition(): void`
-- `- Trigger(Flow flow): ControlOutput`
 ---
 
 ## FlightType
@@ -2699,10 +2453,10 @@
 - `- generatorData: ChipGeneratorData`
 - `- generatorRuntimeData: ChipGeneratorRuntimeData`
 - `- isAutoGeneration: bool`
+- `- mergeEventHandler: IMergeEventHandler`
 - `- OnCharging: Action<float>`
 - `~ powerMultiplier: float`
 - `- rechargeEffect: ChargingEffectRef`
-- `- scenarioEventHandler: IScenarioEventHandler`
 #### Methods
 - `+ ApplyPowerBooster(PowerBoosterModule booster, bool reapply): bool`
     - **Purpose**: Applies a booster influence to the generator and recalculates the charging speed multiplier
@@ -2751,21 +2505,34 @@
 > - **Usage**: Attached to chip prefabs and referenced via IEffectHint contract
 > - plays a trigger 'Hint' on the animator.
 > - **Notes**: Implements IEffectHint to provide a Hint method that fires a visual hint
-> - suppresses visual hints during active tutorials unless force=true.
+> - suppresses visual hints when IHintService.CanShowHint() is false unless force=true.
 #### Fields
 - `- delay: float`
 - `- hintCoroutine: Coroutine`
-- `- tutorialManager: ITutorialManager`
+- `- hintService: IHintService`
 #### Methods
 - `+ Deactivate(Chip chip, bool force): void`
 - `+ Hint(bool force): void`
     - **Purpose**: Triggers the 'Hint' animator trigger to show a visual hint, optionally forcing it to display immediately.
     - **Usage**: Called automatically when a chip is spawned or moved, or on demand to display hints. Pass force=true to trigger immediately.
-    - **Notes**: Stops any active hint coroutine. If an active tutorial exists and force is false, suppresses the hint. If force is true, triggers immediately
+    - **Notes**: Stops any active hint coroutine. If hints are suppressed (IHintService.CanShowHint() == false) and force is false, suppresses the hint. If force is true, triggers immediately
     - otherwise, schedules a new coroutine with the configured delay.
 - `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 - `- HintCoroutine(): IEnumerator`
+---
+
+## HintService
+
+> - **Purpose**: Default implementation of IHintService that tracks active hint suppressors using a HashSet.
+> - **Usage**: Registered as a Singleton in Merge2LifetimeScope.
+> - **Notes**: CanShowHint() returns true only when the suppressor set is empty.
+#### Fields
+- `- suppressors: HashSet<object>`
+#### Methods
+- `+ AddSuppressor(object owner): void`
+- `+ CanShowHint(): bool`
+- `+ RemoveSuppressor(object owner): void`
 ---
 
 ## ICell
@@ -2871,7 +2638,7 @@
 
 > - **Purpose**: Centralized service managing chip evolution, cell space finding, parent destruction, and result chip instantiation.
 > - **Usage**: Injected via VContainer (IChipEvolutionService) into chip modules (TapEvolutionModule, UnlockAreaModule, WaitEvolutionModule, ContainerModule, GeneratorModule).
-> - **Notes**: Coordinates with IFreeCellFinder, ChipFactory, IFieldGrid, and IScenarioEventHandler.
+> - **Notes**: Coordinates with IFreeCellFinder, ChipFactory, IFieldGrid, and IMergeEventHandler.
 #### Methods
 - `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionExecutionSettings settings, EvolutionPlan& plan, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
     - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements.
@@ -3338,6 +3105,14 @@
     - **Usage**: Called after logical and visual field structures are set up.
 ---
 
+## IFieldModuleData
+
+> - **Purpose**: Base interface for polymorphic module configuration data stored in FieldData.moduleDatas
+> - **Usage**: Implement on field module configuration classes (e.g., LockedAreasFieldModuleData, VScriptingFieldModuleData)
+#### Methods
+- `+ Validate(FieldData fieldData, List<string> errors): void`
+---
+
 ## IFreeCellFinder
 
 > - **Purpose**: Interface for finding free cells on the field grid.
@@ -3370,77 +3145,37 @@
     - **Returns**: The nearest free Cell or null if none found.
 ---
 
-## ILockedAreaEffect
+## IHintService
 
-> - **Purpose**: Contract for visual effects associated with locked areas on the board
-> - **Usage**: Implement on level visual overlay components that represent locked area fog, gates, or barriers
-> - registered with ILockedAreaManager
-> - **Notes**: Implements ISubEffectOwner
-> - manages level-level visual activation and applies blocking/sub-effects to chips
-#### Fields
-- `+- BlockingSettings: EffectBlockingSettings`
-- `+- gameObject: GameObject`
-- `+- LockedAreaId: int`
+> - **Purpose**: Contract for querying whether visual hints can be shown on chips and managing hint suppressors.
+> - **Usage**: Injected into HintEffect, ContainerHintEffect, and TutorialManager.
+> - **Notes**: Hints are suppressed whenever one or more suppressors are registered via AddSuppressor.
 #### Methods
-- `+ Activate(): void`
-    - **Purpose**: Activates the visual overlay animation or display
-    - **Usage**: Called by ILockedAreaManager when the area is initialized or locked
-- `+ ApplyAreaEffectToChip(Chip chip): void`
-    - **Purpose**: Applies locked-area blocking settings and sub-effects to a chip
-    - **Usage**: Called when a chip is spawned on or covered by this locked area
-    - **Params**: chip - target chip receiving the locked area effects
-- `+ Deactivate(bool force, Action onComplete): void`
-    - **Purpose**: Deactivates the visual overlay animation or display
-    - **Usage**: Called by ILockedAreaManager when the area is unlocked
-    - **Params**: force - if true, immediately forces visual into deactivated state without transition
-    - onComplete - optional callback invoked when deactivation transition completes
-- `+ Init(): void`
-    - **Purpose**: Registers the effect with ILockedAreaManager
-    - **Usage**: Called after level visual prefab is instantiated and dependencies are injected
-- `+ RemoveAreaEffectFromCells(List<ICell> cells, bool force): void`
-    - **Purpose**: Removes locked-area blocking settings and deactivates sub-effects from chips on the specified cells
-    - **Usage**: Called by LockedAreaManager when the locked area is unlocked
-    - **Params**: cells - target cells with chips
-    - force - whether to bypass deactivation delay
-- `+ SpawnDeferredChips(): void`
-    - **Purpose**: Spawns deferred chips for this locked area when triggered
-    - **Usage**: Called from animation events during area unlock animation or directly from code
-    - **Notes**: Delegates to ILockedAreaManager.SpawnDeferredChips, which guarantees idempotent execution
+- `+ AddSuppressor(object owner): void`
+    - **Purpose**: Adds a suppressor owner that prevents visual hints from displaying.
+    - **Usage**: Called when a tutorial or modal begins (e.g. TutorialManager.Activate).
+    - **Params**: owner - The object representing the suppression source.
+- `+ CanShowHint(): bool`
+    - **Purpose**: Checks whether hints are allowed to be shown.
+    - **Usage**: Read by HintEffect and ContainerHintEffect before triggering visual hints.
+    - **Returns**: True if there are no active suppressors
+    - false otherwise.
+- `+ RemoveSuppressor(object owner): void`
+    - **Purpose**: Removes a suppressor owner, restoring hint display when no suppressors remain.
+    - **Usage**: Called when a tutorial or modal ends (e.g. TutorialManager.Deactivate).
+    - **Params**: owner - The object representing the suppression source.
 ---
 
-## ILockedAreaManager
+## IInputBlocker
 
-> - **Purpose**: Contract for coordinating runtime locked-area state, visuals, and deferred chip spawning
-> - **Usage**: Inject to initialize locked areas, register visual effects, and unlock areas during gameplay
-> - **Notes**: Implemented by LockedAreaManager
-#### Methods
-- `+ ApplyAreaEffectToChip(Chip chip, ICell cell): void`
-    - **Purpose**: Applies locked-area blocking settings and sub-effects to a chip on a cell if covered by an active locked area
-    - **Usage**: Called by ChipFactory upon chip creation when the target cell is blocked
-    - **Params**: chip - newly instantiated chip
-    - cell - target cell holding the chip
-- `+ Initialize(): void`
-    - **Purpose**: Applies initial locked-area state to field cells
-    - **Usage**: Call once during scene startup after field cells exist and before LoadChips
-    - **Notes**: Blocks both normal locked cells and deferred cells
-    - level visuals are created by FieldInitializeCommand
-- `+ RegisterEffect(ILockedAreaEffect effect): void`
-    - **Purpose**: Associates a spawned visual effect with its locked-area state
-    - **Usage**: Called by ILockedAreaEffect.Init after the level visual prefab is instantiated
-    - **Params**: effect - effect component representing a single locked area visual
-    - **Notes**: Immediately synchronizes visual state so late registrations still match current lock state
-- `+ SpawnDeferredChips(int areaId): void`
-    - **Purpose**: Spawns deferred chips for the specified locked area
-    - **Usage**: Called when an area is unlocked or from animation events on LockedAreaEffect
-    - **Params**: areaId - unique identifier from FieldData.LockedAreas
-    - **Notes**: Guaranteed to be idempotent
-    - subsequent calls for the same area are ignored
-- `+ UnlockArea(int areaId, bool force): void`
-    - **Purpose**: Opens a locked area and materializes any deferred chips inside it
-    - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
-    - **Params**: areaId - unique identifier from FieldData.LockedAreas
-    - force - true repeats unlock side effects even if the area is already open
-    - **Notes**: Unblocks cells first so spawned chips can behave as normal cells immediately after creation
+> - **Purpose**: Read-only contract for querying whether field input (tap and drag) is currently blocked.
+> - **Usage**: Injected into FieldEventHandler and DraggableChipLogic to gate user input.
+> - **Notes**: When AllowedStart == AllowedEnd — tap-mode: only tap on that cell is permitted. When AllowedStart != AllowedEnd — drag-mode: only drag from AllowedStart to AllowedEnd is permitted.
+#### Fields
+- `+- AllowedEnd: Nullable<Vector2Int>`
+- `+- AllowedStart: Nullable<Vector2Int>`
+- `+- IsBlocked: bool`
+- `+- IsTapMode: bool`
 ---
 
 ## IMergeCamera
@@ -3458,6 +3193,21 @@
 - `+ OnPointerMoved(Vector2 screenPosition): void`
 - `+ OnZoom(float delta, Vector2 screenPosition): void`
 - `+ SetBounds(Transform leftBottom, Transform rightTop): void`
+---
+
+## IMergeEventHandler
+
+> - **Purpose**: Contract for dispatching core board-state transitions (chip created, removed, effect unlocked, space unavailable) to game systems and event listeners.
+> - **Usage**: Inject via VContainer
+> - call Raise* methods from ChipFactory, Chip, and gameplay services at appropriate lifecycle points. Subscribers may be C# delegates or event bridges.
+> - **Notes**: Registered as Singleton in Merge2LifetimeScope and IsoMergeLifetimeScope. Fires C# events for chip lifecycle and interaction boundaries.
+#### Methods
+- `+ RaiseChipCreated(Chip chip, ICell cell): void`
+- `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
+- `+ RaiseChipRemoved(Chip chip): void`
+- `+ RaiseChipTapped(Chip chip): void`
+- `+ RaiseNotEnoughSpace(Chip chip): void`
+- `+ RaiseNotEnoughSpaceForEvolution(Chip chip): void`
 ---
 
 ## IMergeLifetimeScope
@@ -3497,22 +3247,6 @@
     - **Params**: powerBoosterModule - booster to remove
 ---
 
-## IScenarioEventHandler
-
-> - **Purpose**: Contract for dispatching key board-state transitions (chip created, removed, effect unlocked, area unlocked) to scenario and quest listeners.
-> - **Usage**: Inject via VContainer
-> - call Raise* methods from ChipFactory, Chip, and LockedAreaManager at the appropriate lifecycle points. Subscribers may be C# delegates or Unity Visual Scripting EventBus listeners.
-> - **Notes**: Registered as Singleton in Merge2LifetimeScope and IsoMergeLifetimeScope. All Raise* methods fire both a C# event and an EventBus.Trigger for UVS graph nodes.
-#### Methods
-- `+ RaiseAreaUnlocked(int areaId): void`
-- `+ RaiseChipCreated(Chip chip, ICell cell): void`
-- `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
-- `+ RaiseChipRemoved(Chip chip): void`
-- `+ RaiseChipTapped(Chip chip): void`
-- `+ RaiseNotEnoughSpace(Chip chip): void`
-- `+ RaiseNotEnoughSpaceForEvolution(Chip chip): void`
----
-
 ## IShadowEffect
 
 > - **Purpose**: Interface representing a shadow effect that responds to changes in the chip's lift height
@@ -3550,71 +3284,6 @@
 - `+ DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force): void`
 ---
 
-## ITutorial
-
-> - **Purpose**: Contract for a single tutorial unit that can be activated and deactivated by name
-> - **Usage**: Implement on a MonoBehaviour in a tutorial prefab
-> - register self to ITutorialManager in Start()
-> - **Notes**: TutorialName must match the prefab name so VScripting nodes can route by name
-#### Fields
-- `+- TutorialName: string`
-#### Methods
-- `+ Activate(): void`
-    - **Purpose**: Shows and starts the tutorial
-    - **Usage**: Called by TutorialManager.Activate
-    - implementation should enable visuals and begin tutorial logic
-- `+ Deactivate(): void`
-    - **Purpose**: Hides and stops the tutorial
-    - **Usage**: Called by TutorialManager.Deactivate
-    - implementation should disable visuals and clean up tutorial state
----
-
-## ITutorialInputBlocker
-
-> - **Purpose**: Interface for blocking all field interactions during tutorial steps, with an optional single allowed action (tap or drag).
-> - **Usage**: Injected into DraggableChipLogic and FieldEventHandler to gate input. Controlled via BlockTutorialInputNode / UnblockTutorialInputNode in Visual Scripting.
-> - **Notes**: When AllowedStart == AllowedEnd — tap-mode: only tap on that cell is permitted. When AllowedStart != AllowedEnd — drag-mode: only drag from AllowedStart to AllowedEnd is permitted.
-#### Fields
-- `+- AllowedEnd: Nullable<Vector2Int>`
-- `+- AllowedStart: Nullable<Vector2Int>`
-- `+- IsBlocked: bool`
-- `+- IsTapMode: bool`
-#### Methods
-- `+ BlockInput(Nullable<Vector2Int> allowedStart, Nullable<Vector2Int> allowedEnd): void`
-    - **Purpose**: Activates the input block with an optional single allowed action.
-    - **Usage**: Called by BlockTutorialInputNode when the Visual Scripting graph triggers the node.
-    - **Params**: allowedStart - top-left cell of the allowed action start (null = no exception)
-    - allowedEnd - top-left cell of the allowed drag end (null = no exception). When allowedStart == allowedEnd, only a tap is permitted.
-- `+ UnblockInput(): void`
-    - **Purpose**: Deactivates the input block, restoring full interaction.
-    - **Usage**: Called by UnblockTutorialInputNode when the Visual Scripting graph triggers the node.
----
-
-## ITutorialManager
-
-> - **Purpose**: Contract for managing the lifecycle of tutorial prefab instances by name
-> - **Usage**: Inject to activate/deactivate tutorials from gameplay systems or VScripting nodes
-> - **Notes**: Implemented by TutorialManager
-> - tutorial names must match prefab names
-#### Fields
-- `+- ActiveTutorial: ITutorial`
-#### Methods
-- `+ Activate(string tutorialName): void`
-    - **Purpose**: Activates the tutorial with the given name
-    - **Usage**: Called by ActivateTutorialNode or gameplay logic
-    - tutorialName must match ITutorial.TutorialName
-    - **Notes**: Logs a warning if no tutorial with that name is registered
-- `+ Deactivate(string tutorialName): void`
-    - **Purpose**: Deactivates the currently active tutorial, or a specific tutorial by name if tutorialName is provided
-    - **Usage**: Called by DeactivateTutorialNode or gameplay logic with an optional tutorial name
-    - **Notes**: If tutorialName is null or empty, deactivates the latest active tutorial. Logs a warning if no matching tutorial is active or registered
-- `+ RegisterTutorial(ITutorial tutorial): void`
-    - **Purpose**: Registers a tutorial instance so the manager can route Activate/Deactivate calls to it
-    - **Usage**: Called from ITutorial MonoBehaviour Start() after VContainer injection
-    - **Notes**: Duplicate registrations with the same TutorialName overwrite the previous entry with a warning
-- `+ UnregisterTutorial(ITutorial tutorial): void`
----
-
 ## IVisualField
 
 > - **Purpose**: Contract for the root visual field component created from FieldData.LevelVisualPrefab
@@ -3627,212 +3296,16 @@
 - `+ OnFieldSizeChanged(Vector2Int newSize): void`
 ---
 
-## LeafHelper
-**Inherits**: `MonoBehaviour`
+## IVisualFieldElement
 
-> - **Purpose**: Procedurally distributes leaf prefabs across a rectangular field bounded by two transforms, enforces minimum distance between leaves, sorts child animators by distance from a target transform, and plays sequential animator triggers driven by an animation curve over time
-> - **Usage**: Attach to a GameObject in scene or prefab
-> - assign leaf prefabs, boundary transforms, sort origin, and trigger generation, sorting, or playback via ContextMenu or script
-> - **Notes**: Supports Unity Editor Undo and PrefabUtility to preserve prefab links
-> - terminates generation when reaching maxConsecutiveFailures attempts without finding a valid non-overlapping spot
-#### Fields
-- `+- AnimationCurve: AnimationCurve`
-- `+- AnimationDuration: float`
-- `+- Animators: Animator[]`
-- `+- BaseLocalZ: float`
-- `+- BottomRightTransform: Transform`
-- `+- Container: Transform`
-- `+- DiagonalFadeSprite: SpriteDirectionalFadeController`
-- `+- FadeOutOffset: float`
-- `+- IsPlayingAnimation: bool`
-- `+- LeafPrefabs: GameObject[]`
-- `+- LeafRadius: float`
-- `+- MaxConsecutiveFailures: int`
-- `+- SortOriginTransform: Transform`
-- `+- TopLeftTransform: Transform`
-- `+- TriggerName: string`
-- `+- ZStep: float`
-- `- animationCoroutine: Coroutine`
-- `- boundsGizmoColor: Color`
-- `- clearBeforeGenerate: bool`
-- `- radiusGizmoColor: Color`
-- `- showGizmos: bool`
+> - **Purpose**: Contract for visual field child elements requiring initialization during level setup.
+> - **Usage**: Implemented by components inside visual field prefabs (e.g. LockedAreaEffect)
+> - invoked by VisualField.ApplyEffects.
+> - **Notes**: Decouples VisualField from concrete effect implementations.
 #### Methods
-- `+ ClearLeafs(): void`
-    - **Purpose**: Removes all instantiated leaf child GameObjects from the container transform
-    - **Usage**: Triggered via component Context Menu in Unity Editor to reset the placed leaves
-    - **Notes**: Skips boundary marker transforms if they happen to be children of the container
-    - supports Undo in Editor
-- `+ GenerateLeafs(): void`
-    - **Purpose**: Spawns and scatters random leaf prefabs across the rectangular field bounds until 10 consecutive failed attempts occur due to radius constraints
-    - **Usage**: Triggered via component Context Menu in Unity Editor or called via script
-    - **Notes**: Preserves prefab instances in editor mode using PrefabUtility.InstantiatePrefab and records changes in Undo system
-- `+ PlayAnimation(): void`
-    - **Purpose**: Starts the sequential triggering of animators along the animation curve over animationDuration and initiates fade out after fadeOutOffset
-    - **Usage**: Call via script, UnityEvent, or component Context Menu in Play Mode to animate all leaves
-    - **Notes**: Ignored if animation is already running
-    - logs warning if animators array is null or empty
-- `+ ResetAndPlayAnimation(): void`
-    - **Purpose**: Stops active animation coroutine, restores initial positions and states of all animators, and starts animation playback from the beginning
-    - **Usage**: Triggered via component Context Menu in Unity Editor or called via script to restart leaf animation sequence
-- `+ ResetAnimators(): void`
-    - **Purpose**: Restores initial bind pose and resets state machines for all leaf animators, stopping and resetting diagonal fade progress
-    - **Usage**: Triggered via component Context Menu or called by script before replaying animation
-- `+ SortAnimatorsByDistance(): void`
-    - **Purpose**: Collects Animator components from direct children of container, sorts them in ascending order of 2D distance from sortOriginTransform, writes result to animators array, and sets localPosition.z incrementally so closer animators appear in front
-    - **Usage**: Triggered via component Context Menu in Unity Editor
-    - **Notes**: Supports Undo in Editor and marks objects dirty
-- `+ StopAnimation(): void`
-    - **Purpose**: Stops any actively running leaf animation coroutine
-    - **Usage**: Call when interrupting the animation or resetting state
-- `- OnDisable(): void`
-- `- OnDrawGizmosSelected(): void`
-- `- PlayAnimationCoroutine(): IEnumerator`
----
-
-## LockedAreaEffect
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Runtime visual controller for one locked area overlay, fog, or gate
-> - **Usage**: Attach to level visual prefab children and assign the matching LockedAreaId
-> - VisualField calls Init after instantiation
-> - **Notes**: Independent MonoBehaviour implementing ILockedAreaEffect and ISubEffectOwner
-> - handles overlay animations and applies blocking settings and sub-effects to covered chips
-#### Fields
-- `+- BlockingSettings: EffectBlockingSettings`
-- `+- LockedAreaId: int`
-- `+- Owners: HashSet<ISubEffectOwner>`
-- `+- SubEffects: ISubEffect[]`
-- `- animator: Animator`
-- `- chipCollections: IChipCollections`
-- `- deactivationCoroutine: Coroutine`
-- `- delayCoroutines: Dictionary<int, Coroutine>`
-- `- lockedAreaManager: ILockedAreaManager`
-- `- pendingDeactivateCallback: Action`
-#### Methods
-- `+ Activate(): void`
-    - **Purpose**: Activates the visual overlay animation
-    - **Usage**: Called by LockedAreaManager when the area is initialized or locked
-- `+ ActivateByOwner(Chip chip, ISubEffectOwner owner): bool`
-- `+ ApplyAreaEffectToChip(Chip chip): void`
-    - **Purpose**: Applies locked-area blocking settings and activates sub-effects on the specified chip
-    - **Usage**: Called when a chip is created on or added to this locked area
-    - **Params**: chip - target chip receiving the locked area effects
-- `+ Deactivate(bool force, Action onComplete): void`
-    - **Purpose**: Deactivates the visual overlay animation and notifies upon completion
-    - **Usage**: Called by LockedAreaManager when the area is unlocked
-    - **Params**: force - if true, immediately forces animator into end Deactivate state
-    - onComplete - optional callback invoked when deactivation animation finishes
-- `+ DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force): void`
 - `+ Init(): void`
-    - **Purpose**: Registers this level visual effect with the locked-area runtime manager
-    - **Usage**: Called by VisualField after the level visual prefab is instantiated and injected
-- `+ RemoveAreaEffectFromCells(List<ICell> cells, bool force): void`
-    - **Purpose**: Removes locked-area blocking settings and deactivates sub-effects from chips on the specified cells with a single coroutine per sub-effect
-    - **Usage**: Called when the locked area is unlocked
-    - **Params**: cells - target cells with chips
-    - force - whether to bypass deactivation delay
-- `+ SpawnDeferredChips(): void`
-    - **Purpose**: Spawns deferred chips for this locked area when triggered (e.g., via Animation Event)
-    - **Usage**: Called from Animation Event during area unlock animation or directly from code
-- `- ActivateSubEffectCoroutine(Chip chip, ISubEffect se): IEnumerator`
-- `- DeactivateSubEffectCoroutine(List<ICell> cells, ISubEffect se): IEnumerator`
-- `- DeactivateSubEffectOnCells(List<ICell> cells, int effectId, bool force): void`
-- `- Expecto.MergeBase.ILockedAreaEffect.get_gameObject(): GameObject`
-- `- HasTrigger(string name): bool`
-- `- OnDestroy(): void`
-- `- OnDisable(): void`
-- `- StopDeactivationCoroutine(bool invokePendingCallback): void`
-- `- WaitForDeactivationCompleteRoutine(): IEnumerator`
----
-
-## LockedAreaManager
-
-> - **Purpose**: Coordinates runtime locked-area state, visuals, and deferred chip spawning
-> - **Usage**: Registered as a VContainer singleton and initialized after FieldGrid creates cells but before chips are loaded
-> - **Notes**: Cells remain blocked until UnlockArea clears them
-> - deferred chips are created only during unlock
-#### Fields
-- `- activeEffectByCell: Dictionary<Vector2Int, ILockedAreaEffect>`
-- `- cachedAreas: Dictionary<int, CachedLockedArea>`
-- `- chipCollections: IChipCollections`
-- `- effectByAreaId: Dictionary<int, ILockedAreaEffect>`
-- `- fieldData: FieldData`
-- `- fieldGrid: IFieldGrid`
-- `- scenarioEventHandler: IScenarioEventHandler`
-- `- spawnedDeferredAreaIds: HashSet<int>`
-- `- unlockedAreaIds: HashSet<int>`
-#### Methods
-- `+ ApplyAreaEffectToChip(Chip chip, ICell cell): void`
-    - **Purpose**: Applies locked-area blocking settings and sub-effects to a chip on a cell if covered by an active locked area
-    - **Usage**: Called by ChipFactory upon chip creation when the target cell is blocked
-    - **Params**: chip - newly instantiated chip
-    - cell - target cell holding the chip
-- `+ Initialize(): void`
-    - **Purpose**: Applies initial locked-area state to field cells
-    - **Usage**: Call once during scene startup after field cells exist and before LoadChips
-    - **Notes**: Blocks both normal locked cells and deferred cells
-    - level visuals are created by FieldInitializeCommand
-- `+ RegisterEffect(ILockedAreaEffect effect): void`
-    - **Purpose**: Associates a spawned visual effect with its locked-area state
-    - **Usage**: Called by ILockedAreaEffect.Init after the level visual prefab is instantiated
-    - **Params**: effect - effect component representing a single locked area visual
-    - **Notes**: Each area supports exactly one effect. Logs an error if a second effect is registered for the same LockedAreaId. Immediately synchronizes visual state so late registrations still match current lock state. Disables the effect's game object if the corresponding LockedAreaId is not found in the field data.
-- `+ SpawnDeferredChips(int areaId): void`
-    - **Purpose**: Spawns deferred chips for the specified locked area
-    - **Usage**: Called when an area is unlocked or from animation events on LockedAreaEffect
-    - **Params**: areaId - unique identifier from FieldData.LockedAreas
-    - **Notes**: Guaranteed to be idempotent
-    - subsequent calls for the same area are ignored
-- `+ UnlockArea(int areaId, bool force): void`
-    - **Purpose**: Opens a locked area and materializes any deferred chips inside it
-    - **Usage**: Call from gameplay systems when the unlock condition for an area is satisfied
-    - **Params**: areaId - unique identifier from FieldData.LockedAreas
-    - force - true repeats unlock side effects even if the area is already open
-    - **Notes**: Unblocks cells first so spawned chips can behave as normal cells immediately after creation
-- `- AddAreaCellsToActiveDict(LockedAreaData area, ILockedAreaEffect effect): void`
-- `- AddCellsToActiveDict(Vector2Int[] cells, ILockedAreaEffect effect): void`
-- `- RemoveAreaCellsFromActiveDict(LockedAreaData area): void`
-- `- RemoveCellsFromActiveDict(Vector2Int[] cells): void`
-- `- RemoveEffectFromAreaChips(CachedLockedArea cachedArea, ILockedAreaEffect effect, bool force): void`
-- `- SetAreaBlocked(CachedLockedArea cachedArea, bool isBlocked): void`
-- `- SetCellsBlocked(List<ICell> cells, bool isBlocked): void`
-- `- TryGetArea(int areaId, LockedAreaData& area): bool`
----
-
-## Merge2Initializer
-
-> - **Purpose**: Main initializer for the Merge2 game module using VContainer.
-> - **Usage**: Registered in VContainer lifetime scope
-> - automatically called on game start.
-> - **Notes**: Wires up dependencies, connects input events, and initializes field and chips. Visual Scripting setup is handled separately by MergeBaseVScriptingInitializer.
-#### Fields
-- `- chipCollections: IChipCollections`
-- `- chipFactory: ChipFactory`
-- `- field: IFieldEventHandler`
-- `- fieldGrid: IFieldGrid`
-- `- fieldInitializeCommand: IFieldInitializeCommand`
-- `- inputManager: InputManager`
-- `- lockedAreaManager: ILockedAreaManager`
-- `- resolver: IObjectResolver`
-- `- scenarioEventHandler: IScenarioEventHandler`
-#### Methods
-- `+ Initialize(): void`
-    - **Purpose**: Initializes the Merge2 module by setting up all dependencies and creating the field.
-    - **Usage**: Called automatically by VContainer on application start.
-    - **Notes**: Connects input events to field handlers
-    - initializes factory, field, and loads initial chips.
----
-
-## Merge2LifetimeScope
-**Inherits**: `LifetimeScope`
-#### Fields
-- `++ FieldData: FieldData`
-- `++ MergeSettings: MergeSettings`
-#### Methods
-- `~ Awake(): void`
-- `~ Configure(IContainerBuilder builder): void`
-- `- Expecto.MergeBase.IMergeLifetimeScope.get_Container(): IObjectResolver`
+    - **Purpose**: Initializes the visual field child element after injection.
+    - **Usage**: Called by VisualField.ApplyEffects during level visual setup.
 ---
 
 ## MergeableChipLogic
@@ -3849,8 +3322,8 @@
 - `- chipMovingLogic: IChipMovingLogic`
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
+- `- mergeEventHandler: IMergeEventHandler`
 - `- NeighborOffsets: Vector2Int[]`
-- `- scenarioEventHandler: IScenarioEventHandler`
 #### Methods
 - `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
     - **Purpose**: Validates if two cells can perform a merge interaction.
@@ -3915,6 +3388,28 @@
     - **Usage**: Called internally to determine the outcome when multiple outcomes are possible
     - **Params**: none
     - **Returns**: The selected MergeResult object
+---
+
+## MergeEventHandler
+
+> - **Purpose**: Dispatches core board-state transitions (chip created, removed, effect unlocked, space unavailable) to C# subscribers.
+> - **Usage**: Registered as Singleton via VContainer
+> - Raise* methods are called by ChipFactory (OnChipCreated), Chip.Destroy (OnChipRemoved), Chip.RemoveEffect (OnChipEffectUnlocked), GeneratorModule (OnNotEnoughSpace), and ChipEvolutionService (OnNotEnoughSpaceForEvolution).
+> - **Notes**: Fires only C# events. Unity Visual Scripting EventBus forwarding is handled by event bridge in MergeBase.VScripting assembly (compiled only when com.unity.visualscripting is installed).
+#### Fields
+- `- OnChipCreated: Action<Chip>`
+- `- OnChipEffectUnlocked: Action<Chip, int>`
+- `- OnChipRemoved: Action<Chip>`
+- `- OnChipTapped: Action<Chip>`
+- `- OnNotEnoughSpace: Action<Chip>`
+- `- OnNotEnoughSpaceForEvolution: Action<Chip>`
+#### Methods
+- `+ RaiseChipCreated(Chip chip, ICell cell): void`
+- `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
+- `+ RaiseChipRemoved(Chip chip): void`
+- `+ RaiseChipTapped(Chip chip): void`
+- `+ RaiseNotEnoughSpace(Chip chip): void`
+- `+ RaiseNotEnoughSpaceForEvolution(Chip chip): void`
 ---
 
 ## MergeHintDragFeedback
@@ -4252,30 +3747,6 @@
 - `+- ModuleDataType: Type`
 ---
 
-## ScenarioEventHandler
-
-> - **Purpose**: Dispatches key board-state transitions (chip created, removed, effect unlocked, area unlocked) to C# subscribers.
-> - **Usage**: Registered as Singleton via VContainer
-> - Raise* methods are called by ChipFactory (OnChipCreated), Chip.Destroy (OnChipRemoved), Chip.RemoveEffect (OnChipEffectUnlocked), and LockedAreaManager.UnlockArea (OnAreaUnlocked).
-> - **Notes**: Fires only C# events. Unity Visual Scripting EventBus forwarding is handled by VScriptingScenarioEventBridge in MergeBase.VScripting assembly (compiled only when com.unity.visualscripting is installed).
-#### Fields
-- `- OnAreaUnlocked: Action<int>`
-- `- OnChipCreated: Action<Chip>`
-- `- OnChipEffectUnlocked: Action<Chip, int>`
-- `- OnChipRemoved: Action<Chip>`
-- `- OnChipTapped: Action<Chip>`
-- `- OnNotEnoughSpace: Action<Chip>`
-- `- OnNotEnoughSpaceForEvolution: Action<Chip>`
-#### Methods
-- `+ RaiseAreaUnlocked(int areaId): void`
-- `+ RaiseChipCreated(Chip chip, ICell cell): void`
-- `+ RaiseChipEffectUnlocked(Chip chip, int effectId): void`
-- `+ RaiseChipRemoved(Chip chip): void`
-- `+ RaiseChipTapped(Chip chip): void`
-- `+ RaiseNotEnoughSpace(Chip chip): void`
-- `+ RaiseNotEnoughSpaceForEvolution(Chip chip): void`
----
-
 ## SepiaEffect
 **Inherits**: `ChipMaterialEffect`
 
@@ -4460,245 +3931,6 @@
 - `+- EffectId: int`
 ---
 
-## TapEvolutionModule
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Modular component attached to a Chip that handles evolution on user tap using IChipEvolutionProvider architecture.
-> - **Usage**: Attach to chip prefabs that evolve on tap
-> - implements IChipModule
-> - **Notes**: Evolves into next chips provided by IChipEvolutionProvider strategy, respects chip movement/drag deferral, and delegates execution to IChipEvolutionService.
-#### Fields
-- `+- EvolutionSettings: EvolutionExecutionSettings`
-- `- chip: Chip`
-- `- data: ChipData`
-- `- evolutionData: ChipTapEvolutionData`
-- `- evolutionService: IChipEvolutionService`
-- `- hintEffect: EffectHintRef`
-#### Methods
-- `+ DestroyModule(): void`
-- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the module references, caches module configuration data, initializes provider, and registers hint effect.
-    - **Usage**: Called automatically by Chip during its initialization phase for each attached chip module.
-    - **Params**: chip - the parent Chip component
-    - data - configuration settings of the chip
-    - runtimeData - mutable state of the chip
-- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
-- `+ OnDrag(Vector2 position, ICell anchorCell): void`
-- `+ OnDragEnd(): void`
-- `+ OnDragStart(): void`
-- `+ OnEffectRemoved(int effectId): void`
-- `+ OnTap(): void`
-    - **Purpose**: Handles tap input by checking permissions, and initiating tap evolution if allowed.
-    - **Usage**: Called automatically when the parent chip is tapped by the user.
-- `+ UpdateVisual(): void`
-    - **Purpose**: Updates the visual state of the tap evolution hint effect based on whether the chip can currently be tapped.
-    - **Usage**: Called when chip visual state is refreshed, activating or deactivating the TapHint effect according to CanBeTaped.
-- `- ExecuteTapEvolution(): void`
-    - **Purpose**: Performs tap evolution using IChipEvolutionService by finding cells and spawning new chips.
-    - **Usage**: Called internally when the chip is tapped and not moving or being dragged.
----
-
-## Tutorial
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Base MonoBehaviour implementation of ITutorial that drives show/hide state via Animator triggers
-> - **Usage**: Place on the root GameObject of a tutorial prefab
-> - assign the Animator in the Inspector
-> - registered to ITutorialManager during initialization by MergeBaseVScriptingInitializer
-> - **Notes**: TutorialName returns gameObject.name, which must match the prefab name so VScripting nodes can route by name
-#### Fields
-- `+ LockedPosition: Vector2Int`
-- `+- TutorialName: string`
-- `- animator: Animator`
-- `- tutorialManager: ITutorialManager`
-#### Methods
-- `+ Activate(): void`
-    - **Purpose**: Shows the tutorial by sending the Activate trigger to the Animator
-    - **Usage**: Called by TutorialManager.Activate
-    - triggers the Activate state in the AnimatorController
-    - **Notes**: Logs a warning and no-ops when the Animator is not assigned
-- `+ Deactivate(): void`
-    - **Purpose**: Hides the tutorial by sending the Deactivate trigger to the Animator
-    - **Usage**: Called by TutorialManager.Deactivate
-    - triggers the Deactivate state in the AnimatorController
-    - **Notes**: Logs a warning and no-ops when the Animator is not assigned
-- `+ Destroy(): void`
----
-
-## TutorialHandHelper
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Provides a SendTrigger API for driving hand animator states from tutorial prefab logic or VScripting, and particle playback control
-> - **Usage**: Place on a child GameObject inside a tutorial prefab alongside the hand Animator
-> - call SendTrigger from tutorial scripts or UVS
-> - **Notes**: Requires handAnimator to be assigned in the Inspector
-> - logs a warning when it is missing. handParticle is optional — methods are no-ops when null
-#### Fields
-- `- handAnimator: Animator`
-- `- handParticle: ParticleSystem`
-#### Methods
-- `+ PlayParticle(): void`
-    - **Purpose**: Plays the hand particle system from the beginning
-    - **Usage**: Call from tutorial scripts or VScripting nodes to start a particle burst on the hand
-    - **Notes**: No-ops silently when handParticle is null
-- `+ SendTrigger(string triggerName): void`
-    - **Purpose**: Forwards a trigger name to the hand Animator to change the hand's animation state
-    - **Usage**: Call from tutorial scripts or VScripting nodes to drive idle/point/tap hand animations
-    - **Params**: triggerName - the Animator trigger parameter name defined in the hand's AnimatorController
-    - **Notes**: No-ops with a warning when handAnimator is null
-    - the caller does not need to null-check
-- `+ StopParticleEmission(): void`
-    - **Purpose**: Stops new particle emission while letting existing particles finish their lifetime
-    - **Usage**: Call from tutorial scripts or VScripting nodes to gracefully end the hand particle effect
-    - **Notes**: No-ops silently when handParticle is null
----
-
-## TutorialInputBlocker
-
-> - **Purpose**: Concrete implementation of ITutorialInputBlocker. Stores the current block state and the single allowed action.
-> - **Usage**: Registered as Singleton in Merge2LifetimeScope. Injected into DraggableChipLogic, FieldEventHandler, and MergeBaseVScriptingInitializer.
-> - **Notes**: IsTapMode returns true when AllowedStart == AllowedEnd, which means tap is permitted and drag is fully blocked on that cell.
-#### Fields
-- `+- AllowedEnd: Nullable<Vector2Int>`
-- `+- AllowedStart: Nullable<Vector2Int>`
-- `+- IsBlocked: bool`
-- `+- IsTapMode: bool`
-#### Methods
-- `+ BlockInput(Nullable<Vector2Int> allowedStart, Nullable<Vector2Int> allowedEnd): void`
-    - **Purpose**: Activates the input block. Stores the allowed start/end cells.
-    - **Usage**: Called by BlockTutorialInputNode.Trigger via ITutorialInputBlocker.
-    - **Params**: allowedStart - top-left cell of the allowed action (null = block all)
-    - allowedEnd - top-left cell of the drag end (null = block all)
-- `+ UnblockInput(): void`
-    - **Purpose**: Deactivates the input block and clears allowed positions.
-    - **Usage**: Called by UnblockTutorialInputNode.Trigger via ITutorialInputBlocker.
----
-
-## TutorialManager
-
-> - **Purpose**: Routes tutorial activation and deactivation calls to registered ITutorial instances by name
-> - **Usage**: Registered as a VContainer singleton
-> - tutorials are registered via RegisterTutorial() during initialization
-> - **Notes**: Tutorial names are case-sensitive and must match the prefab GameObject name
-#### Fields
-- `+- ActiveTutorial: ITutorial`
-- `- activeTutorials: List<ITutorial>`
-- `- OnTutorialDeactivated: Action<string>`
-- `- tutorials: Dictionary<string, ITutorial>`
-#### Methods
-- `+ Activate(string tutorialName): void`
-    - **Purpose**: Activates the tutorial with the given name if it is registered
-    - **Usage**: Called by ActivateTutorialNode or gameplay logic
-    - **Notes**: Logs a warning when tutorialName is not found in the registry
-- `+ Deactivate(string tutorialName): void`
-    - **Purpose**: Deactivates the currently active tutorial, or a specific tutorial by name if tutorialName is provided
-    - **Usage**: Called by DeactivateTutorialNode or gameplay logic with an optional tutorial name
-    - **Notes**: If tutorialName is null or empty, deactivates the latest active tutorial. Logs a warning if no matching tutorial is active or registered
-- `+ RegisterTutorial(ITutorial tutorial): void`
-    - **Purpose**: Adds an ITutorial instance to the routing dictionary
-    - **Usage**: Called during initialization (e.g. from MergeBaseVScriptingInitializer) or when a tutorial instance is created
-    - **Notes**: Overwrites the previous entry when the same TutorialName is registered twice, logging a warning
-- `+ UnregisterTutorial(ITutorial tutorial): void`
----
-
-## UnblockTutorialInputNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Removes the tutorial input block set by BlockTutorialInputNode, restoring full field interaction.
-> - **Usage**: Connect to a control flow after the tutorial step is complete. Resolves ITutorialInputBlocker from Scene Variables and calls UnblockInput.
-> - **Notes**: TutorialInputBlocker must be set in Scene Variables during scene initialization by MergeBaseVScriptingInitializer.
-#### Fields
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- Trigger(Flow flow): ControlOutput`
----
-
-## UnlockAreaModule
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Modular component attached to a Chip that unlocks locked areas on user tap and optionally evolves the chip.
-> - **Usage**: Attach to chip prefabs that unlock areas on tap
-> - implements IChipModule
-> - **Notes**: Unlocks areas sequentially with configured delays, defers FinishDestroy until coroutine completion, and delegates evolution to IChipEvolutionService.
-#### Fields
-- `+- EvolutionSettings: EvolutionExecutionSettings`
-- `- chip: Chip`
-- `- data: ChipData`
-- `- evolutionService: IChipEvolutionService`
-- `- hintEffect: EffectHintRef`
-- `- isUnlocking: bool`
-- `- lockedAreaManager: ILockedAreaManager`
-- `- unlockCoroutine: Coroutine`
-- `- unlockData: ChipUnlockAreaData`
-#### Methods
-- `+ CanFinishDestroy(): bool`
-    - **Purpose**: Checks whether the module is ready for chip destruction
-    - defers if area unlocking coroutine is still active.
-    - **Usage**: Called by Chip.FinishDestroy to determine if GameObject destruction can proceed.
-    - **Returns**: True if unlocking coroutine is finished, false if unlocking is in progress.
-- `+ DestroyModule(): void`
-- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the module references, caches module unlock data, initializes provider, and registers hint effect.
-    - **Usage**: Called automatically by Chip during its initialization phase for each attached chip module.
-    - **Params**: chip - the parent Chip component
-    - data - configuration settings of the chip
-    - runtimeData - mutable state container of the chip
-- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
-- `+ OnDrag(Vector2 position, ICell anchorCell): void`
-- `+ OnDragEnd(): void`
-- `+ OnDragStart(): void`
-- `+ OnEffectRemoved(int effectId): void`
-- `+ OnTap(): void`
-    - **Purpose**: Handles user tap by checking permissions, free cell space, and executing sequential area unlocking.
-    - **Usage**: Called automatically when the parent chip is tapped by the user.
-- `+ StartUnlockSequenceRoutine(): void`
-    - **Purpose**: Starts the sequential locked area unlocking coroutine.
-    - **Usage**: Called internally during tap execution, or can be controlled externally.
-- `+ StopUnlockSequenceRoutine(): void`
-    - **Purpose**: Stops the active sequential locked area unlocking coroutine if running.
-    - **Usage**: Called during module destruction or when cancelling unlock sequence.
-- `+ UpdateVisual(): void`
-    - **Purpose**: Updates visual state of tap hint based on whether the chip can currently be tapped and is not unlocking.
-    - **Usage**: Called when chip visual state is refreshed.
-- `- ExecuteUnlock(): void`
-    - **Purpose**: Executes area unlocking and chip evolution via IChipEvolutionService.
-    - **Usage**: Called internally when tap is validated.
-- `- OnDestroy(): void`
-- `- UnlockSequenceRoutine(): IEnumerator`
-    - **Purpose**: Sequentially unlocks each configured area with delays, and finalizes chip destruction when complete.
-    - **Usage**: Started as a coroutine from ExecuteUnlock.
----
-
-## UnlockAreaNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Triggers the unlocking of a locked area on the field grid via ILockedAreaManager.
-> - **Usage**: Connect to a control flow
-> - resolves ILockedAreaManager from Scene Variables and calls UnlockArea.
-> - **Notes**: Supports optional force unlock flag. Emits event OnAreaUnlocked on completion. LockedAreaManager must be set in Scene Variables during scene initialization.
-#### Fields
-- `+- ExpectedAreaId: ValueInput`
-- `+- ForceUnlock: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- Trigger(Flow flow): ControlOutput`
----
-
-## UnlockAreaStep
-
-> - **Purpose**: Defines an individual step in the locked area unlocking sequence with target area ID and sequential delay.
-> - **Usage**: Configured within ChipUnlockAreaData.Steps array.
-#### Fields
-- `++ AreaId: int`
-- `++ Delay: float`
----
-
 ## VisualField
 **Inherits**: `MonoBehaviour`
 
@@ -4721,239 +3953,5 @@
 - `- ApplyEffects(): void`
 - `- ApplyFieldOffset(): void`
 - `- ApplySize(Vector2Int newSize): void`
----
-
-## WaitEvolutionModule
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Modular component attached to a Chip that handles evolution over time, showing progress effect, and reacting to boosters.
-> - **Usage**: Attach to chip prefabs that evolve after a delay
-> - implements IChipModule and IPowerBoosterTarget
-> - **Notes**: Supports evolution into weighted random chips or destruction, respects chip movement/drag deferral, and handles booster speed scale toggling.
-#### Fields
-- `+- AppliedBoosters: HashSet<PowerBoosterModule>`
-- `+- BlockingState: CombinedBlockingState`
-- `+- EvolutionSettings: EvolutionExecutionSettings`
-- `+- IsMoving: bool`
-- `+- JoinPoints: IReadOnlyList<Transform>`
-- `- chargingEffect: ChargingEffectRef`
-- `- chip: Chip`
-- `- data: ChipData`
-- `- evolutionData: ChipWaitEvolutionData`
-- `- evolutionRuntimeData: ChipWaitEvolutionRuntimeData`
-- `- evolutionService: IChipEvolutionService`
-- `- field: IFieldEventHandler`
-- `- isWaitingForSpace: bool`
-- `- OnCharging: Action<float>`
-- `- powerMultiplier: float`
-- `- startDeactivateChargingEffect: bool`
-#### Methods
-- `+ ApplyPowerBooster(PowerBoosterModule powerBoosterModule, bool reapply): bool`
-    - **Purpose**: Registers a power booster affecting this module and triggers recalculation of the evolution speed.
-    - **Usage**: Called by PowerBoosterModule when a booster is placed nearby or cell observers detect proximity changes.
-    - **Params**: powerBoosterModule - the booster component to apply
-    - reapply - if true, bypasses modifier receptivity checks
-    - **Returns**: True if the booster was successfully added to the active set, false otherwise
-- `+ DestroyModule(): void`
-- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the module references, sets up wait evolution data and links the charging progress effect.
-    - **Usage**: Called automatically by Chip during its initialization phase for each attached chip module.
-    - **Params**: chip - the parent Chip component
-    - data - configuration settings of the chip
-    - runtimeData - mutable state of the chip
-- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the module runtime data structure for wait evolution if it does not already exist.
-    - **Usage**: Called before module initialization to prepare the initial state for the chip's runtime data collection.
-    - **Params**: data - configuration settings of the chip
-    - runtimeData - mutable state container of the chip
-- `+ NotifyEffectRemoved(int effectId): void`
-- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
-- `+ OnDrag(Vector2 position, ICell anchorCell): void`
-- `+ OnDragEnd(): void`
-- `+ OnDragStart(): void`
-- `+ OnEffectRemoved(int effectId): void`
-- `+ OnTap(): void`
-- `+ RemovePowerBooster(PowerBoosterModule powerBoosterModule): void`
-    - **Purpose**: Deregisters a power booster from this module and recalculates the evolution speed.
-    - **Usage**: Called by PowerBoosterModule when it is moved away or destroyed.
-    - **Params**: powerBoosterModule - the booster component to remove
-- `+ UpdateVisual(): void`
-- `- ExecuteEvolution(): void`
-    - **Purpose**: Performs the evolution process via IChipEvolutionService when wait evolution timer expires.
-    - **Usage**: Called internally when wait evolution timer expires and the chip is not moving or dragged.
-    - **Notes**: If no free space is available, subscribes to OnChangeField to retry once board state updates.
-- `- OnDestroy(): void`
-- `- OnFieldChanged(): void`
-- `- RecalculatePowerMultiplier(): void`
-- `- Update(): void`
----
-
-## WaitForAreaUnlockedNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Suspends graph execution until a locked area is unlocked.
-> - **Usage**: Connect to a control flow
-> - registers to EventBus dynamically when reached, resumes flow when event triggers.
-> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
-#### Fields
-- `+- AreaId: ValueOutput`
-- `+- ExpectedAreaId: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
----
-
-## WaitForChipCreatedNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Suspends graph execution until a new chip is created, matching optional expectedChipData.
-> - **Usage**: Connect to a control flow
-> - registers to EventBus dynamically when reached, resumes flow when event triggers.
-> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
-#### Fields
-- `+- Cell: ValueOutput`
-- `+- CellPosition: ValueOutput`
-- `+- Chip: ValueOutput`
-- `+- ChipData: ValueOutput`
-- `+- ExpectedChipData: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
----
-
-## WaitForChipEffectUnlockedNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Suspends graph execution until a blocker effect is removed from a chip.
-> - **Usage**: Connect to a control flow
-> - registers to EventBus dynamically when reached, resumes flow when event triggers.
-> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
-#### Fields
-- `+- CellPosition: ValueOutput`
-- `+- Chip: ValueOutput`
-- `+- ChipData: ValueOutput`
-- `+- EffectId: ValueOutput`
-- `+- ExpectedChipData: ValueInput`
-- `+- ExpectedEffectId: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
----
-
-## WaitForChipRemovedNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Suspends graph execution until a chip is removed.
-> - **Usage**: Connect to a control flow
-> - registers to EventBus dynamically when reached, resumes flow when event triggers.
-> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
-#### Fields
-- `+- CellPosition: ValueOutput`
-- `+- Chip: ValueOutput`
-- `+- ChipData: ValueOutput`
-- `+- ExpectedChipData: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
----
-
-## WaitForFreeCellsNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Suspends graph execution until at least one candidate rectangular grid area is free of chips, or can be relocated in aggressive mode.
-> - **Usage**: Connect to a control flow
-> - checks immediately upon entry to prevent deadlock, and re-evaluates on each field change event.
-> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node). Aggressive mode performs relocation validation without moving chips and prefers positions requiring the fewest relocations.
-#### Fields
-- `+- AggressiveInput: ValueInput`
-- `+- CellOutput: ValueOutput`
-- `+- CellPositionOutput: ValueOutput`
-- `+- CellPositionsInput: ValueInput`
-- `+- InputTrigger: ControlInput`
-- `+- NeedsRelocationOutput: ValueOutput`
-- `+- OutputTrigger: ControlOutput`
-- `+- SizeInput: ValueInput`
-- `+- SizeOutput: ValueOutput`
-#### Methods
-- `~ Definition(): void`
-- `- IsAreaFree(IFieldGrid grid, Vector2Int pos, Vector2Int size): bool`
-    - **Purpose**: Checks whether a rectangular area is completely free of chips and unblocked.
-    - **Usage**: Internal helper used in Phase 1 candidate evaluation.
-    - **Params**: grid - game field grid
-    - pos - anchor cell position
-    - size - area dimensions
-    - **Returns**: True if all cells in the rectangular area are unblocked and contain no chips
-    - otherwise false.
-- `- TriggerCoroutine(Flow flow): IEnumerator`
-    - **Purpose**: Suspends graph execution until one of the candidate grid areas is free or relocatable, re-evaluating on field change events.
-    - **Usage**: Called by Unity Visual Scripting when control enters inputTrigger.
-    - **Params**: flow - the Visual Scripting execution flow context.
-    - **Returns**: IEnumerator yielding until the area condition is satisfied or invalid parameters abort execution.
-    - **Notes**: Evaluates immediately on entry to prevent frame deadlock
-    - registers OnChangeField dynamically and unregisters in finally block.
-- `- TryFindFreePosition(IFieldGrid grid, IChipMovingLogic movingLogic, IList<Vector2Int> positions, Vector2Int size, bool aggressive, Vector2Int& selectedPos, Boolean& needsRelocation): bool`
-    - **Purpose**: Evaluates candidate positions to find a free area or one that can be freed via relocation.
-    - **Usage**: Called on coroutine entry and on field change events.
-    - **Params**: grid - game field grid
-    - movingLogic - chip movement logic for relocation validation
-    - positions - list of candidate positions
-    - size - area dimensions
-    - aggressive - whether relocation check is enabled
-    - selectedPos - output selected position
-    - needsRelocation - output indicating if relocation is needed
-    - **Returns**: True if a suitable position is found
-    - otherwise false.
-- `- ValidateInputs(IFieldGrid grid, IList<Vector2Int> positions, Vector2Int size): bool`
-    - **Purpose**: Validates area size and candidate position bounds against the field grid.
-    - **Usage**: Called before evaluating free cell conditions on entry and on field changes.
-    - **Params**: grid - game field grid
-    - positions - candidate anchor positions
-    - size - area dimensions
-    - **Returns**: True if all positions and size are valid
-    - false if any are invalid or the positions list is null/empty.
----
-
-## WaitForNotEnoughSpaceForEvolutionNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Suspends graph execution until a chip evolution fails due to lack of space.
-> - **Usage**: Connect to a control flow
-> - registers to EventBus dynamically when reached, resumes flow when event triggers.
-> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
-#### Fields
-- `+- CellPosition: ValueOutput`
-- `+- Chip: ValueOutput`
-- `+- ChipData: ValueOutput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
----
-
-## WaitForNotEnoughSpaceNode
-**Inherits**: `Unit`
-
-> - **Purpose**: Suspends graph execution until a chip generation or evolution fails due to lack of space.
-> - **Usage**: Connect to a control flow
-> - registers to EventBus dynamically when reached, resumes flow when event triggers.
-> - **Notes**: Must be run as a coroutine in UVS (enable Coroutine on the starting event node).
-#### Fields
-- `+- CellPosition: ValueOutput`
-- `+- Chip: ValueOutput`
-- `+- ChipData: ValueOutput`
-- `+- InputTrigger: ControlInput`
-- `+- OutputTrigger: ControlOutput`
-#### Methods
-- `~ Definition(): void`
-- `- TriggerCoroutine(Flow flow): IEnumerator`
 ---
 

@@ -67,7 +67,7 @@
 
 #### Evolution_IntoMultipleChips
 - **Мета**: Перевіряє, що ручний генератор на останньому заряді та останній перезарядці успішно генерує фішку та еволюціонує у 2 чіпи (`SeedlingContainer_4` та `SeedlingContainer_3`) без виклику події `OnNotEnoughSpaceForEvolution`, повністю заповнюючи поле.
-- **Сценарій**: Розміщує генератор на `(0,0)`, залишає порожніми `(0,1)` та `(6,6)`, а решту 46 клітинок заповнює `Tomato_1`. Підписується на подію `IScenarioEventHandler.OnNotEnoughSpaceForEvolution`. Симулює тап на `(0,0)`, чекає завершення анімацій та перевіряє, що `OnNotEnoughSpaceForEvolution` не викликалась, а всі 49 клітинок сітки зайняті фішками.
+- **Сценарій**: Розміщує генератор на `(0,0)`, залишає порожніми `(0,1)` та `(6,6)`, а решту 46 клітинок заповнює `Tomato_1`. Підписується на подію `IMergeEventHandler.OnNotEnoughSpaceForEvolution`. Симулює тап на `(0,0)`, чекає завершення анімацій та перевіряє, що `OnNotEnoughSpaceForEvolution` не викликалась, а всі 49 клітинок сітки зайняті фішками.
 
 #### Evolution_IntoMultipleChips_NotEnoughSpace
 - **Мета**: Перевіряє, що ручний генератор на останньому заряді та останній перезарядці перериває еволюцію та викликає подію `OnNotEnoughSpaceForEvolution`, коли місця для всіх еволюційних чіпів недостатньо, а вільна клітинка залишається незайманою.
@@ -125,7 +125,7 @@
 
 #### Evolution_IntoMultipleChips
 - **Мета**: Перевіряє, що контейнер при заповненні останньої вимоги успішно еволюціонує у 2 чіпи (`SeedlingContainer_3` та `TomatoSeed_2`) без виклику події `OnNotEnoughSpaceForEvolution`, коли доступне точне місце (клітинка контейнера та клітинка перетягнутого чіпа), повністю заповнюючи поле.
-- **Сценарій**: Розміщує клон `SeedlingContainer_2` на `(0,0)`, `BagOfSoil_2` на `(6,6)`, а решту 47 клітинок заповнює `Tomato_1` (всі 49 клітинок зайняті). Підписується на подію `IScenarioEventHandler.OnNotEnoughSpaceForEvolution`. Симулює drag `BagOfSoil_2` з `(6,6)` на `(0,0)`, очікує завершення анімацій та перевіряє, що `OnNotEnoughSpaceForEvolution` не викликалась, а всі 49 клітинок сітки зайняті фішками.
+- **Сценарій**: Розміщує клон `SeedlingContainer_2` на `(0,0)`, `BagOfSoil_2` на `(6,6)`, а решту 47 клітинок заповнює `Tomato_1` (всі 49 клітинок зайняті). Підписується на подію `IMergeEventHandler.OnNotEnoughSpaceForEvolution`. Симулює drag `BagOfSoil_2` з `(6,6)` на `(0,0)`, очікує завершення анімацій та перевіряє, що `OnNotEnoughSpaceForEvolution` не викликалась, а всі 49 клітинок сітки зайняті фішками.
 
 #### Evolution_IntoMultipleChips_NotEnoughSpace
 - **Мета**: Перевіряє, що контейнер перериває заповнення/еволюцію, викликає подію `OnNotEnoughSpaceForEvolution`, повертає перетягнуту фішку на вихідну позицію (snap-back) та зберігає початковий стан поля, коли місця для всіх еволюційних чіпів недостатньо.
@@ -177,7 +177,7 @@
 - **Важливість**: Гарантує, що `PowerBoosterCellSubscriber.OnChipDestroy()` коректно видаляє всі підсилення перед знищенням бустера, щоб не залишати "привидів" активних бустерів у генераторів.
 
 ### ChipWaitEvolutionTests
-Тести функціональності автоматичної еволюції фішки з часом ([WaitEvolutionModule](../Chips/WaitEvolutionModule.md)).
+Тести функціональності автоматичної еволюції фішки з часом ([WaitEvolutionModule](../../../../MergeCommon/Docs/UA/Chips/WaitEvolutionModule.md)).
 
 #### Evolution_IntoSingleChip_AfterTimeElapsed
 - **Мета**: Перевіряє успішну еволюцію фішки в інший налаштований тип після закінчення таймера.
@@ -196,7 +196,7 @@
 - **Сценарій**: Спавнить еволюціонуючий чіп, симулює перетягування фішки на іншу позицію протягом 2 секунд (при `EvolveTime = 0.5s`), так що таймер закінчується під час перетягування. Після завершення перетягування перевіряє, що фішка одразу ж еволюціонувала в цільовий тип на новій позиції.
 
 ### ChipTapEvolutionTests
-Тести функціональності еволюції фішки при натисканні ([TapEvolutionModule](../Chips/TapEvolutionModule.md)).
+Тести функціональності еволюції фішки при натисканні ([TapEvolutionModule](../../../../MergeCommon/Docs/UA/Chips/TapEvolutionModule.md)).
 
 #### Evolution_OnTap_IntoSingleChip
 - **Мета**: Перевіряє успішну еволюцію фішки у наступну налаштовану фішку при тапі після завершення анімації спавну.
@@ -249,42 +249,8 @@
 - **Мета**: Перевіряє повний життєвий цикл роботи `ChipMaterialEffect` у зв'язці з `ChipMaterialController`.
 - **Сценарій**: Створює тестовий ефект матеріалу. Перевіряє реєстрацію матеріалу під час `Init`, застосування матеріалу ефекту при активації, встановлення шейдерних параметрів через `SetPropertyFloat`, скидання блоку через `ClearPropertyBlock` та відновлення базового матеріалу при деактивації.
 
-### ScenarioTests
-Тести взаємодії ядра Merge з системою сценаріїв та івентів (`IScenarioEventHandler`) у C# та Unity Visual Scripting (UVS).
-
-#### Test_OnChipCreated_ScenarioEvents
-- **Мета**: Перевіряє генерацію події `OnChipCreated` при створенні нового чіпа.
-- **Сценарій**: Створює чіп через `ChipFactory.CreateChip` і перевіряє, що C# делегат `IScenarioEventHandler.OnChipCreated` та подія UVS `OnChipCreated` у `EventBus` були успішно викликані з посиланням на створений чіп.
-
-#### Test_OnChipRemoved_ScenarioEvents
-- **Мета**: Перевіряє генерацію події `OnChipRemoved` перед знищенням чіпа.
-- **Сценарій**: Створює чіп і викликає `Destroy()`. Перевіряє, що C# делегат `IScenarioEventHandler.OnChipRemoved` та подія UVS `OnChipRemoved` у `EventBus` були успішно викликані з посиланням на цей чіп до повного його очищення.
-
-#### Test_OnChipEffectUnlocked_ScenarioEvents
-- **Мета**: Перевіряє генерацію події `OnChipEffectUnlocked` при знятті блокуючого ефекту з чіпа.
-- **Сценарій**: Додає ефект-блокатор на чіп, викликає внутрішній метод `RemoveEffect` і перевіряє, що подія успішно доставила посилання на чіп та ID знятого ефекту в C# та UVS.
-
-#### Test_OnAreaUnlocked_ScenarioEvents
-- **Мета**: Перевіряє генерацію події `OnAreaUnlocked` при відкритті заблокованої зони.
-- **Сценарій**: Реєструє тестову зону в `FieldData`, викликає `LockedAreaManager.UnlockArea` і перевіряє, що C# та UVS отримали правильний ID розблокованої зони.
-
-### LockedAreaTests
-Тести системи заблокованих ділянок ([Locked Areas](../Features/LockedAreas.md)) та захисту фішок і блокер-ефектів під ними.
-
-#### CheckEffectsUnderLockedArea
-- **Мета**: Перевіряє, що блокер-ефекти на фішках під заблокованою ділянкою захищені від руйнування та не отримують прогресу від злиттів на сусідніх клітинках.
-- **Сценарій**: Завантажує поле із заблокованою зоною `TestLockedAreaGardenSettings`, де розташовані клітинки із блокер-ефектами. Спавнить дві сусідні фішки поруч із заблокованою зоною та виконує їхнє злиття за допомогою `InputHelper.SimulateDrag`. Перевіряє, що клітинки ділянки залишаються заблокованими (`cell.IsBlocked == true`), фішки нерухомими (`CanBeMoved == false`), а блокер-ефекти не отримують руйнувань (`NeighboringMergeCount == 0`) та не видаляються. Також валідує успішність злиття зовнішніх фішок та цілісність поля через `FieldAssertions.AssertFieldConsistency`.
-
-#### UnlockArea_Secateur_UnlocksArea
-- **Мета**: Перевіряє, що натискання (тап) на `Secateur_1` призводить до його знищення та розблокування пов'язаної заблокованої ділянки (Area 1).
-- **Сценарій**: Завантажує тестове поле `TestLockedAreaGardenSettings`. Спавнить фішку `Secateur_1` на вільній клітинці, перевіряє, що клітинки Area 1 початково заблоковані. Симулює тап по фішці через `InputHelper.SimulateTap`, чекає 5 секунд для перегляду та завершення анімації розблокування зони. Перевіряє, що фішка `Secateur_1` знищена, а всі клітинки Area 1 розблоковані (`IsBlocked == false`). Валідує цілісність поля через `FieldAssertions.AssertFieldConsistency`.
-
-#### UnlockArea_Blower_UnlocksArea
-- **Мета**: Перевіряє, що натискання (тап) на `Blower_1` призводить до його знищення, розблокування ділянки (Area 2), активації ефекту `GeneratorCharged` на клітинці `(0, 4)` та збереження ефектів `WebEffect` і `SepiaEffect` на заблокованій павутиною фішці `(0, 5)`.
-- **Сценарій**: Завантажує тестове поле `TestLockedAreaGardenSettings`. Перевіряє заблокований стан клітинок Area 2 перед розблокуванням, неактивний/прихований стан ефекту `GeneratorCharged` на фішці `(0, 4)` (`IsActive == false`), а також активний стан `WebEffect` та `SepiaEffect` на `(0, 5)`. Спавнить фішку `Blower_1` на вільній клітинці, симулює тап через `InputHelper.SimulateTap`, чекає 5 секунд на завершення анімації розблокування зони. Перевіряє, що `Blower_1` знищений, клітинки Area 2 розблоковані (`IsBlocked == false`), ефект `GeneratorCharged` на `(0, 4)` активований (`IsActive == true`), а на фішці `(0, 5)` ефекти `WebEffect` та `SepiaEffect` залишаються активними, оскільки блокатор павутини продовжує утримувати сепію. Валідує цілісність поля через `FieldAssertions.AssertFieldConsistency`.
-
 ### ScenarioEventTests
-Тести сюжетних сценаріїв та івентів розблокування зон ([Scenario System](../Features/Scenario.md), [Locked Areas](../Features/LockedAreas.md)).
+Тести сюжетних сценаріїв та івентів розблокування зон ([Scenario System](../../../../MergeCommon/Docs/UA/Features/Scenario.md), [Locked Areas](../../../../MergeCommon/Docs/UA/Features/LockedAreas.md)). Розташовані в збірці `MergeCommon.TutorialScenario.Tests` (`Assets/Expecto/MergeCommon/TutorialScenario/Tests/ScenarioEventTests.cs`).
 
 #### UnlockArea_Secateur_UnlocksArea
 - **Мета**: Перевіряє, що натискання (тап) на `Secateur_1` у контексті сценарію подій знищує фішку, очікує підтвердження на екрані (`SimulateScreenTap`) та розблоковує Area 1.

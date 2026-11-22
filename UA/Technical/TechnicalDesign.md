@@ -43,7 +43,7 @@
 
 - **`ILockedAreaManager`** -> `LockedAreaManager`
   - **Призначення**: Управління станом заблокованих ділянок на рівні.
-  - **Відповідальність**: Ініціалізація заблокованих ділянок, блокування комірок, реєстрація візуальних ефектів, розблокування ділянок та спавн відкладених фішок. Детально описано у [Locked Areas](../Features/LockedAreas.md).
+  - **Відповідальність**: Ініціалізація заблокованих ділянок, блокування комірок, реєстрація візуальних ефектів, розблокування ділянок та спавн відкладених фішок. Детально описано у [Locked Areas](../../../../MergeCommon/Docs/UA/Features/LockedAreas.md).
 
 - **`IChipCollections`** -> `ChipCollections`
   - **Призначення**: Централізований реєстр усіх активних фішок на полі, згрупованих за типом даних, а також надання високопродуктивних відфільтрованих індексів.
@@ -99,10 +99,10 @@
   - **Призначення**: Контракт для кореневого компонента візуального представлення ігрового поля.
   - **Відповідальність**: Ініціалізація візуального представлення поля, підлаштування під розмір сітки, налаштування меж камери, ініціалізація ефектів (наприклад, заблокованих ділянок) та надання візуального зміщення поля (`FieldOffset`) для позиціонування `IFieldGrid` і прив'язки інструментів редактора рівнів.
 
-### Scenario & Quests
-- **`IScenarioEventHandler`** -> `ScenarioEventHandler`
-  - **Призначення**: Контракт для передачі подій сценаріїв та квестів.
-  - **Відповідальність**: Трансляція життєвого циклу чіпів та змін на полі (створення чіпа, знищення, зняття блокуючого ефекту, розблокування зони, відсутність вільного місця для генерації `OnNotEnoughSpace` та для еволюції `OnNotEnoughSpaceForEvolution`) у C# події. Виступає сполучною ланкою між ядром Merge та системою сценаріїв (трансляція у події Unity Visual Scripting EventBus винесена в окремий адаптер `VScriptingScenarioEventBridge` в збірці `MergeBase.VScripting`).
+### Event System
+- **`IMergeEventHandler`** -> `MergeEventHandler`
+  - **Призначення**: Контракт для передачі подій життєвого циклу чіпів та поля.
+  - **Відповідальність**: Трансляція життєвого циклу чіпів (створення чіпа, знищення, зняття блокуючого ефекту, відсутність вільного місця для генерації `OnNotEnoughSpace` та для еволюції `OnNotEnoughSpaceForEvolution`) у C# події. Виступає сполучною ланкою між ядром Merge та іншими системами (трансляція у події Unity Visual Scripting EventBus винесена в окремий адаптер `VScriptingScenarioEventBridge` в збірці `MergeCommon.TutorialScenario.VScripting`). Розблокування зон транслюється окремо через `ILockedAreaManager.OnAreaUnlocked` у збірці `MergeCommon.LockedArea.VScripting`.
 
 ## Visual Effects System
 Візуальні ефекти для фішок реалізовані через систему інтерфейсів для гнучкості та розділення логіки.
@@ -166,10 +166,11 @@
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
 - **ChipSpawnData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
 - **BlockedCells**: Масив координат (`Vector2Int[]`), які визначають заблоковані клітинки на рівні, що ініціалізуються як непрохідні.
+- **IFieldModuleData**: Базовий інтерфейс для конфігурацій модулів поля (`FieldData.moduleDatas`). Підтримує поліморфну серіалізацію через `[SerializeReference] List<IFieldModuleData>`, методи `GetModuleData<T>()`, `HasModuleData<T>()`, `HasModuleData(Type)`, `AddModuleData` та `RemoveModuleData`. Модулі можуть реалізовувати валідацію через default interface method `Validate(FieldData fieldData, List<string> errors)`, яка викликається у `FieldData.ValidateLevel`.
 - **VisualFieldPrefab**: Посилання на префаб візуального оформлення поля (`GameObject`).
 - **VScriptingFieldPrefab**: Посилання на префаб Visual Scripting сцени (`GameObject`), що автоматично інстанціюється під час ініціалізації поля.
 - **Позиція**: Координати якоря (top-left) для розміщених фішок у `CellData`.
-- **Розташування в коді**: `FieldData` і `ChipSpawnData` знаходяться в `Core/Scripts/Field/Data`.
+- **Розташування в коді**: `FieldData` і `ChipSpawnData` знаходяться в `Core/Scripts/Field/Data`, `IFieldModuleData` — у `Core/Scripts/Field/Data/ModuleData`.
 - **MergeSettings**: Глобальні налаштування сцени, які зокрема містять `CellPrefab` для створення стандартних ігрових клітинок.
 
 ### Runtime State

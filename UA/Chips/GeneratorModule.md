@@ -25,7 +25,7 @@
   - `ChipFactory`: Фабрика для створення нових об'єктів.
   - `ChipDataCollection`: Колекція для резолву `ChipData` за ідентифікатором `ChipId`.
   - `IChipEvolutionService`: Сервіс для валідації та виконання еволюції після вичерпання зарядів/перезарядок.
-  - `IScenarioEventHandler`: Для сповіщень про нестачу вільного місця.
+  - `IMergeEventHandler`: Для сповіщень про нестачу вільного місця.
   - `IFieldGrid`: Для перевірки меж та отримання клітинок поля.
 
 ### 2. `ChipGeneratorData.cs` (Configuration)

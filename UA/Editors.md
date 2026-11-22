@@ -67,7 +67,7 @@ Level Editor підтримує два режими редагування:
 
 **Smart Brush**: При натисненні LMB або RMB визначається, чи комірка додається чи видаляється з відповідного списку. Ця операція (додавання або видалення) фіксується на весь період утримання кнопки миші (drag-малювання), забезпечуючи зручне та передбачуване малювання без хаотичних змін.
 
-Детальніше про життєвий цикл та логіку роботи заблокованих ділянок див. у розділі [Заблоковані ділянки (Locked Areas)](Features/LockedAreas.md).
+Детальніше про життєвий цикл та логіку роботи заблокованих ділянок див. у розділі [Заблоковані ділянки (Locked Areas)](../../../MergeCommon/Docs/UA/Features/LockedAreas.md).
 
 ## Technical Implementation
 
@@ -79,6 +79,11 @@ Level Editor підтримує два режими редагування:
 - **Ізольована сцена візуалізації сцени**: Для відображення префабу поля та розміщених фішок редактор динамічно створює окрему тимчасову адитивну сцену (`LevelEditorPreviewScene`). Це запобігає забрудненню або випадковій модифікації основної відкритої сцени проекту. Усі прев'ю-об'єкти створюються з прапорцем `HideFlags.DontSave`.
 - **Синхронізація GridAnchor та візуального зміщення (FieldOffset)**: Тимчасовий якір сітки `tempGridAnchor` синхронізує свою позицію та обертання з активною сіткою `gridTransform` та враховує зміщення візуального поля (`IVisualField.FieldOffset` через `GetFieldOffset` і `SyncGridAnchorTransform`). Це забезпечує точне позиціонування розміщених фішок, гріда, міток координат та оверлеїв заблокованих зон у Scene View при наявності зміщень на префабах візуального поля.
 - **Scene View Overlay (`LevelEditorOverlay`)**: Клас `LevelEditorOverlay` (транзієнтний оверлей `ITransientOverlay`), що інтегрує елементи керування [`LevelEditorToolbarContent`](../../Core/Editor/Scripts/LevelEditor/LevelEditorOverlay.cs) прямо у верхню тулбар-стрічку Scene View. Відображається лише за умови наявності `IMergeLifetimeScope` у сцені та поза режимами Play Mode і Prefab Mode. Містить іконки перемикання режимів відображення ефектів, прев'ю VScripting-префабу (динамічно з'являється за наявності `VScriptingFieldPrefab` в активному `FieldData`), фішок, заблокованих клітинок, тугл відображення міток координат клітинок (`(x,y)`) та перемикач `Input Interception`, який регулює обробку вводу миші та малювання на сітці.
+- **Модульна архітектура розширення (`ILevelEditorContext` / `IFieldModuleEditor`)**:
+  - `ILevelEditorContext`: Інтерфейс контексту, що надає доступ до `FieldData`, `ChipDataCollection`, `SerializedFieldData`, сітки (координати ↔ Rect через `GetCellRect` та `TryGetCellAtGUIPosition`, виділення клітинок `SelectedCells`, `Repaint()`) та методів управління змінами (`RecordUndo`, `MarkDirty`, `RequestGridRebuild`). `LevelEditorWindow` реалізує цей інтерфейс безпосередньо.
+  - `IFieldModuleEditor<TData>`: Контракт модульних редакторів із життєвим циклом `OnAttach` / `OnDetach`, панеллю `DrawPanelGUI()`, оверлеями `OnDrawGridOverlay()` / `OnDrawCellOverlay()`, перехопленням інпуту `OnCellInput()`, хуками валідації та збереження.
+  - `FieldModuleEditorRegistry`: Реєстр на базі `TypeCache`, який автоматично зіставляє типи `IFieldModuleData` з реалізаціями `IFieldModuleEditor<TData>` і надає fallback `MissingFieldModuleEditor` із попередженням `HelpBox`.
+  - **Панель вкладок та керування модулями**: Вкладка 0 відповідає за базовий рівень (Level Controls, розмір сітки, палітра фішок). Вкладки 1..N динамічно генеруються для кожного `IFieldModuleData` в `FieldData.ModuleDatas`. Кнопка `+ Add Module` відображає список доступних типів модулів, яких ще немає на поточному полі. Кнопка `Remove Module` всередині вкладки модуля дозволяє видалити його після підтвердження користувачем. Обидві операції підтримують повну історію Undo/Redo через `AddModuleCommand` та `RemoveModuleCommand`.
 
 ### Undo/Redo System
 Система Undo/Redo побудована на патерні **Command**.
@@ -87,19 +92,21 @@ Level Editor підтримує два режими редагування:
 - **`IEditorCommand`**: Інтерфейс для всіх команд редактора. Кожна команда реалізує логіку виконання (`Execute`) та відкату (`Undo`).
 - **`EditorCommandHistory`**: Клас-менеджер, що керує двома стеками (Undo та Redo).
 - **`LevelEditorWindow.UndoRedo.cs`**: Частковий клас (partial class), що містить визначення всіх конкретних команд:
-    - `PlaceChipCommand` — розміщення нової фішки.
-    - `MoveChipCommand` — переміщення існуючої фішки.
-    - `RemoveChipCommand` — видалення фішки.
+    - `PlaceChipCommand` — розміщення нової фішки (інкрементально створює прев'ю-об'єкт нової фішки без перестворення сцени).
+    - `MoveChipCommand` — переміщення існуючої фішки (інкрементально змінює позицію transform існуючого прев'ю-об'єкта).
+    - `RemoveChipCommand` — видалення фішки (інкрементально знищує прев'ю-об'єкт).
     - `ToggleMoveLockCommand` — перемикання прапорця блокування.
-    - `ResizeGridCommand` — зміна розміру сітки з видаленням фішок поза межами.
+    - `ResizeGridCommand` — зміна розміру сітки з видаленням фішок поза межами (виконує повне оновлення прев'ю-сцени).
     - `ClearAllChipsCommand` — повне очищення поля.
     - `AddLockedAreaCommand` — додавання нової заблокованої ділянки.
     - `RemoveLockedAreaCommand` — видалення заблокованої ділянки (зберігає стан для Undo).
     - `ChangeLockedAreaIdCommand` — зміна ID заблокованої ділянки.
     - `PaintLockedAreaCellsCommand` — редагування `CellsToLock` та `CellsToLockAndDeferred` (малювання заблокованих/відкладених клітинок).
+    - `AddModuleCommand` — додавання модуля конфігурації поля (виконує оновлення модульних прев'ю).
+    - `RemoveModuleCommand` — видалення модуля конфігурації поля (зберігає стан та індекс для Undo, виконує оновлення модульних прев'ю).
 
 #### Workflow (Flow)
-Замість прямої зміни полів `placedChips` або `gridSize`, методи редактора (наприклад, `PlaceChip`), що викликаються через події Scene View або UI, створюють відповідний об'єкт команди та викликають `RecordAndExecute(command)`. Цей метод делегує виконання `EditorCommandHistory`, який додає команду в стек і викликає `Repaint()` Scene View та вікна редактора.
+Замість прямої зміни полів `placedChips` або `gridSize`, методи редактора (наприклад, `PlaceChip`), що викликаються через події Scene View або UI, створюють відповідний об'єкт команди та викликають `RecordAndExecute(command)`. Цей метод делегує виконання `EditorCommandHistory`, який виконує команду (зі збереженням в стек Undo), викликає точкове оновлення прев'ю для операцій із фішками (`SpawnChipPreview`, `MoveChipPreview`, `DestroyChipPreview`), синхронізує `FieldData` з позначкою `SetDirty` через `AutosaveCurrentField` (без виклику повного перестворення прев'ю-сцени `UpdateLevelVisualPreview`) та викликає `Repaint()` Scene View і вікна редактора. Повне оновлення сцени візуалізації (`UpdateLevelVisualPreview`) зарезервовано виключно для структурних змін (зміна розмірів сітки, зміна префабу візуального поля, додавання/видалення модулів, завантаження рівня). Запис асетів на диск (`AssetDatabase.SaveAssets`) відкладено до подій втрати фокусу (`OnLostFocus`), закриття вікна або переходу в Play Mode.
 
 ---
 
