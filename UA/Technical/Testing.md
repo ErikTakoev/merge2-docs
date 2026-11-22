@@ -254,11 +254,11 @@
 
 #### UnlockArea_Secateur_UnlocksArea
 - **Мета**: Перевіряє, що натискання (тап) на `Secateur_1` у контексті сценарію подій знищує фішку, очікує підтвердження на екрані (`SimulateScreenTap`) та розблоковує Area 1.
-- **Сценарій**: Завантажує тестове поле `TestScenarioEventGardenSettings`. Спавнить фішку `Secateur_1` на клітинці `(5, 5)`, перевіряє початковий заблокований стан Area 1. Симулює тап по фішці через `InputHelper.SimulateTap`, чекає появи фейду екрана, емулює клік по екрану через `InputHelper.SimulateScreenTap()` для продовження сценарію та валідує, що фішка знищена, а клітинки Area 1 розблоковані. Валідує цілісність поля через `FieldAssertions.AssertFieldConsistency`.
+- **Сценарій**: Завантажує тестове поле `TestScenarioEventMergeClassicSettings`. Спавнить фішку `Secateur_1` на клітинці `(5, 5)`, перевіряє початковий заблокований стан Area 1. Симулює тап по фішці через `InputHelper.SimulateTap`, чекає появи фейду екрана, емулює клік по екрану через `InputHelper.SimulateScreenTap()` для продовження сценарію та валідує, що фішка знищена, а клітинки Area 1 розблоковані. Валідує цілісність поля через `FieldAssertions.AssertFieldConsistency`.
 
 #### UnlockArea_Blower_UnlocksArea
 - **Мета**: Перевіряє, що натискання (тап) на `Blower_1` у сценарії подій ініціює ланцюг розблокування Area 2.
-- **Сценарій**: Завантажує тестове поле `TestScenarioEventGardenSettings`. Спавнить фішку `Blower_1`, емулює тап користувача, валідує знищення чіпа та розблокування клітинок Area 2.
+- **Сценарій**: Завантажує тестове поле `TestScenarioEventMergeClassicSettings`. Спавнить фішку `Blower_1`, емулює тап користувача, валідує знищення чіпа та розблокування клітинок Area 2.
 
 ## Instrumentation (Helpers)
 
