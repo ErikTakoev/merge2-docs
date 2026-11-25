@@ -63,8 +63,8 @@
   - **Відповідальність**: Знаходження найближчої вільної комірки (спіральний пошук) для спавну або переміщення чіпів через `FindNearestFreeCell`. Підтримує режим `onlyAround` для обмеження пошуку тільки сусідніми комірками, а також атомарний батч-пошук вільних комірок для декількох чіпів через `FindFreeCellsForChips` без додаткових GC-алокацій із підтримкою списку клітинок, які будуть звільнені (`cellsToFree`).
 
 - **`IChipEvolutionService`** -> `ChipEvolutionService`
-  - **Призначення**: Централізований сервіс для валідації та виконання еволюції фішок.
-  - **Відповідальність**: Реалізує уніфікований двоетапний пайплайн еволюції для всіх чіп-модулів (`TapEvolutionModule`, `UnlockAreaModule`, `WaitEvolutionModule`, `ContainerModule`, `GeneratorModule`). Метод `CanEvolve` попередньо перевіряє доступність вільних клітинок на сітці, розраховує координати розміщення без передчасного знищення батьківського чіпа, формує план еволюції `EvolutionPlan` і підтримує облік виключених (`cellsToExclude`) та звільнюваних (`cellsToFree`) клітинок; при нестачі місця генерує подію `RaiseNotEnoughSpaceForEvolution`. Метод `Evolve` знищує батьківський чіп, створює нові фішки згідно з планом, керує польотом, тригерами аніматора та підтверджує успіх через `Confirm()` у провайдера.
+  - **Призначення**: Централізований фасад для валідації та виконання еволюції фішок.
+  - **Відповідальність**: Координує уніфікований двоетапний пайплайн еволюції для всіх чіп-модулів (`Merge2Module`, `TapEvolutionModule`, `UnlockAreaModule`, `WaitEvolutionModule`, `ContainerModule`, `GeneratorModule`) через двох внутрішніх колабораторів без додаткових DI-реєстрацій: `ChipEvolutionPlanner` (резолв `ChipSpawnData`, fast-path пошук через `IFreeCellFinder`, делегування `ClampCellToField` та `TryResolveCellPosition` у `IChipMovingLogic` при збільшенні розміру/зсуві/перетині з `cellsToExclude`, атомарний пошук місць для додаткових фішок з урахуванням `cellsToFree`, формування `EvolutionPlan`) та `ChipEvolutionExecutor` (знищення батьківського чіпа, передача `PlannedRelocations` у `IChipMovingLogic.ChipsRelocate`, уніфікований спавн основного та додаткових чіпів через `ResolveSpawnParameters`, активація `IEffectMergeLight` і `Confirm()`). Метод `CanEvolve` приймає `bool notifyNotEnoughSpace` замість повного `EvolutionExecutionSettings` і при нестачі місця викликає `RaiseNotEnoughSpaceForEvolution`, а `Evolve` використовує груповані налаштування `EvolutionExecutionSettings` (`Triggers`, `SpawnFlight`, `Behavior`).
 
 - **`IChipEvolutionProvider`** (Інтерфейс)
   - **Призначення**: Стратегія вибору конфігурацій наступних фішок при еволюції.
@@ -75,11 +75,11 @@
   - **Відповідальність**: Поліморфна серіалізація через `[SerializeReference]`. Реалізації: `ConstantGenerationProvider` (фіксований список `ChipSpawnData`), `RandomGenerationProvider` (зважений вибір серед дочірніх провайдерів із нульовими алокаціями при тапах), `SequenceGenerationProvider` (циклічне послідовне перемикання кроків на основі `SequenceIndex` з `ChipGeneratorRuntimeData`). Методи: `Init()`, `GetGenerationChips(runtimeData)`, `Confirm(runtimeData)`, властивість `LastResult`.
 
 - **`IChipMovingLogic`** -> `ChipMovingLogic`
-  - **Призначення**: Комплексна логіка переміщення.
-  - **Відповідальність**: Валідація переміщень, обробка колізій та розрахунок ланцюгових переміщень (relocation) інших чіпів, щоб звільнити місце. Метод валідації `CanChipMoving` підтримує параметр ліміту релокацій (`maxRelocations`) для раннього відсікання зайвих перевірок. Методи переміщення (`ChipMoving`, `ChipsRelocate`) приймають параметр `ChipFlightSettings` для динамічного налаштування траєкторії та тривалості польоту фішок (наприклад, для різного візуального стилю при звичайному переміщенні або релокації).
+  - **Призначення**: Комплексна логіка переміщення та позиціювання з релокацією.
+  - **Відповідальність**: Валідація переміщень, обробка колізій, обмеження координат у межах сітки (`ClampCellToField`), підбір найближчої позиції з мінімальною кількістю релокацій сусідів (`TryResolveCellPosition`) та виконання переміщень. Метод валідації `CanChipMoving` підтримує параметр ліміту релокацій (`maxRelocations`) для раннього відсікання зайвих перевірок, набір заборонених клітинок `cellsToExclude` і використовує перевикористовувані внутрішні буфери (повертаючи `null`, коли релокації не потрібні). Методи переміщення (`ChipMoving`, `ChipsRelocate`) приймають `IReadOnlyList<ChipMoveAction>` та `ChipFlightSettings` для налаштування траєкторії і тривалості польоту фішок.
 
-- **`IPowerBoosterTarget`** -> `ChipGenerator` (`partial` у `ChipGenerator.PowerBoosterTarget.cs`)
-  - **Призначення**: Контракт для сутностей, що можуть бути посилені `ChipPowerBooster`.
+- **`IPowerBoosterTarget`** -> `GeneratorModule`, `WaitEvolutionModule`
+  - **Призначення**: Контракт для модулів фішок, швидкість роботи яких може бути посилена через `PowerBoosterModule`.
   - **Відповідальність**: Зберігання набору активних бустерів, реалізація apply/remove впливу, надання `JoinPoints` для join-візуалізації, експорт `BlockingState` для перевірки `CanReceiveModifiers`, та `NotifyEffectRemoved(int)` для сповіщення бустерів про зміни блокуючих ефектів.
 
 - **`IChipFinder`** -> `NeighborChipFinder`
@@ -117,15 +117,15 @@
 - **`InterfaceRef<T>`**: Ми використовуємо спеціальну серіалізовану обгортку (`EffectRef`, `EffectContainerHintRef`, `EffectHintRef`, `EffectPowerBoosterJoinRef`, `ChipLiftControllerRef`, `ChipMaterialControllerRef`, `ShadowEffectRef` тощо) для призначення MonoBehaviour, що реалізують інтерфейси, прямо в інспекторі Unity, забезпечуючи типізацію та модульність.
 
 ## Interaction Strategies
-Використовуємо патерн "Стратегія". Логіка того, як фішки взаємодіють між собою під час перетягування, винесена в окремі компоненти:
-- **Інтерфейс**: `IChipInteractionLogic`.
-- **Реалізації (компоненти `DraggableChipLogic`)**:
-  - `MergeableChipLogic` — логіка злиття сумісних фішок (згідно з налаштуваннями `ChipMergeData`).
-  - `FillContainerLogic` — логіка додавання фішок у контейнери.
+Логіка того, як фішки взаємодіють між собою під час перетягування, реалізована безпосередньо в модулях фішок на базі `IChipModule` (`CanInteract`, `OnInteract`, `CollectHintTargets`):
+- **Контракт**: Методи взаємодії інтерфейсу `IChipModule`, які кешує і делегує клас `Chip` через `GetModules()`.
+- **Модулі фішок (`IChipModule`)**:
+  - `Merge2Module` (збірка `MergeBase.Merge2`, дефайн `MERGE_BASE_MERGE2`) — логіка злиття сумісних фішок на основі `ChipMerge2Data` та `IChipEvolutionProvider` із делегуванням планування і спавну в `IChipEvolutionService`.
+  - `ContainerModule` — логіка додавання фішок у контейнери з поверненням `DragInteractionResult.Partial` або `Full`.
 - **Особливості**:
-  - Компоненти стратегій повинні бути розміщені на тому ж **GameObject**, що і `DraggableChipLogic`.
-  - **Пріоритет**: Порядок компонентів в інспекторі Unity визначає черговість перевірки взаємодій. Перша стратегія, яка поверне `true` у методі `CanInteract`, буде обрана для виконання.
-- Це дозволяє динамічно налаштовувати можливі взаємодії на полі, просто додаючи або видаляючи відповідні компоненти.
+  - Модулі розміщуються безпосередньо на префабі самої фішки (`Chip`), а `DraggableChipLogic` опитує їх через `Chip.CanInteract` та `currentInteractionChip.OnInteract`.
+  - **Пріоритет**: Для кожної зайнятої клітинки під перетягуваною фішкою `DraggableChipLogic.UpdateInteractionState` спочатку перевіряє модулі перетягуваної фішки (`Chip.CanInteract`), а потім модулі цільової фішки (`targetChip.CanInteract`). Усередині самого `Chip.OnInteract` порядок компонентів в інспекторі Unity визначає перший модуль, який виконає взаємодію.
+- Це дозволяє динамічно налаштовувати можливі взаємодії на фішках, просто додаючи або видаляючи відповідні модулі на префабах.
 
 ## Input System
 Система вводу базується на **Unity Input System (New Package)**.
@@ -148,19 +148,29 @@
 ### ChipData & ModuleData
 `ChipData` зберігає базові параметри чіпа (тип, префаб, розмір), а розширювані дані винесені в `moduleDatas` (`SerializeReference`).
 - **Контракт**: `IChipModuleData` — базовий інтерфейс для конфігурацій модулів.
-- **Merge як ModuleData**: `ChipMergeData` є одним із блоків `IChipModuleData` для конфігурації злиття чіпів.
+- **Merge як ModuleData**: `ChipMerge2Data` є одним із блоків `IChipModuleData` для конфігурації злиття чіпів через `IChipEvolutionProvider`.
 - **Доступ**:
-  - `GetModuleData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipEffectsData` тощо).
+  - `GetModuleData<T>()` повертає типізований блок даних (`ChipMerge2Data`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipEffectsData` тощо).
   - `CreateModuleData<T>()` — динамічно створює нову інстанцію даних модуля, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
   - `AddModuleData(IChipModuleData)` — додає готовий екземпляр даних модуля у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Merge Toolkit).
     ```csharp
     ChipData clonedData = originalData.Clone();
-    ChipMergeData mergeData = clonedData.CreateModuleData<ChipMergeData>();
-    mergeData.Combinations = new MergeCombination[] { /* ... */ };
+    ChipMerge2Data mergeData = clonedData.CreateModuleData<ChipMerge2Data>();
+    mergeData.Combinations = new MergeCombination[]
+    {
+        new MergeCombination
+        {
+            TargetChip = clonedData,
+            EvolutionProvider = new ConstantEvolutionProvider
+            {
+                Chips = new List<ChipSpawnData> { new ChipSpawnData { ChipId = "NextChip" } }
+            }
+        }
+    };
     ```
 - **Перевага**: Дозволяє додавати нові типи даних без розширення базового `ChipData` окремими полями.
 - **Blocker Effects як ModuleData**: Налаштування blocker-ефектів винесені в `ChipEffectsData` (масив `BlockerEffectData[]` з `effectId` + `Prefab`), тому `Chip.InitEffects()` отримує конфігурацію через `GetModuleData<ChipEffectsData>()`.
-- **Runtime доступ до merge**: Під час `Chip.Init` merge-дані кешуються у `Chip.MergeData`; `MergeableChipLogic` використовує саме цей доступ.
+- **Runtime доступ до merge**: Під час `Init` модуль `Merge2Module` кешує `data?.GetModuleData<ChipMerge2Data>()` та ініціалізує всі `EvolutionProvider` через `mergeData?.Init()`.
 
 ### FieldData & CellData
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:

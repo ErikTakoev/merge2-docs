@@ -35,7 +35,10 @@
 Розділ описує основні сутності ядра, що знаходяться на ігровому полі (Grid). Всі об'єкти успадковують або використовують базові принципи `Chip`.
 
 - **[Chip (Базовий)](Chips/Chip.md)**
-  > **Контекст**: Базовий ігровий об'єкт (фішка), що підтримує механіку злиття (Merge). Розділ включає опис **правил злиття (ChipMergeData)** як частини `moduleDatas`: налаштування партнерів, ваг (Weighted Random) і runtime-доступ через `Chip.MergeData`.
+  > **Контекст**: Базовий ігровий об'єкт (фішка) та хост модулів `IChipModule`, що керує життєвим циклом, візуальними ефектами, сортуванням шарів і делегуванням подій вводу та взаємодій.
+
+- **[Merge2Module](Chips/Merge2Module.md)**
+  > **Контекст**: Модуль злиття двох фішок (збірка `MergeBase.Merge2`, дефайн `MERGE_BASE_MERGE2`). Описує **правила злиття (`ChipMerge2Data`)** як частину `moduleDatas`: партнерів `MergeCombination`, стратегії результатів `IChipEvolutionProvider` (`ConstantEvolutionProvider`, `RandomEvolutionProvider`) та делегування виконання в `IChipEvolutionService`.
 
 - **[GeneratorModule](Chips/GeneratorModule.md)**
   > **Контекст**: Чіп-генератор, що створює (спавнить) нові фішки. Працює як State Machine (Зарядка <-> Готовність). Підтримує ручний (Tap) та автоматичний режими, систему ваг (Weighted Random) для вибору результату та лімітовану кількість перезарядок.
@@ -71,13 +74,13 @@
 Розділ описує як фішки взаємодіють одна з одною при перетягуванні.
 
 - **[Логіка взаємодій (ChipInteractions)](Interactions/ChipInteractions.md)**
-  > **Контекст**: Опис того, як логіка перетягування фішок (`DraggableChipLogic`) делегує специфічні дії інтерфейсу `IChipInteractionLogic`.
+  > **Контекст**: Опис того, як логіка перетягування фішок (`DraggableChipLogic`) делегує перевірку та виконання взаємодій модулям `IChipModule` (`Chip.CanInteract`, `Chip.OnInteract`, `DragInteractionResult`) і керує зворотним зв'язком `IDragFeedback`.
 
-- **[Злиття фішок (MergeableChipLogic)](Interactions/MergeableChipLogic.md)**
-  > **Контекст**: Детальний опис механіки злиття: перевірка сумісності, створення результату та автоматична релокація сусідів.
+- **[Злиття фішок (Merge2Module)](Chips/Merge2Module.md)**
+  > **Контекст**: Детальний опис механіки злиття: перевірка сумісності, вибір результатів через `IChipEvolutionProvider`, атомарний спавн додаткових фішок та автоматична релокація сусідів через `IChipEvolutionService`.
 
-- **[Наповнення контейнерів (FillContainerLogic)](Interactions/FillContainerLogic.md)**
-  > **Контекст**: Як фішки-інгредієнти додаються до контейнерів для виконання квестів.
+- **[Наповнення контейнерів (ContainerModule)](Chips/ContainerModule.md#drag-and-drop-interaction-caninteract--oninteract)**
+  > **Контекст**: Як фішки-інгредієнти додаються до контейнерів через `ContainerModule.CanInteract` / `OnInteract` для виконання квестів.
 
 ### Visuals
 Системи, що відповідають за "Game Feel" та візуальний зворотний зв'язок.

@@ -195,13 +195,14 @@
 ## Implemented Effects
 
 ### 1. Merge Available
-**Клас**: `ChipMergeAvailableEffect.cs`
-**Використовується в**: [Chip](../Chips/Chip.md)
+**Клас**: `MergeAvailableEffect.cs` (збірка `MergeBase.Merge2`)
+**Використовується в**: [Merge2Module](../Chips/Merge2Module.md)
 
-Активується на фішці, яка знаходиться "знизу", коли гравець заносить над нею іншу фішку, з якою можливе злиття.
+Активується на фішці, яка знаходиться "знизу", коли гравець заносить над нею іншу фішку, з якою можливе злиття (додається через `ChipEffectsData.OtherEffects` під ключем `EffectConsts.MergeAvailable`).
 - **Особливості**:
   - `autoPosition`: Центрує ефект відносно фішки.
   - Використовує `Animator` з тригерами `Activate` та `Deactivate`.
+  - Відстежує внутрішній стан `isActive` для запобігання повторним викликам `Activate` та `Deactivate` (окрім примусового очищення з `force = true`).
   - Масштабування визначається через `AutoSizeType` у базовому `Effect`.
 
 ### 2. Cell Highlight
@@ -304,12 +305,12 @@
 **Константа**: `EffectConsts.MergeLight` (ID 9)
 **Клас**: `MergeLightEffect.cs`
 **Реалізує**: `IEffectMergeLight`
-**Використовується в**: `MergeLightDragFeedback`, [TapEvolutionModule](../Chips/Chip.md#modular-architecture-and-composition-ichipmodule), [WaitEvolutionModule](../Chips/Chip.md#modular-architecture-and-composition-ichipmodule)
+**Використовується в**: `MergeLightDragFeedback`, [ChipEvolutionExecutor](../../../Core/Scripts/Chips/Services/ChipEvolutionExecutor.cs) (`EvolutionBehaviorSettings.PlayMergeLight` для [TapEvolutionModule](../../../../MergeCommon/Docs/UA/Chips/TapEvolutionModule.md), [WaitEvolutionModule](../../../../MergeCommon/Docs/UA/Chips/WaitEvolutionModule.md), [UnlockAreaModule](../../../../MergeCommon/Docs/UA/Chips/UnlockAreaModule.md))
 
-Візуальний ефект спалаху або підсвічування, який відтворюється на результуючій фішці після успішного злиття або при еволюції (Tap/Wait Evolution).
+Візуальний ефект спалаху або підсвічування, який відтворюється на результуючій фішці після успішного злиття або при еволюції (`TapEvolutionModule`, `WaitEvolutionModule`, `UnlockAreaModule`).
 - **Особливості**:
   - **Класичний варіант (Merge)**: Активація відбувається автоматично після успішного виконання злиття через систему фідбеку `MergeLightDragFeedback` за допомогою методу `Activate(chip)`.
-  - **Малий спалах (`IEffectMergeLight.Little`)**: Підтримує спеціалізовану властивість `bool Little { get; set; }`. При її встановленні (`mergeLight.Little = true`) значення миттєво передається в Animator-параметр `"Little"`, спрямовуючи анімацію в стан малої спалаху (використовується при еволюціях в `TapEvolutionModule` та `WaitEvolutionModule`).
+  - **Малий спалах (`IEffectMergeLight.Little`)**: Підтримує спеціалізовану властивість `bool Little { get; set; }`. При її встановленні (`mergeLight.Little = true`) значення миттєво передається в Animator-параметр `"Little"`, спрямовуючи анімацію в стан малого спалаху (використовується при еволюціях через `ChipEvolutionExecutor`, зокрема для `TapEvolutionModule`, `WaitEvolutionModule` та `UnlockAreaModule`).
   - Оскільки попередній чіп знищується, а новий з'являється на його місці, ефект допомогає зробити перехід візуально безшовним. Прапорець `destroyAfterActivate` зазвичай дорівнює `true`, що дозволяє йому автоматично самоочиститися з поля після завершення анімації спалаху.
 
 ### 10. Merge Hint
@@ -320,7 +321,7 @@
 - **Особливості**:
   - Активація керується через `MergeHintDragFeedback`, який підписується на lifecycle перетягування через `IDragFeedback`.
   - Для уникнення просідання FPS при великій кількості об'єктів на полі, активація ефектів розподіляється по кадрах (порціями через корутіну).
-  - Швидкий пошук сумісних об'єктів виконується без алокацій за допомогою словників `MergeableChipsByData` та `FillableChipsByData` у `ChipCollections`.
+  - Збір сумісних цілей поєднує виклик `Chip.CollectHintTargets(chipCollections, hintTargetChips)` (для модулів на кшталт `Merge2Module`, що читають `MergeableChipsByData`) та пошук контейнерів у `FillableChipsByData` у `ChipCollections` (з дедуплікацією через `HashSet<Chip>`).
   - При завершенні перетягування (Drag End) всі активовані ефекти `MergeHint` деактивовуються.
 
 ### 11. Tap Hint

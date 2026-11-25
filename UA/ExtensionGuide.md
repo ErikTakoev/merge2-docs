@@ -64,7 +64,8 @@ protected override void Configure(IContainerBuilder builder)
 | `IChipMovingLogic` | `ChipMovingLogic` | Валідація та виконання переміщень, розрахунок ланцюгових релокацій сусідніх чіпів |
 | `IFreeCellFinder` | `FreeCellFinder` | Пошук найближчої вільної комірки (спіральний алгоритм) |
 | `IChipFlyAnimation` | `ChipFlyAnimation` | Анімація "польоту" чіпа до цільової позиції |
-| `IChipInteractionLogic` | `MergeableChipLogic`, `FillContainerLogic` | Стратегія взаємодії між фішками (merge, fill container) |
+| `IChipEvolutionService` | `ChipEvolutionService` | Валідація простору, релокація сусідів і спавн фішок при еволюції та злитті |
+| `IChipModule` | `Merge2Module`, `ContainerModule`, `GeneratorModule`, `PowerBoosterModule` | Модульні компоненти фішки: життєвий цикл, тапи, перетягування та drag-and-drop взаємодії (`CanInteract`, `OnInteract`, `CollectHintTargets`) |
 
 ### Recommended Approach: Creating Custom LifetimeScope
 
@@ -196,35 +197,43 @@ builder.RegisterEntryPoint<MyGameInitializer>();
    }
    ```
 
-### How to Add Custom Interaction (IChipInteractionLogic)
+### How to Add Custom Interaction (`IChipModule`)
 
-Щоб додати новий тип взаємодії між фішками (крім merge та fill container):
+Щоб додати новий тип drag-and-drop взаємодії між фішками (на додачу до `Merge2Module` та `ContainerModule`):
 
-1. Створіть клас, що наслідує `MonoBehaviour` та реалізує `IChipInteractionLogic`:
+1. Реалізуйте методи взаємодії інтерфейсу `IChipModule` у компоненті фішки (`MonoBehaviour` на префабі `Chip`):
    ```csharp
-   public class MyInteractionLogic : MonoBehaviour, IChipInteractionLogic
+   public class MyInteractionModule : MonoBehaviour, IChipModule
    {
-       public bool CanInteract(Cell sourceCell, Cell targetCell)
+       // Стандартні методи життєвого циклу IChipModule (Init, UpdateVisual тощо)
+
+       public bool CanInteract(ICell sourceCell, ICell targetCell)
        {
-           // Перевірка: чи можлива ця взаємодія?
+           // Перевірка: чи можлива ця взаємодія (без зміни стану поля)?
            return false;
        }
 
-       public bool ExecuteInteraction(Cell sourceCell, Cell targetCell)
+       public bool OnInteract(ICell sourceCell, ICell targetCell, out DragInteractionResult result)
        {
-           // Виконання взаємодії
+           // Виконання взаємодії та класифікація результату (Partial або Full)
+           result = DragInteractionResult.None;
            return false;
+       }
+
+       public void CollectHintTargets(IChipCollections collections, ICollection<Chip> targets)
+       {
+           // Опціонально: додати сумісні цілі для підсвітки MergeHint при старті перетягування
        }
    }
    ```
-2. Додайте компонент на той самий **GameObject**, що і `DraggableChipLogic`.
-3. **Порядок компонентів** в інспекторі визначає пріоритет: перша стратегія, що повертає `true` у `CanInteract`, буде обрана.
+2. Додайте компонент на префаб `Chip` (наприклад, на шаблонну фішку або спеціалізований префаб).
+3. **Пріоритет**: `DraggableChipLogic` для кожної зайнятої клітинки під курсором спочатку перевіряє модулі перетягуваної фішки (`Chip.CanInteract`), а далі — модулі цільової фішки (`targetChip.CanInteract`). Усередині одного чіпа `Chip.OnInteract` виконує перший модуль у порядку компонентів в інспекторі, чиї `CanInteract` та `OnInteract` повертають `true`.
 
 ---
 
 ## 3. Extending Chip
 
-Базовий клас `Chip` надає набір віртуальних методів, які можна перекрити для створення нових типів фішок. Існуючі приклади: `ChipGenerator`, `ChipContainer`.
+Базовий клас `Chip` надає набір віртуальних методів, які можна перекрити для створення спеціалізованих типів фішок (для нових ігрових механік зазвичай рекомендовано реалізувати модуль `IChipModule`).
 
 ### Step 1 — Create Derived Class
 

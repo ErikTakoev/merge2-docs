@@ -13,7 +13,7 @@
 - **Data (Configuration - `ChipData`)**: Зберігає посилання на `ChipData`, який містить налаштування:
   - **PrefabLink**: Посилання на префаб фішки.
   - **Size**: Розмір фішки в клітинках (Vector2Int).
-  - **MergeData**: доступ до merge-конфігурації. Під час `Init(ChipData, ChipRuntimeData)` чіп кешує `data.GetModuleData<ChipMergeData>()`.
+  - **Merge2Data (`ChipMerge2Data`)**: Конфігурація злиття (`MergeCombination[]`), яку кешує `Merge2Module` під час `Init(ChipData, ChipRuntimeData)` через `data?.GetModuleData<ChipMerge2Data>()`.
   - **moduleDatas**: Поліморфна колекція для додаткових типізованих налаштувань чіпа.
 
 - **Module Data**:
@@ -21,8 +21,8 @@
   - **GetModuleData<T>()**: Типізований доступ до елемента `moduleDatas`.
   - **HasModuleData<T>()** / **HasModuleData(Type)**: Перевірка наявності конфігураційних даних модуля вказаного типу в колекції `moduleDatas`.
   - **AddModuleData(IChipModuleData)** / **CreateModuleData<T>()**: Допоміжні методи для додавання готового або створення нового екземпляра даних модуля.
-  - **IChipModuleData**: Базовий контракт для даних модулів. Реалізації: `ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
-  - **IChipEvolutionProvider**: Поліморфна стратегія вибору наступних чіпів для всіх модулів еволюції (`ChipTapEvolutionData`, `ChipUnlockAreaData`, `ChipWaitEvolutionData`, `ChipContainerData`, `ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantEvolutionProvider`, `RandomEvolutionProvider`. Еволюція централізовано виконується через `IChipEvolutionService` (`EvolutionExecutionSettings`).
+  - **IChipModuleData**: Базовий контракт для даних модулів. Реалізації: `ChipMerge2Data`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipEffectsData`, `ChipTapEvolutionData`, `ChipWaitEvolutionData`, `ChipUnlockAreaData`.
+  - **IChipEvolutionProvider**: Поліморфна стратегія вибору наступних чіпів для модулів еволюції та злиття (`ChipMerge2Data`, `ChipTapEvolutionData`, `ChipUnlockAreaData`, `ChipWaitEvolutionData`, `ChipContainerData`, `ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantEvolutionProvider`, `RandomEvolutionProvider`. Для всіх модулів еволюції та `Merge2Module` валідація простору, релокація сусідів і виконання спавну централізовані через `IChipEvolutionService` (`EvolutionExecutionSettings`).
   - **IChipGenerationProvider**: Поліморфна стратегія вибору фішок для генерації в `GeneratorModule` (`ChipGeneratorData`) (`[SerializeReference]`). Повертає список `ChipSpawnData` з підтримкою блокерів (`BlockerEffectIds`). Реалізації: `ConstantGenerationProvider`, `RandomGenerationProvider`, `SequenceGenerationProvider`. Зберігає стан прогресу через `SequenceIndex` у `ChipGeneratorRuntimeData`.
 
 - **Runtime**:
@@ -59,14 +59,12 @@
 
 ### Effect Initialization
 - **`InitEffects()`**: Віртуальний метод, викликаний з `Init(...)` для ініціалізації всіх ефектів. Базова реалізація:
-  1. Ітерує `runtimeData.EffectEnables` — для кожного `EffectId` знаходить конфігурацію в `ChipEffectsData.BlockersDict`, інстантіює префаб і додає в словник ефектів через `AddEffect`
-  2. Створює та додає `OtherEffects` з `ChipEffectsData`
-  3. Реєструє додаткові ефекти з масиву `extraEffects` (`EffectRef[]`), налаштовані на самому префабі чіпа
-  4. Створює та додає `CellHighlightEffect` з `ChipData.CellHighlightPrefab` (ключ: `EffectConsts.CellHighlight`)
-  5. Створює та додає `ChipMergeAvailableEffect` з `ChipData.MergeAvailableEffectPrefab` (ключ: `EffectConsts.MergeAvailable`)
-  6. Якщо вказано `ShadowEffectPrefab`, створює та додає `ShadowEffect` (ключ: `EffectConsts.ShadowEffect`)
+  1. Отримує конфігурацію `ChipEffectsData` через `Data.GetModuleData<ChipEffectsData>()`
+  2. Інстантіює та реєструє `OtherEffects` із `ChipEffectsData` через `AddEffect` (зокрема `CellHighlight`, `MergeAvailable`, `ShadowEffect`, `MergeHint`, `MergeLight` тощо відповідно до префабу та конфігурації фішки)
+  3. Ітерує `runtimeData.EffectEnables` — для кожного `EffectId` знаходить конфігурацію в `ChipEffectsData.BlockersDict`, інстантіює префаб і додає та активує ефект через `AddEffect`
+  4. Реєструє додаткові ефекти з масиву `extraEffects` (`EffectRef[]`), налаштовані безпосередньо на префабі чіпа
 
-  Цей метод призначений для перекриття в похідних класах (наприклад, `ChipGenerator` додає `GeneratorCharging` та `GeneratorCharged`).
+  Цей метод може перекриватися в похідних класах або доповнюватися модулями через публічний метод `AddEffect`.
 
 - **`AddEffect(IEffect effect, int effectHash, bool activate)`**: Додає ефект до словника та опціонально активує його:
   ```csharp
@@ -105,6 +103,7 @@
 ## Modular Architecture and Composition (IChipModule)
 
 Починаючи з версії Merge Toolkit, реалізовано перехід від успадкування спеціалізованих чіпів до композиційного підходу. Клас [Chip](../../../Core/Scripts/Chips/Chip.cs) тепер виступає як контейнер (хост), а спеціалізована логіка винесена в окремі модулі, що реалізують інтерфейс [IChipModule](../../../Core/Scripts/Chips/Interfaces/IChipModule.cs):
+- **`Merge2Module`**: Керує перевіркою сумісності, збором підказок (`CollectHintTargets`) та виконанням злиття двох фішок за конфігурацією `ChipMerge2Data` через `IChipEvolutionService` (збірка `MergeBase.Merge2`, умовний дефайн `MERGE_BASE_MERGE2`).
 - **`ContainerModule`**: Керує контейнерами та вимогами заповнення; після заповнення делегує еволюцію в `IChipEvolutionService`.
 - **`GeneratorModule`**: Керує логікою генерації, підсиленням швидкості та еволюцією після завершення циклів через `IChipEvolutionService`.
 - **`PowerBoosterModule`**: Керує логікою підсилювачів та зв'язками з цілями.
@@ -119,12 +118,15 @@
 - **Валідація в редакторі**: Використовується `MergeToolkitWindow` для відображення попередження (`HelpBox`), якщо на зв'язаному префабі фішки присутній модуль, але відповідний конфігураційний блок відсутній у списку `moduleDatas` асета `ChipData`.
 
 ### Lifecycle Delegation to Modules
-Клас `Chip` автоматично збирає всі компоненти `IChipModule` на своєму GameObject за допомогою `GetComponents<IChipModule>()` і делегує їм виклики у ключових точках життєвого циклу:
+Клас `Chip` під час `Init` кешує всі компоненти `IChipModule` на своєму GameObject (`modules = GetComponents<IChipModule>()`), надає до них доступ через `GetModules()` і делегує їм виклики у ключових точках життєвого циклу:
 - **`Init`**: Ініціалізація кожного модуля з передачею посилань на `Chip`, `ChipData` та `ChipRuntimeData`.
 - **`InitRuntimeData`**: Реєстрація спеціалізованих даних стану в модулях.
 - **`OnTap`**: Передача події тапу користувача.
 - **`OnDragStart`, `OnDrag`, `OnDragEnd`**: Передача подій перетягування.
 - **`OnChangedCell`**: Передача подій зміни поточної клітинки на полі.
+- **`CanInteract(sourceCell, targetCell)`**: Опитує підключені модулі у порядку компонентів; повертає `true`, якщо хоча б один модуль може обробити взаємодію.
+- **`OnInteract(sourceCell, targetCell, out result)`**: Виконує взаємодію через перший модуль у порядку компонентів, для якого `CanInteract` та `OnInteract` повертають `true`.
+- **`CollectHintTargets(collections, targets)`**: Збирає сумісні цільові фішки поля з усіх підключених модулів для підсвітки підказок (`MergeHintDragFeedback`).
 - **`CanFinishDestroy`**: Перевірка готовності модулів до завершення знищення чіпа. Якщо хоча б один модуль повертає `false`, `FinishDestroy` відкладається (`isFinishDestroyPending = true`). При `force: true` перевірка пропускається.
 - **`FinishDestroy`**: Очищення ресурсів модуля перед повним видаленням GameObject чіпа (метод `DestroyModule`).
 
@@ -241,6 +243,6 @@ sortingOrderOverride > isMoving > activeEffects > animationOffset > baseOrder
 - **`OnDraggingChipWithMoveLocked()`**: Віртуальний метод, що викликається при спробі перетягнути заблокований чіп. Спочатку намагається відправити тригер `"MoveLocked"` у `effectOfPrioritizingDestroying` (ефект з найвищим пріоритетом руйнування); якщо його немає — у ефект з ключем `EffectConsts.Blockers.MoveLockedEffect`. Використовує `allowRepeat=true` для забезпечення візуального відгуку на кожну спробу.
 
 ### Merge System
-Реалізує логіку сумісності та процес злиття двох фішок через механізм `IChipInteractionLogic`.
-Для повного опису (CanInteract, ExecuteInteraction, Weighted Random, Extra Chips, Relocation) див. [MergeableChipLogic](../Interactions/MergeableChipLogic.md).
+Реалізує логіку сумісності та процес злиття двох фішок через модуль `Merge2Module` (`IChipModule`) і конфігурацію `ChipMerge2Data` (`IChipEvolutionProvider`) з делегуванням планування, релокації сусідів і спавну результатів у `IChipEvolutionService`.
+Для повного опису (CanInteract, OnInteract, Weighted Random через `RandomEvolutionProvider`, мульти-спавн, Relocation) див. [Merge2Module](Merge2Module.md).
 

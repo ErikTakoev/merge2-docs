@@ -20,6 +20,8 @@
 - [ChipData](#chipdata)
 - [ChipDataCollection](#chipdatacollection)
 - [ChipEffectsData](#chipeffectsdata)
+- [ChipEvolutionExecutor](#chipevolutionexecutor)
+- [ChipEvolutionPlanner](#chipevolutionplanner)
 - [ChipEvolutionService](#chipevolutionservice)
 - [ChipFactory](#chipfactory)
 - [ChipFlightSettings](#chipflightsettings)
@@ -31,8 +33,6 @@
 - [ChipMaterialController](#chipmaterialcontroller)
 - [ChipMaterialControllerRef](#chipmaterialcontrollerref)
 - [ChipMaterialEffect](#chipmaterialeffect)
-- [ChipMergeAvailableEffect](#chipmergeavailableeffect)
-- [ChipMergeData](#chipmergedata)
 - [ChipMovingLogic](#chipmovinglogic)
 - [ChipPowerBoosterData](#chippowerboosterdata)
 - [ChipRuntimeData](#chipruntimedata)
@@ -68,15 +68,17 @@
 - [EffectSelectorAttribute](#effectselectorattribute)
 - [EffectSelectorDrawer](#effectselectordrawer)
 - [EffectSortingData](#effectsortingdata)
+- [EvolutionBehaviorSettings](#evolutionbehaviorsettings)
 - [EvolutionExecutionSettings](#evolutionexecutionsettings)
 - [EvolutionPlacementItem](#evolutionplacementitem)
 - [EvolutionPlan](#evolutionplan)
-- [ExtraChip](#extrachip)
+- [EvolutionPlanResult](#evolutionplanresult)
+- [EvolutionSpawnFlightSettings](#evolutionspawnflightsettings)
+- [EvolutionTriggerSettings](#evolutiontriggersettings)
 - [FieldData](#fielddata)
 - [FieldEventHandler](#fieldeventhandler)
 - [FieldGrid](#fieldgrid)
 - [FieldInitializeCommand](#fieldinitializecommand)
-- [FillContainerLogic](#fillcontainerlogic)
 - [FlightType](#flighttype)
 - [FreeCellFinder](#freecellfinder)
 - [GenerationExecutionSettings](#generationexecutionsettings)
@@ -93,7 +95,6 @@
 - [IChipFinder](#ichipfinder)
 - [IChipFlyAnimation](#ichipflyanimation)
 - [IChipGenerationProvider](#ichipgenerationprovider)
-- [IChipInteractionLogic](#ichipinteractionlogic)
 - [IChipLiftController](#ichipliftcontroller)
 - [IChipMaterialController](#ichipmaterialcontroller)
 - [IChipModule](#ichipmodule)
@@ -124,15 +125,12 @@
 - [ISubEffectOwner](#isubeffectowner)
 - [IVisualField](#ivisualfield)
 - [IVisualFieldElement](#ivisualfieldelement)
-- [MergeableChipLogic](#mergeablechiplogic)
 - [MergeCamera](#mergecamera)
-- [MergeCombination](#mergecombination)
 - [MergeEventHandler](#mergeeventhandler)
 - [MergeHintDragFeedback](#mergehintdragfeedback)
 - [MergeHintEffect](#mergehinteffect)
 - [MergeLightDragFeedback](#mergelightdragfeedback)
 - [MergeLightEffect](#mergelighteffect)
-- [MergeResult](#mergeresult)
 - [NeighborChipFinder](#neighborchipfinder)
 - [PowerBoosterCellSubscriber](#powerboostercellsubscriber)
 - [PowerBoosterConnectorCellsHighlightEffect](#powerboosterconnectorcellshighlighteffect)
@@ -416,7 +414,6 @@
 - `+- IsSpawning: bool`
 - `+- LiftController: IChipLiftController`
 - `+- MaterialController: IChipMaterialController`
-- `+- MergeData: ChipMergeData`
 - `+- RuntimeData: ChipRuntimeData`
 - `+- SortingLayer: IChipSortingLayer`
 - `~ chipChangeNotifier: IChipChangeNotifier`
@@ -439,6 +436,7 @@
 - `- liftControllerRef: ChipLiftControllerRef`
 - `- materialControllerRef: ChipMaterialControllerRef`
 - `~ mergeEventHandler: IMergeEventHandler`
+- `~ modules: IChipModule[]`
 - `~ resolver: IObjectResolver`
 - `~ transformNode: Transform`
 #### Methods
@@ -450,6 +448,13 @@
     - activate - Whether to immediately activate the effect
     - **Notes**: Null-safe: effect is only added if not null
     - handles activation before storing
+- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
+    - **Purpose**: Checks whether any attached module can handle an interaction between source and target cells.
+    - **Usage**: Called by DraggableChipLogic during drag hover checks.
+    - **Params**: sourceCell - cell of the dragged chip
+    - targetCell - hovered destination cell
+    - **Returns**: True if any attached module accepts the interaction
+    - false otherwise.
 - `+ CanMoving(): bool`
     - **Purpose**: Checks whether the chip can currently be moved by the player
     - **Usage**: Called by DraggableChipLogic before allowing drag operations
@@ -458,6 +463,11 @@
     - false if movement is locked
     - **Notes**: Based on runtimeData.IsMoveLocked
     - prevents drag-and-drop when locked
+- `+ CollectHintTargets(IChipCollections collections, ICollection<Chip> targets): void`
+    - **Purpose**: Collects compatible hint targets from all attached modules.
+    - **Usage**: Called by MergeHintDragFeedback when a drag starts.
+    - **Params**: collections - active chip collections on the field
+    - targets - output collection of compatible target chips
 - `+ Destroy(ICell mainCell, bool force, AnimatorTrigger destroyTrigger): void`
     - **Purpose**: Initiates the destruction of the chip by clearing grid/collection references and starting the specified destruction animation trigger.
     - **Usage**: Call to remove the chip from the field grid. The actual GameObject destruction happens in FinishDestroy, either immediately or triggered by animator event.
@@ -484,11 +494,12 @@
     - **Returns**: The effect cast to type T, or null if not found or cannot be cast
     - **Notes**: Handles null safely with null-conditional operator (?.) at callsite
 - `+ Init(ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the chip with data and sets up all required components and effects
+    - **Purpose**: Initializes the chip with data and sets up all required components, effects, and attached modules
     - **Usage**: Call after creating a chip instance to assign data and prepare effects
     - override in derived classes for custom initialization
-    - **Params**: data - the data object containing chip configuration and effect prefabs
-    - **Notes**: Creates highlight and merge-available effects if prefabs are provided
+    - **Params**: data - static ChipData configuration
+    - runtimeData - optional persisted runtime state
+    - **Notes**: Initializes MaterialController, effects via InitEffects and PostInitEffects, LiftController, and caches and initializes all attached IChipModule components
     - logs errors if required components are missing
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData& runtimeData): void`
 - `+ IsDragging(): bool`
@@ -528,6 +539,14 @@
     - **Usage**: Override in derived classes to implement custom drag start behavior
     - receives drag start position in world coordinates
     - **Params**: position - the world position where the drag started
+- `+ OnInteract(ICell sourceCell, ICell targetCell, DragInteractionResult& result): bool`
+    - **Purpose**: Executes an interaction via the first matching attached module in component order.
+    - **Usage**: Called by DraggableChipLogic on drag end when an interaction is pending.
+    - **Params**: sourceCell - cell of the dragged chip
+    - targetCell - destination cell
+    - result - outcome reported by the handling module
+    - **Returns**: True if interaction executed successfully
+    - false otherwise.
 - `+ OnInteractionOverCellChanged(ICell prevCell, ICell currentCell, ICell underCell): void`
     - **Purpose**: Notifies all chip effects when the dragged chip moves between cells
     - **Usage**: Called by DraggableChipLogic when chip position changes during drag to update visual effects
@@ -605,6 +624,7 @@
 - `- DeferredDestroyRoutine(): IEnumerator`
     - **Purpose**: Defers GameObject destruction by one frame to allow coroutines and event listeners to process before the object is destroyed.
     - **Usage**: Started by FinishDestroy when force destruction is requested.
+- `~ GetModules(): IChipModule[]`
 - `- HandleDestroyingEffects(): void`
     - **Purpose**: Processes damage/destruction progress on the highest-priority blocker effect when a neighboring interaction occurs
     - **Usage**: Called internally when neighboring chip interactions are handled, provided CanDestroyEffects is true
@@ -832,36 +852,162 @@
 - `- UpdateDict(): void`
 ---
 
-## ChipEvolutionService
+## ChipEvolutionExecutor
 
-> - **Purpose**: Centralized implementation of IChipEvolutionService coordinating chip evolution across all chip modules.
-> - **Usage**: Injected as singleton via VContainer into TapEvolutionModule, UnlockAreaModule, WaitEvolutionModule, ContainerModule, GeneratorModule.
-> - **Notes**: Atomically finds free cells before destroying parent
-> - manages flight settings, triggers, blockers, and Confirm call.
+> - **Purpose**: Executes a pre-calculated EvolutionPlan: parent destruction, neighbor relocations, unified chip spawning, VFX, and provider confirmation.
+> - **Usage**: Owned and invoked by ChipEvolutionService.Evolve after ChipEvolutionPlanner succeeds.
+> - **Notes**: Stateless collaborator
+> - passes EvolutionPlan.PlannedRelocations directly as IReadOnlyList without buffer copying.
 #### Fields
-- `- chipDataCollection: ChipDataCollection`
 - `- chipFactory: ChipFactory`
+- `- chipMovingLogic: IChipMovingLogic`
+- `- fieldGrid: IFieldGrid`
+#### Methods
+- `+ Execute(Chip chip, EvolutionPlan plan, EvolutionExecutionSettings settings): void`
+    - **Purpose**: Executes parent destruction, neighbor relocations, result chip instantiation, MergeLight activation, and provider confirmation.
+    - **Usage**: Called by ChipEvolutionService.Evolve on a valid non-destroying chip.
+    - **Params**: chip - evolving parent chip
+    - plan - pre-calculated EvolutionPlan
+    - settings - grouped execution configuration
+- `- CreateRuntimeDataInitializer(int[] blockerEffectIds): Action<ChipRuntimeData>`
+- `- ResolveMultiChipFlightSettings(EvolutionSpawnFlightSettings spawnFlight, int delayIndex): ChipFlightSettings`
+    - **Purpose**: Computes flight animation settings for an extra or delayed evolved chip.
+    - **Usage**: Called by ResolveSpawnParameters for flying spawned chips using module flight settings.
+    - **Params**: spawnFlight - module spawn flight settings
+    - delayIndex - zero-based index used to stagger consecutive spawns
+    - **Returns**: Configured ChipFlightSettings combining base flight parameters with initial and per-chip spawn delays.
+    - **Notes**: Falls back to default flight duration and type with pauseAnimationOnDelay enabled when MultiChipFlightSettings duration is non-positive.
+- `- ResolveSpawnParameters(int index, ChipData nextChipData, Vector2Int parentSize, bool isMultiChip, Vector3 parentCenter, Vector3 extraSpawnOrigin, EvolutionExecutionSettings settings): SpawnParameters`
+    - **Purpose**: Unifies origin, flight settings, and animator trigger selection across growing, in-place, and flying spawned chips.
+    - **Usage**: Called once per item in EvolutionPlan.Placements during SpawnPlacements.
+    - **Params**: index - placement index
+    - nextChipData - spawned chip configuration
+    - parentSize - parent grid dimensions
+    - isMultiChip - whether plan contains multiple chips
+    - parentCenter - origin for primary or unified flight
+    - extraSpawnOrigin - origin for secondary chips
+    - settings - grouped execution configuration
+    - **Returns**: Resolved SpawnParameters struct for ChipFactory.CreateChip and SendTrigger.
+- `- SpawnPlacements(EvolutionPlan plan, Vector2Int parentSize, Vector3 chipWorldPos, Vector3 parentCenter, EvolutionExecutionSettings settings): void`
+    - **Purpose**: Instantiates all planned result chips with resolved flight origins, staggered delays, initial blockers, and animator triggers.
+    - **Usage**: Called by Execute after parent destruction and neighbor relocations.
+    - **Params**: plan - pre-calculated non-empty EvolutionPlan
+    - parentSize - parent chip grid size
+    - chipWorldPos - parent chip world position
+    - parentCenter - primary flight origin
+    - settings - grouped execution configuration
+    - **Notes**: Uses TargetCell of primary placement as extraSpawnOrigin when EvolutionPoint is null and KeepPrimaryChipInPlace is enabled.
+- `- TryPlayMergeLight(Chip chip, bool playMergeLight): void`
+---
+
+## ChipEvolutionPlanner
+
+> - **Purpose**: Plans chip evolution placements and neighbor relocations atomically without mutating field state.
+> - **Usage**: Owned and invoked by ChipEvolutionService.CanEvolve to validate space and construct an EvolutionPlan.
+> - **Notes**: Encapsulates all planning scratch buffers and clears them on exit
+> - preserves the fast-path via IFreeCellFinder when no size growth, clamping, or exclusion overlap occurs.
+#### Fields
+- `- batchResultsBuffer: List<ValueTuple<ChipData, ICell>>`
+- `- chipDataCollection: ChipDataCollection`
+- `- chipDataListBuffer: List<ChipData>`
+- `- chipMovingLogic: IChipMovingLogic`
+- `- chipsToExcludeBuffer: List<Chip>`
+- `- extraCellsToExcludeBuffer: HashSet<ICell>`
+- `- extraCellsToFreeBuffer: HashSet<ICell>`
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
-- `- mergeEventHandler: IMergeEventHandler`
 #### Methods
-- `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionExecutionSettings settings, EvolutionPlan& plan, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
-    - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements.
-    - **Usage**: Called to test if evolution can be performed
-    - populates plan with pre-allocated cells and notifies if space is insufficient.
+- `+ TryCreatePlan(Chip chip, IChipEvolutionProvider provider, EvolutionPlan& plan, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): EvolutionPlanResult`
+    - **Purpose**: Evaluates whether a chip can evolve and constructs an EvolutionPlan with placements and optional relocations.
+    - **Usage**: Called by ChipEvolutionService.CanEvolve before any parent or partner chips are destroyed.
+    - **Params**: chip - evolving parent chip
+    - provider - strategy yielding next chip configurations
+    - plan - output EvolutionPlan
+    - cellsToExclude - optional cells forbidden for placement and relocations
+    - cellsToFree - optional external cells treated as freed
+    - **Returns**: EvolutionPlanResult indicating Success, InvalidInput (no space notification), or NotEnoughSpace.
+- `- ClearBuffers(): void`
+- `- CollectChipsToExclude(Chip parentChip, HashSet<ICell> cellsToFree): void`
+    - **Purpose**: Populates the exclusion list with the evolving parent chip and any chips occupying cells about to be freed.
+    - **Usage**: Called before TryResolveCellPosition so absorbed or consumed chips do not block placement.
+    - **Params**: parentChip - chip undergoing evolution
+    - cellsToFree - optional set of external cells whose occupying chips will be destroyed
+- `- OverlapsSet(Vector2Int cellPos, Vector2Int size, HashSet<ICell> cellSet): bool`
+    - **Purpose**: Checks whether a rectangular footprint starting at cellPos overlaps any cell in the given set.
+    - **Usage**: Called to detect whether preferred primary placement intersects cellsToExclude and requires relocation resolution.
+    - **Params**: cellPos - top-left grid coordinates
+    - size - footprint dimensions in cells
+    - cellSet - set of cells to test against
+    - **Returns**: True if at least one cell in the footprint belongs to cellSet
+    - false otherwise.
+- `- TryFindExtraChipPlacements(Chip parentChip, ICell parentMainCell, ICell primaryCell, Vector2Int primaryChipSize, List<ChipMoveAction> plannedRelocations, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
+    - **Purpose**: Plans atomic free-cell placements for secondary evolved chips while accounting for parent cleanup and neighbor relocations.
+    - **Usage**: Called after resolving the primary chip cell whenever the provider yields multiple chips under relocation.
+    - **Params**: parentChip - evolving parent chip
+    - parentMainCell - parent anchor cell
+    - primaryCell - resolved cell for primary result
+    - primaryChipSize - footprint of primary result
+    - plannedRelocations - neighbor moves already scheduled
+    - cellsToExclude - external forbidden cells
+    - cellsToFree - external freed cells
+    - **Returns**: True if all extra chips fit into free cells
+    - false otherwise.
+    - **Notes**: Marks parent cells, cellsToFree, and relocation origin cells as freed while excluding primary result cells, cellsToExclude, and relocation destination cells.
+- `- TryPlanStandard(Chip chip, IChipEvolutionProvider provider, List<ChipSpawnData> nextChips, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree, EvolutionPlan& plan): EvolutionPlanResult`
+    - **Purpose**: Executes the fast-path planning branch via IFreeCellFinder without invoking neighbor relocation logic.
+    - **Usage**: Called by TryCreatePlan when primary chip size fits without growth, clamping, or exclusion overlap.
+    - **Params**: chip - parent chip
+    - provider - evolution provider
+    - nextChips - resolved spawn configs
+    - cellsToExclude - forbidden cells
+    - cellsToFree - external freed cells
+    - plan - output EvolutionPlan without relocations
+    - **Returns**: Success if all chips fit atomically via FindFreeCellsForChips, or NotEnoughSpace otherwise.
+- `- TryPlanWithRelocation(Chip chip, ICell mainCell, ICell clampedCell, IChipEvolutionProvider provider, List<ChipSpawnData> nextChips, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree, EvolutionPlan& plan): EvolutionPlanResult`
+    - **Purpose**: Plans primary placement via IChipMovingLogic relocation resolution and atomically places any extra chips around the resolved cell.
+    - **Usage**: Called by TryCreatePlan when the primary evolved chip grows, is clamped to grid bounds, or overlaps cellsToExclude.
+    - **Params**: chip - parent chip
+    - mainCell - original parent anchor cell
+    - clampedCell - bounds-clamped preferred cell
+    - provider - evolution provider
+    - nextChips - resolved spawn configs
+    - cellsToExclude - forbidden cells
+    - cellsToFree - external cells freed by caller
+    - plan - output EvolutionPlan
+    - **Returns**: Success with placements and planned relocations, or NotEnoughSpace if placement or extra-chip search fails.
+    - **Notes**: Excludes parent chip and chips in cellsToFree from blocking relocation via chipsToExcludeBuffer
+    - reads extra placements from batchResultsBuffer.
+- `- TryResolveChipDatas(List<ChipSpawnData> nextChips): bool`
+---
+
+## ChipEvolutionService
+
+> - **Purpose**: Centralized facade implementing IChipEvolutionService to coordinate evolution planning, execution, and space failure notifications across all chip modules.
+> - **Usage**: Injected as singleton via VContainer into Merge2Module, TapEvolutionModule, UnlockAreaModule, WaitEvolutionModule, ContainerModule, and GeneratorModule.
+> - **Notes**: Delegates spatial planning to ChipEvolutionPlanner and spawning/relocations to ChipEvolutionExecutor while keeping the DI surface unchanged.
+#### Fields
+- `- executor: ChipEvolutionExecutor`
+- `- mergeEventHandler: IMergeEventHandler`
+- `- planner: ChipEvolutionPlanner`
+#### Methods
+- `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionPlan& plan, bool notifyNotEnoughSpace, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
+    - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements and relocations.
+    - **Usage**: Call to test if evolution can be performed
+    - populates plan with pre-allocated cells and planned relocations, and raises space failure notification when enabled.
     - **Params**: chip - target parent chip
     - provider - evolution strategy provider
-    - settings - execution settings controlling notifications
     - plan - out parameter populated with pre-calculated evolution plan
-    - cellsToExclude - optional cells to exclude from free cell search
+    - notifyNotEnoughSpace - whether to notify IMergeEventHandler when space is insufficient
+    - cellsToExclude - optional cells to exclude from free cell and relocation search
+    - cellsToFree - optional external cells to consider freed despite existing chips
     - **Returns**: True if evolution can proceed
-    - false otherwise
+    - false otherwise.
 - `+ Evolve(Chip chip, EvolutionPlan plan, EvolutionExecutionSettings settings): void`
-    - **Purpose**: Executes the full evolution pipeline using a pre-calculated EvolutionPlan: parent destruction, next chip instantiation, flight animation, and provider confirmation.
+    - **Purpose**: Executes the full evolution pipeline using a pre-calculated EvolutionPlan via ChipEvolutionExecutor.
     - **Usage**: Called by chip modules only after a successful CanEvolve check.
     - **Params**: chip - evolving parent chip
     - plan - pre-calculated evolution plan from CanEvolve
-    - settings - execution configuration parameters
+    - settings - grouped execution configuration parameters
 ---
 
 ## ChipFactory
@@ -1122,64 +1268,35 @@
     - **Params**: dt - delta time since last update (0f on initial activation)
 ---
 
-## ChipMergeAvailableEffect
-**Inherits**: `Effect`
-
-> - **Purpose**: Visual effect indicating that a merge is available with the chip below
-> - **Usage**: Attached to chip using ChipData.MergeAvailableEffectPrefab
-> - Activated by Chip when another compatible chip is dragged over it
-> - **Notes**: Handles auto-sizing and positioning based on chip size
-#### Fields
-- `- isActive: bool`
-#### Methods
-- `+ Activate(Chip chip): bool`
-- `+ Deactivate(Chip chip, bool force): void`
-- `+ OnInteractionUnderCellChanged(ICell underCell, ICell overCell): void`
----
-
-## ChipMergeData
-
-> - **Purpose**: Defines merge logic and potential outcomes for a chip
-> - **Usage**: Component of ChipData
-> - used to determine merge compatibility and resulting chips
-#### Fields
-- `++ Combinations: MergeCombination[]`
-- `+- MergeableChips: IEnumerable<ChipData>`
-#### Methods
-- `+ CanMerge(ChipData otherChip): bool`
-    - **Purpose**: Checks if this chip can be merged with another specific chip
-    - **Usage**: Used by interaction systems to validate possible merge actions
-    - **Params**: otherChip - the potential merge partner
-    - **Returns**: True if merge is possible
-- `+ GetNextChip(ChipData otherChip): MergeResult`
-    - **Purpose**: Retrieves the result of merging this chip with another specific chip
-    - **Usage**: Called during merge process to determine outcome
-    - returns null if chips are incompatible
-    - **Params**: otherChip - the chip to merge with
-    - **Returns**: New ChipData or null
----
-
 ## ChipMovingLogic
 
-> - **Purpose**: Handles logic for moving chips and relocating conflicting chips to make room
-> - **Usage**: Called when a chip is dragged or when a merged chip grows and needs more space
-> - **Notes**: Uses IFreeCellFinder to find new valid spots for chips that are in the way
+> - **Purpose**: Handles logic for moving chips, clamping multi-cell footprints to field bounds, and relocating conflicting chips.
+> - **Usage**: Called when a chip is dragged or when an evolved/merged chip grows and needs more space.
+> - **Notes**: Reuses internal scratch buffers to avoid allocations during CanChipMoving and TryResolveCellPosition checks.
 #### Fields
+- `- excludeChipSetBuffer: HashSet<Chip>`
 - `- fieldGrid: IFieldGrid`
 - `- freeCellFinder: IFreeCellFinder`
+- `- movingChipsSetBuffer: HashSet<Chip>`
+- `- NeighborOffsets: Vector2Int[]`
+- `- occupiedCellsBuffer: List<ICell>`
+- `- singleChipExcludeBuffer: Chip[]`
+- `- unavailableCellsBuffer: HashSet<ICell>`
 #### Methods
-- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations, int maxRelocations): bool`
-    - **Purpose**: Checks if a chip can move to a target and if conflicting chips can be relocated
+- `+ CanChipMoving(ICell leftTopCell, IReadOnlyList<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations, int maxRelocations, HashSet<ICell> cellsToExclude): bool`
+    - **Purpose**: Checks if a chip can move to a target and if conflicting chips can be relocated.
     - **Usage**: Internal check before performing actual relocation
-    - also used by merge logic for growing chips
+    - also used by evolution, merge, and scenario logic.
     - **Params**: leftTopCell - target top-left cell
     - chipsToExclude - chips to ignore during collision checks
     - chipSize - dimensions of the chip
-    - plannedRelocations - output list of moves to perform
-    - maxRelocations - maximum allowed relocations (if occupied chips count >= maxRelocations, aborts early and returns false)
-    - **Returns**: True if a valid state is possible for all chips involved
-    - **Notes**: Sorted relocation: larger chips are relocated first to minimize fragmentation
-    - prunes search early if conflicting chips count exceeds maxRelocations
+    - plannedRelocations - output list of moves to perform or null if none needed
+    - maxRelocations - maximum allowed relocations
+    - cellsToExclude - optional cells forbidden for both target placement and relocated chips
+    - **Returns**: True if a valid state is possible for all chips involved.
+    - **Notes**: Uses reusable scratch buffers to avoid allocations
+    - skips allocating plannedRelocations when no conflicting chips occupy the area
+    - clears scratch buffers before returning.
 - `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell, ChipFlightSettings flightSettings): void`
     - **Purpose**: Orchestrates the move of a chip to a new position, potentially relocating others
     - **Usage**: Call when a drag operation ends at a specific cell
@@ -1188,16 +1305,35 @@
     - sourceCell - the original cell of the chip
     - flightSettings - flight animation configuration for the movement
     - **Notes**: If relocation is impossible, the chip snaps back to its source position
-- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
+- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, IReadOnlyList<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
     - **Purpose**: Executes the planned relocations of chips on the field
     - **Usage**: Final step of the relocation process
     - performs atomic field updates
     - **Params**: leftTopCell - destination for the primary chip
     - sourceCell - original spot of the primary chip
-    - plannedRelocations - list of pre-calculated chip moves
+    - plannedRelocations - read-only list of pre-calculated chip moves (may be null or empty)
     - flightSettings - flight animation configuration for the relocations
-    - **Notes**: Temporarily sets dragging state during relocation for visual consistency
-- `- GetOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IEnumerable<Chip> chipsToExclude): List<ICell>`
+    - **Notes**: Uses indexed loops over IReadOnlyList to avoid enumerator boxing.
+- `+ ClampCellToField(ICell preferredCell, Vector2Int chipSize): ICell`
+    - **Purpose**: Clamps an anchor cell so a chip footprint of chipSize stays within field grid bounds.
+    - **Usage**: Called before TryResolveCellPosition when a chip grows or spawns near field edges.
+    - **Params**: preferredCell - desired top-left anchor cell
+    - chipSize - target dimensions in cells
+    - **Returns**: Valid clamped anchor cell within field bounds, or null if preferredCell is null or the footprint does not fit in the field.
+- `+ TryResolveCellPosition(ICell preferredCell, IReadOnlyList<Chip> chipsToExclude, Vector2Int chipSize, ICell& resolvedCell, List`1& plannedRelocations, HashSet<ICell> cellsToExclude): bool`
+    - **Purpose**: Finds the best valid cell for a chip around preferredCell, prioritizing zero neighbor relocations and otherwise minimizing relocation count.
+    - **Usage**: Called when a chip grows, was clamped to grid bounds, or overlaps excluded cells.
+    - **Params**: preferredCell - preferred anchor cell
+    - chipsToExclude - chips ignored during collision checks
+    - chipSize - target dimensions
+    - resolvedCell - chosen anchor cell
+    - plannedRelocations - calculated neighbor moves or null when zero relocations are needed
+    - cellsToExclude - optional forbidden cells for target and relocated chips
+    - **Returns**: True if a valid placement and relocation plan was found
+    - false otherwise.
+    - **Notes**: Tests preferredCell first, then 8 NeighborOffsets (orthogonal before diagonal), skipping blocked cells and returning early on zero relocations.
+- `- ClearCheckBuffers(): void`
+- `- PopulateOccupiedCellsInArea(Vector2Int cellPos, Vector2Int chipSize, IReadOnlyList<Chip> chipsToExclude): void`
 ---
 
 ## ChipPowerBoosterData
@@ -1333,7 +1469,7 @@
 ## ChipSpawnData
 
 > - **Purpose**: Contains data required to spawn a chip (ID and initial blocker/effect states)
-> - **Usage**: Used within FieldData.CellData, ChipContainerData, and ChipMergeData to define chip spawn configurations
+> - **Usage**: Used within FieldData.CellData, ChipContainerData, and ChipMerge2Data to define chip spawn configurations
 #### Fields
 - `+ BlockerEffectIds: int[]`
     - **Purpose**: Array of blocker effect IDs to activate on this chip when loaded from level data
@@ -1515,6 +1651,13 @@
 - `- fieldGrid: IFieldGrid`
 - `- OnFillContainer: FillContainerDelegate`
 #### Methods
+- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
+    - **Purpose**: Validates if a dragged chip can be added to this container chip.
+    - **Usage**: Called by Chip.CanInteract during drag hovering.
+    - **Params**: sourceCell - cell with chip being dragged
+    - targetCell - hovered cell belonging to this container chip
+    - **Returns**: True if source chip can be added to this container
+    - false otherwise
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
     - **Purpose**: Initializes the container module with chip data and runtime state
@@ -1538,6 +1681,14 @@
 - `+ OnDragEnd(): void`
 - `+ OnDragStart(): void`
 - `+ OnEffectRemoved(int effectId): void`
+- `+ OnInteract(ICell sourceCell, ICell targetCell, DragInteractionResult& result): bool`
+    - **Purpose**: Executes container fill interaction between dragged chip and this container.
+    - **Usage**: Called by Chip.OnInteract after CanInteract validation passes.
+    - **Params**: sourceCell - cell with chip being dragged
+    - targetCell - cell with this container chip
+    - result - Partial if container still has remaining requirements, Full otherwise
+    - **Returns**: True if chip was successfully added
+    - false otherwise
 - `+ OnTap(): void`
 - `+ TryAddChip(Chip chip): bool`
     - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic
@@ -1584,15 +1735,9 @@
 - `+- IsDragging: bool`
 - `- cellsToCheckBuffer: List<ICell>`
 - `~ chipFinder: IChipFinder`
-- `~ chipInteractionLogics: List<IChipInteractionLogic>`
-    - **Purpose**: Collection of all chip interaction logic handlers
-    - **Usage**: Internal field
-    - populated in Awake and queried during drag operations
-    - **Notes**: Populated in Awake from attached components
-    - used to check and execute interactions like merge or container fill
 - `~ chipMovingLogic: IChipMovingLogic`
+- `~ currentInteractionChip: Chip`
 - `~ currentMergableCell: ICell`
-- `~ currentMergableLogic: IChipInteractionLogic`
 - `~ dragFeedbacks: List<IDragFeedback>`
 - `~ draggableChip: Chip`
 - `~ draggableTransform: Transform`
@@ -1658,21 +1803,11 @@
     - targetChipSize - size of target chip prior to interaction
 - `- ResetCurrentMergable(): void`
 - `- ResetDragState(): void`
-- `~ ResolveInteractionResult(Chip targetChip): DragInteractionResult`
-    - **Purpose**: Determines the DragInteractionResult based on the target chip state after ExecuteInteraction.
-    - **Usage**: Called from OnDragEnd after a successful interaction to classify the outcome as Partial or Full.
-    - **Params**: targetChip - the chip that was the target of the interaction before it executed
-    - **Returns**: Partial if the chip is a still-alive ChipContainer with remaining requirements
-    - Full otherwise.
-    - **Notes**: ChipContainer is destroyed when fully filled, so a Unity-null check (implicit bool) distinguishes partial from full fill.
 - `- UpdateInteractionState(ICell sourceCell, ICell targetCell): void`
-    - **Purpose**: Checks if merge or container fill is allowed between two cells.
-    - **Usage**: Call before attempting merge or placement.
+    - **Purpose**: Checks if any chip module can handle interaction between sourceCell and target area.
+    - **Usage**: Call before attempting interaction on drag end.
     - **Params**: sourceCell - cell chip is dragged from
     - targetCell - cell chip is hovered over
-    - **Returns**: True if merge or fill is allowed
-    - false otherwise.
-    - **Notes**: Returns false if no handlers are subscribed.
 ---
 
 ## DragInteractionResult
@@ -2025,44 +2160,34 @@
 - `+ EffectId: int`
 ---
 
-## EvolutionExecutionSettings
+## EvolutionBehaviorSettings
 
-> - **Purpose**: Parameters for controlling chip evolution execution in ChipEvolutionService.
-> - **Usage**: Construct and pass to IChipEvolutionService.Evolve() or serialize on chip modules to define animation triggers, flight delays, evolution origin, and empty destruction behaviors.
+> - **Purpose**: Groups behavioral flags controlling evolution VFX, empty destruction mode, and space-unavailable notifications.
+> - **Usage**: Serialized inside EvolutionExecutionSettings.Behavior on chip modules.
 #### Fields
-- `+ DelayBeforeFirstSpawn: float`
-    - **Purpose**: Initial flight delay in seconds before the first chip spawns.
-    - **Usage**: Passed from module's delayBeforeFirstSpawn field.
-- `+ DelayBetweenSpawns: float`
-    - **Purpose**: Delay interval in seconds between consecutive chip spawns.
-    - **Usage**: Passed from module's delayBetweenSpawns field.
-- `+ DestroyTrigger: AnimatorTrigger`
-    - **Purpose**: Mecanim animation trigger sent to the parent chip when destruction begins upon successful evolution.
-    - **Usage**: Set to trigger appropriate destruction animation (e.g. TapEvolutionDestroy, WaitEvolutionDestroy, EvolutionDestroy).
-- `+ EmptyDestroyTrigger: AnimatorTrigger`
-    - **Purpose**: Mecanim animation trigger sent to the parent chip when the evolution provider produces no next chips.
-    - **Usage**: Defaults to AnimatorTrigger.Destroy.
-- `+ EvolutionPoint: Transform`
-    - **Purpose**: World transform used as the origin point for new chip flight animations. If null, the parent chip's transform position is used.
-    - **Usage**: Assigned from module's evolutionPoint serialized field.
 - `+ ForceDestroyOnEmpty: bool`
-    - **Purpose**: Whether to force destroy the parent chip (immediate without Mecanim animation) when no next chips are produced.
+    - **Purpose**: Whether to force destroy the parent chip immediately without Mecanim animation when no next chips are produced.
     - **Usage**: True for generator evolution into null
     - false for other modules.
-- `+ MultiSpawnTrigger: AnimatorTrigger`
-    - **Purpose**: Mecanim animation trigger sent to newly spawned chips when spawning multiple chips or with flight delay.
-    - **Usage**: Defaults to AnimatorTrigger.Generate.
 - `+ NotifyNotEnoughSpace: bool`
-    - **Purpose**: Whether to notify scenarioEventHandler (RaiseNotEnoughSpaceForEvolution) when evolution cannot proceed due to insufficient space.
-    - **Usage**: Defaults to true
-    - set to false for modules like WaitEvolutionModule that silently wait for space.
+    - **Purpose**: Whether to notify IMergeEventHandler when evolution cannot proceed due to insufficient space.
+    - **Usage**: Passed to IChipEvolutionService.CanEvolve
+    - defaults to true and set to false for modules like WaitEvolutionModule that silently wait for space.
 - `+ PlayMergeLight: bool`
     - **Purpose**: Whether to activate the IEffectMergeLight effect on the evolving chip if present.
     - **Usage**: True for tap, unlock area, and wait evolution
-    - false for container and generator.
-- `+ SpawnTrigger: AnimatorTrigger`
-    - **Purpose**: Mecanim animation trigger sent to newly spawned chips when spawning a single chip instantly.
-    - **Usage**: Set to module-specific spawn trigger (e.g. TapEvolutionSpawn, WaitEvolutionSpawn, EvolutionSpawn, Merge).
+    - false for container, generator, and Merge2.
+- `+- Default: EvolutionBehaviorSettings`
+---
+
+## EvolutionExecutionSettings
+
+> - **Purpose**: Parameters for controlling chip evolution execution in IChipEvolutionService.
+> - **Usage**: Construct and pass to IChipEvolutionService.Evolve() or serialize on chip modules using grouped Triggers, SpawnFlight, and Behavior sections.
+#### Fields
+- `+ Behavior: EvolutionBehaviorSettings`
+- `+ SpawnFlight: EvolutionSpawnFlightSettings`
+- `+ Triggers: EvolutionTriggerSettings`
 - `+- Default: EvolutionExecutionSettings`
 ---
 
@@ -2083,16 +2208,66 @@
 #### Fields
 - `+- IsEmpty: bool`
 - `+- Placements: IReadOnlyList<EvolutionPlacementItem>`
+- `+- PlannedRelocations: IReadOnlyList<ChipMoveAction>`
 - `+- Provider: IChipEvolutionProvider`
 ---
 
-## ExtraChip
-
-> - **Purpose**: Represents an extra chip that can be generated or rewarded with a certain chance
-> - **Usage**: Used in merge outcomes or loot tables to provide bonus chips
+## EvolutionPlanResult
+**Inherits**: `Enum`
 #### Fields
-- `++ Chance: int`
-- `++ ChipData: ChipSpawnData`
+- `+ InvalidInput: EvolutionPlanResult`
+- `+ NotEnoughSpace: EvolutionPlanResult`
+- `+ Success: EvolutionPlanResult`
+- `+ value__: int`
+---
+
+## EvolutionSpawnFlightSettings
+
+> - **Purpose**: Groups flight origin, spawn stagger delays, and multi-chip placement animation parameters for evolution.
+> - **Usage**: Serialized inside EvolutionExecutionSettings.SpawnFlight on chip modules.
+#### Fields
+- `+ DelayBeforeFirstSpawn: float`
+    - **Purpose**: Initial flight delay in seconds before the first chip spawns.
+    - **Usage**: Configured on module prefabs when evolution waits for destruction animation before spawning.
+- `+ DelayBetweenSpawns: float`
+    - **Purpose**: Delay interval in seconds between consecutive chip spawns.
+    - **Usage**: Used to stagger multi-chip spawn animations.
+- `+ EvolutionPoint: Transform`
+    - **Purpose**: World transform used as the origin point for new chip flight animations. If null, the parent chip transform position is used.
+    - **Usage**: Assigned from module prefab evolution point reference.
+- `+ KeepPrimaryChipInPlace: bool`
+    - **Purpose**: When true and multiple chips spawn, keeps the primary chip at its resolved cell with SpawnTrigger or GrowTrigger while flying extra chips with MultiSpawnTrigger.
+    - **Usage**: True for Merge2Module
+    - false for standard multi-chip evolution modules.
+- `+ MultiChipFlightSettings: ChipFlightSettings`
+    - **Purpose**: Optional flight animation settings applied to extra or flying spawned chips when Duration is positive.
+    - **Usage**: Set to ChipFlightSettings.ChipRelocate for Merge2Module
+    - leave Duration non-positive to fall back to ChipFlightSettings.Default with pauseAnimationOnDelay enabled.
+- `+- Default: EvolutionSpawnFlightSettings`
+---
+
+## EvolutionTriggerSettings
+
+> - **Purpose**: Groups Mecanim animator triggers dispatched during chip evolution lifecycle events.
+> - **Usage**: Serialized inside EvolutionExecutionSettings.Triggers on chip modules.
+#### Fields
+- `+ DestroyTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to the parent chip when destruction begins upon successful evolution.
+    - **Usage**: Set to trigger appropriate destruction animation such as TapEvolutionDestroy, WaitEvolutionDestroy, or EvolutionDestroy.
+- `+ EmptyDestroyTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to the parent chip when the evolution provider produces no next chips.
+    - **Usage**: Defaults to AnimatorTrigger.Destroy.
+- `+ GrowTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to the primary spawned chip when its grid size increases compared to the parent chip.
+    - **Usage**: Defaults to AnimatorTrigger.MergeGrow
+    - falls back to MergeGrow when left at Idle.
+- `+ MultiSpawnTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to newly spawned chips when spawning with flight animation.
+    - **Usage**: Defaults to AnimatorTrigger.Generate.
+- `+ SpawnTrigger: AnimatorTrigger`
+    - **Purpose**: Mecanim animation trigger sent to newly spawned chips when spawning a primary chip in place.
+    - **Usage**: Set to module-specific spawn trigger such as TapEvolutionSpawn, WaitEvolutionSpawn, EvolutionSpawn, or Merge.
+- `+- Default: EvolutionTriggerSettings`
 ---
 
 ## FieldData
@@ -2345,30 +2520,6 @@
     - chipData - chip configuration data.
 ---
 
-## FillContainerLogic
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Handles chip container filling logic when chips are added to container chips.
-> - **Usage**: Implements IChipInteractionLogic to provide unified interface for container operations.
-> - **Notes**: Validates container compatibility and adds chips to containers
-> - integrates with unified interaction system.
-#### Methods
-- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
-    - **Purpose**: Validates if a chip can be added to a container chip.
-    - **Usage**: Called by unified interaction system to check container fill possibility.
-    - **Params**: sourceCell - cell with chip being dragged
-    - targetCell - cell with container chip
-    - **Returns**: True if chip can be added to container
-    - false otherwise
-    - **Notes**: Checks if target is a container and if source chip is compatible.
-- `+ ExecuteInteraction(ICell sourceCell, ICell targetCell): bool`
-    - **Purpose**: Executes container fill interaction between chip and container.
-    - **Usage**: Called by unified interaction system after CanInteract validation passes.
-    - **Params**: sourceCell - cell with chip being dragged
-    - targetCell - cell with container chip
-    - **Notes**: Adds chip to container and destroys source chip if successful.
----
-
 ## FlightType
 **Inherits**: `Enum`
 #### Fields
@@ -2385,7 +2536,7 @@
 - `- fieldGrid: IFieldGrid`
 - `- priorityPositionsBuffer: List<Vector2Int>`
 #### Methods
-- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, HashSet<ICell> cellsToFree): bool`
+- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, HashSet<ICell> cellsToFree, int startIndex): bool`
     - **Purpose**: Finds free cells for placing multiple chips atomically without GC allocations.
     - **Usage**: Call to locate valid free cells for a batch of chips (e.g. during tap evolution). Returns true if cells for all chips were successfully allocated into resultsBuffer.
     - **Params**: parentPos - origin area position
@@ -2395,8 +2546,10 @@
     - resultsBuffer - ref list to receive (ChipData, ICell) pairs
     - cellsToExclude - optional external cells to exclude
     - chipsToPotentiallyMove - optional movable chips
-    - onlyAround - whether to limit search around origin.
-    - **Returns**: True if placement is found for all chips, false otherwise.
+    - onlyAround - whether to limit search around origin
+    - cellsToFree - optional external cells treated as freed
+    - startIndex - starting index in chipsToPlace.
+    - **Returns**: True if placement is found for all chips from startIndex onward, false otherwise.
 - `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, IReadOnlyList<Vector2Int> priorityPositions, HashSet<ICell> cellsToFree): ICell`
     - **Purpose**: Finds the nearest free cell for placing a chip, starting the search from a rectangular area.
     - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips. The search is performed first within the specified parent area and then spirally expands around it.
@@ -2635,28 +2788,28 @@
 
 ## IChipEvolutionService
 
-> - **Purpose**: Centralized service managing chip evolution, cell space finding, parent destruction, and result chip instantiation.
-> - **Usage**: Injected via VContainer (IChipEvolutionService) into chip modules (TapEvolutionModule, UnlockAreaModule, WaitEvolutionModule, ContainerModule, GeneratorModule).
-> - **Notes**: Coordinates with IFreeCellFinder, ChipFactory, IFieldGrid, and IMergeEventHandler.
+> - **Purpose**: Centralized service managing chip evolution planning, cell space finding, neighbor relocations, parent destruction, and result chip instantiation.
+> - **Usage**: Injected via VContainer as IChipEvolutionService into chip modules including Merge2Module, TapEvolutionModule, UnlockAreaModule, WaitEvolutionModule, ContainerModule, and GeneratorModule.
+> - **Notes**: Coordinates ChipEvolutionPlanner, ChipEvolutionExecutor, and IMergeEventHandler.
 #### Methods
-- `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionExecutionSettings settings, EvolutionPlan& plan, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
-    - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements.
+- `+ CanEvolve(Chip chip, IChipEvolutionProvider provider, EvolutionPlan& plan, bool notifyNotEnoughSpace, HashSet<ICell> cellsToExclude, HashSet<ICell> cellsToFree): bool`
+    - **Purpose**: Checks whether the chip can evolve using the given evolution provider and available field space, pre-calculating placements and relocations.
     - **Usage**: Call before initiating evolution
-    - computes EvolutionPlan with assigned cells and notifies if space is insufficient according to settings.
+    - computes EvolutionPlan with assigned cells and optionally notifies if space is insufficient.
     - **Params**: chip - the parent chip undergoing evolution
     - provider - strategy yielding target ChipSpawnData configurations
-    - settings - execution settings controlling notifications
     - plan - out parameter populated with pre-calculated evolution plan
-    - cellsToExclude - optional cells to exclude from free cell search
+    - notifyNotEnoughSpace - whether to raise RaiseNotEnoughSpaceForEvolution on space failure
+    - cellsToExclude - optional cells to exclude from free cell and relocation search
     - cellsToFree - optional external cells to consider freed despite existing chips
     - **Returns**: True if space is available and evolution can proceed
     - false otherwise
 - `+ Evolve(Chip chip, EvolutionPlan plan, EvolutionExecutionSettings settings): void`
-    - **Purpose**: Executes the chip evolution using a pre-calculated EvolutionPlan: destroys the parent chip, spawns next chips, and plays effects.
+    - **Purpose**: Executes the chip evolution using a pre-calculated EvolutionPlan: destroys the parent chip, relocates neighbors, spawns next chips, plays effects, and confirms the provider.
     - **Usage**: Called only after a successful CanEvolve check.
     - **Params**: chip - the parent chip undergoing evolution
     - plan - pre-calculated evolution plan from CanEvolve
-    - settings - execution configuration (triggers, delays, evolution point, FX)
+    - settings - grouped execution configuration for triggers, flight, and behavior
 ---
 
 ## IChipFinder
@@ -2703,27 +2856,6 @@
 - `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
 - `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
 - `+ Init(): void`
----
-
-## IChipInteractionLogic
-
-> - **Purpose**: Unified interface for all chip interaction logic implementations.
-> - **Usage**: Provides a standardized contract for validating and executing chip interactions.
-#### Methods
-- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
-    - **Purpose**: Validates whether a chip interaction can be performed between source and target cells.
-    - **Usage**: Call before attempting to execute an interaction to ensure it's valid.
-    - **Params**: sourceCell - cell with the chip being moved
-    - targetCell - destination cell for the interaction
-    - **Returns**: Boolean indicating if the interaction is allowed
-    - **Notes**: Should perform all necessary validation checks without modifying game state.
-- `+ ExecuteInteraction(ICell sourceCell, ICell targetCell): bool`
-    - **Purpose**: Executes the actual chip interaction between source and target cells.
-    - **Usage**: Call after CanInteract validation passes to perform the interaction.
-    - **Params**: sourceCell - cell with the chip being moved
-    - targetCell - destination cell for the interaction
-    - **Notes**: Modifies game state
-    - should only be called after successful CanInteract validation.
 ---
 
 ## IChipLiftController
@@ -2804,15 +2936,27 @@
 ## IChipModule
 
 > - **Purpose**: Interface for all modular components attached to a Chip GameObject that extend its capabilities
-> - **Usage**: Implement this interface for modular components (e.g. GeneratorModule, ContainerModule, PowerBoosterModule)
+> - **Usage**: Implement this interface for modular components (e.g. GeneratorModule, ContainerModule, PowerBoosterModule, Merge2Module)
 > - Chip automatically queries and manages components implementing this interface
-> - **Notes**: Supports runtime initialization, visual updates, tap/drag input, and cell relocation lifecycles
+> - **Notes**: Supports runtime initialization, visual updates, tap/drag input, cell relocation, and drag-and-drop interactions
 #### Methods
 - `+ CanFinishDestroy(): bool`
     - **Purpose**: Checks whether this module allows the chip to finish destruction and delete its GameObject.
     - **Usage**: Called by Chip.FinishDestroy
     - if any module returns false, destruction is deferred.
     - **Returns**: True if module is ready for chip destruction, false to defer FinishDestroy.
+- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
+    - **Purpose**: Checks whether this module can perform a drag-and-drop interaction between source and target cells.
+    - **Usage**: Called by Chip.CanInteract in component order during drag hovering.
+    - **Params**: sourceCell - cell containing the chip being dragged
+    - targetCell - hovered destination cell
+    - **Returns**: True if this module can handle the interaction
+    - false otherwise.
+- `+ CollectHintTargets(IChipCollections collections, ICollection<Chip> targets): void`
+    - **Purpose**: Collects compatible target chips on the field for drag hint highlighting.
+    - **Usage**: Called by Chip.CollectHintTargets during drag start feedback.
+    - **Params**: collections - active field chip collections
+    - targets - output collection to populate with compatible target chips
 - `+ DestroyModule(): void`
 - `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
 - `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
@@ -2821,6 +2965,14 @@
 - `+ OnDragEnd(): void`
 - `+ OnDragStart(): void`
 - `+ OnEffectRemoved(int effectId): void`
+- `+ OnInteract(ICell sourceCell, ICell targetCell, DragInteractionResult& result): bool`
+    - **Purpose**: Executes a drag-and-drop interaction between source and target cells.
+    - **Usage**: Called by Chip.OnInteract when dragging ends over a valid target.
+    - **Params**: sourceCell - cell containing the chip being dragged
+    - targetCell - destination cell
+    - result - classification of the interaction outcome
+    - **Returns**: True if the interaction executed successfully
+    - false otherwise.
 - `+ OnTap(): void`
 - `+ UpdateVisual(): void`
 ---
@@ -2839,18 +2991,19 @@
 
 ## IChipMovingLogic
 
-> - **Purpose**: Interface for chip movement and relocation logic.
-> - **Usage**: Use to manage chip movement on the field, including relocation of conflicting chips.
+> - **Purpose**: Interface for chip movement, boundary clamping, and relocation resolution logic.
+> - **Usage**: Use to manage chip movement on the field, clamp multi-cell footprints inside grid bounds, and resolve placements with minimal neighbor relocations.
 > - **Notes**: Implemented by ChipMovingLogic.
 #### Methods
-- `+ CanChipMoving(ICell leftTopCell, IEnumerable<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations, int maxRelocations): bool`
+- `+ CanChipMoving(ICell leftTopCell, IReadOnlyList<Chip> chipsToExclude, Vector2Int chipSize, List`1& plannedRelocations, int maxRelocations, HashSet<ICell> cellsToExclude): bool`
     - **Purpose**: Checks if a chip can move to a target and plans relocations if necessary.
     - **Usage**: Call before moving a chip to validate if the move is possible.
     - **Params**: leftTopCell - target anchor cell
     - chipsToExclude - chips to ignore during collision checks
     - chipSize - size of the chip being moved
-    - plannedRelocations - output list of moves to perform
-    - maxRelocations - maximum allowed number of relocations (if occupied chips count >= maxRelocations, aborts early and returns false)
+    - plannedRelocations - output list of moves to perform or null when zero relocations are needed
+    - maxRelocations - maximum allowed number of relocations
+    - cellsToExclude - optional cells forbidden for both target placement and relocated chips
     - **Returns**: True if the move and all necessary relocations are possible.
 - `+ ChipMoving(ICell overCell, ICell leftTopCell, ICell sourceCell, ChipFlightSettings flightSettings): void`
     - **Purpose**: Moves a chip to a new cell position, handling potential relocations.
@@ -2859,13 +3012,30 @@
     - leftTopCell - target anchor cell
     - sourceCell - original anchor cell
     - flightSettings - flight animation configuration for the movement
-- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, List<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
+- `+ ChipsRelocate(ICell leftTopCell, ICell sourceCell, IReadOnlyList<ChipMoveAction> plannedRelocations, ChipFlightSettings flightSettings): void`
     - **Purpose**: Executes pre-planned chip relocations.
-    - **Usage**: Call after CanChipMoving returns true to apply the relocations.
+    - **Usage**: Call after CanChipMoving or TryResolveCellPosition returns true to apply the relocations.
     - **Params**: leftTopCell - destination for the primary chip
     - sourceCell - original spot of the primary chip
-    - plannedRelocations - list of calculated moves
+    - plannedRelocations - read-only list of calculated moves (may be null or empty)
     - flightSettings - flight animation configuration for the relocations
+- `+ ClampCellToField(ICell preferredCell, Vector2Int chipSize): ICell`
+    - **Purpose**: Clamps an anchor cell so a chip footprint of chipSize stays within field grid bounds.
+    - **Usage**: Call before relocation resolution when a multi-cell chip could overflow the right or bottom grid borders.
+    - **Params**: preferredCell - desired top-left anchor cell
+    - chipSize - target chip dimensions in cells
+    - **Returns**: Valid clamped anchor cell within field bounds, or null if preferredCell is null or the chip exceeds field dimensions.
+- `+ TryResolveCellPosition(ICell preferredCell, IReadOnlyList<Chip> chipsToExclude, Vector2Int chipSize, ICell& resolvedCell, List`1& plannedRelocations, HashSet<ICell> cellsToExclude): bool`
+    - **Purpose**: Finds the best valid cell for a chip around preferredCell, prioritizing zero relocations and otherwise minimizing relocation count.
+    - **Usage**: Call when a growing, boundary-clamped, or overlapping chip requires relocation-aware placement.
+    - **Params**: preferredCell - preferred anchor cell
+    - chipsToExclude - chips ignored during collision checks
+    - chipSize - target footprint dimensions
+    - resolvedCell - output chosen anchor cell
+    - plannedRelocations - output calculated neighbor moves or null when none needed
+    - cellsToExclude - optional cells forbidden for both target placement and relocated chips
+    - **Returns**: True if a valid placement and relocation plan was found
+    - false otherwise.
 ---
 
 ## IChipSortingLayer
@@ -2940,7 +3110,7 @@
 
 > - **Purpose**: Contract for effect blocking configuration that controls what actions are allowed on a chip when an effect is active
 > - **Usage**: Implemented by EffectBlockingSettings (ScriptableObject) and CombinedBlockingState (runtime aggregate)
-> - consumed by game logic (DraggableChipLogic, MergeableChipLogic, ChipGenerator, ChipPowerBooster) and Chip.HandleDestroyingEffects
+> - consumed by game logic (DraggableChipLogic, Merge2Module, GeneratorModule, PowerBoosterModule) and Chip.HandleDestroyingEffects
 > - **Notes**: All boolean flags default to true (allowed)
 > - false means the action is blocked
 > - HideEffectIds specifies which other effects should be hidden when this blocking is active
@@ -3118,7 +3288,7 @@
 > - **Usage**: Injected into components that need to spawn or relocate chips.
 > - **Notes**: Provides logic for nearest free cell search with spiral expansion.
 #### Methods
-- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, HashSet<ICell> cellsToFree): bool`
+- `+ FindFreeCellsForChips(Vector2Int parentPos, Vector2Int parentSize, IReadOnlyList<ChipData> chipsToPlace, Chip chipToIgnore, List`1& resultsBuffer, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, HashSet<ICell> cellsToFree, int startIndex): bool`
     - **Purpose**: Finds free cells for placing multiple chips atomically.
     - **Usage**: Call to find suitable cells for a list of chips, returning true only if all chips can be placed.
     - **Params**: parentPos - search origin
@@ -3129,8 +3299,9 @@
     - cellsToExclude - set of cells to skip
     - chipsToPotentiallyMove - set of chips allowed to move
     - onlyAround - if true, limits search to immediate neighborhood
-    - cellsToFree - optional external cells to consider freed despite existing chips.
-    - **Returns**: True if all chips in the list can be assigned free cells, false otherwise.
+    - cellsToFree - optional external cells to consider freed despite existing chips
+    - startIndex - starting index in chipsToPlace to allow slicing without copying.
+    - **Returns**: True if all chips in the list from startIndex onward can be assigned free cells, false otherwise.
 - `+ FindNearestFreeCell(Vector2Int parentPos, Vector2Int parentSize, Vector2Int childChipSize, Chip chipToPlace, HashSet<ICell> cellsToExclude, HashSet<Chip> chipsToPotentiallyMove, bool onlyAround, IReadOnlyList<Vector2Int> priorityPositions, HashSet<ICell> cellsToFree): ICell`
     - **Purpose**: Finds the nearest free cell for placing a chip.
     - **Usage**: Call to find a suitable cell for a chip, considering exclusions and movable chips.
@@ -3308,50 +3479,6 @@
     - **Usage**: Called by VisualField.ApplyEffects during level visual setup.
 ---
 
-## MergeableChipLogic
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Handles chip merging logic when two compatible chips are combined.
-> - **Usage**: Implements IChipInteractionLogic to provide unified interface for merge operations.
-> - **Notes**: Validates chip compatibility and creates new merged chips
-> - integrates with unified interaction system
-> - handles neighbor-searching logic if primary relocation fails.
-#### Fields
-- `- chipDataCollection: ChipDataCollection`
-- `- chipFactory: ChipFactory`
-- `- chipMovingLogic: IChipMovingLogic`
-- `- fieldGrid: IFieldGrid`
-- `- freeCellFinder: IFreeCellFinder`
-- `- mergeEventHandler: IMergeEventHandler`
-- `- NeighborOffsets: Vector2Int[]`
-#### Methods
-- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
-    - **Purpose**: Validates if two cells can perform a merge interaction.
-    - **Usage**: Called by unified interaction system to check merge possibility.
-    - **Params**: sourceCell - cell with chip being dragged
-    - targetCell - destination cell
-    - **Returns**: True if chips can be merged
-    - false otherwise
-    - **Notes**: Checks chip compatibility and merge data availability.
-- `+ ExecuteInteraction(ICell sourceCell, ICell targetCell): bool`
-    - **Purpose**: Executes merge interaction between two cells, handling potential resizing
-    - **Usage**: Called by unified interaction system after CanInteract validation passes
-    - **Params**: sourceCell - cell with chip being dragged
-    - targetCell - destination cell
-    - **Notes**: If the merged chip is larger than the parent, it resolves placement by prioritizing positions requiring zero relocations (primary cell first, then 8 neighboring offsets), falling back to the position with the fewest relocations.
-- `- HandleExtraChip(MergeResult mergeResult, ICell mergedCell, Vector2Int mergedChipSize): void`
-- `- TryResolveCellPosition(ICell primaryCell, Chip[] chipsToExclude, Vector2Int chipSize, ICell& resolvedCell, List`1& plannedRelocations): bool`
-    - **Purpose**: Resolves the final cell position for a merged chip: prioritizes positions requiring zero relocations, then minimizes the number of relocated chips
-    - **Usage**: Called from ExecuteInteraction when relocation check is needed
-    - **Params**: primaryCell - preferred cell to place the chip
-    - chipsToExclude - chips to ignore during checks
-    - chipSize - size of chip to place
-    - **resolvedCell - output**: the cell that worked
-    - **plannedRelocations - output**: relocations for the resolved cell
-    - **Returns**: True if a valid position was found (primary or neighbor)
-    - false if all options failed
----
-
 ## MergeCamera
 **Inherits**: `MonoBehaviour`
 
@@ -3372,22 +3499,6 @@
 - `+ OnPointerMoved(Vector2 screenPosition): void`
 - `+ OnZoom(float delta, Vector2 screenPosition): void`
 - `+ SetBounds(Transform leftBottom, Transform rightTop): void`
----
-
-## MergeCombination
-
-> - **Purpose**: Holds information about a specific merge partnership
-> - **Usage**: Member of ChipMergeData
-> - defines which chip can be merged and what the results are
-#### Fields
-- `++ Results: MergeResult[]`
-- `++ TargetChip: ChipData`
-#### Methods
-- `+ GetRandomResult(): MergeResult`
-    - **Purpose**: Selects a random result result (including extra chip) based on defined weights
-    - **Usage**: Called internally to determine the outcome when multiple outcomes are possible
-    - **Params**: none
-    - **Returns**: The selected MergeResult object
 ---
 
 ## MergeEventHandler
@@ -3423,15 +3534,16 @@
 - `- hintCoroutine: Coroutine`
 - `- hintedChips: List<Chip>`
 - `- HintsPerFrame: int`
+- `- hintTargetChips: HashSet<Chip>`
 #### Methods
 - `+ OnDragEndFeedback(Chip chip, DragInteractionResult interaction): void`
 - `+ OnDragFeedback(Chip chip, ICell prevCell, ICell newCell): void`
 - `+ OnDragStartFeedback(Chip chip): void`
 - `- ActivateHintsGradually(Chip chip): IEnumerator`
-    - **Purpose**: Gradually activates MergeHint effects on compatible merge targets and fillable containers to avoid FPS spikes.
+    - **Purpose**: Gradually activates MergeHint effects on compatible targets gathered from chip modules and fillable containers to avoid FPS spikes.
     - **Usage**: Started as a coroutine from OnDragStartFeedback.
     - **Params**: chip - the chip being dragged
-    - **Notes**: Uses MergeableChipsByData (merge targets) and FillableChipsByData (containers) — both already filter out blocked chips. All hinted chips are tracked in hintedChips for cleanup.
+    - **Notes**: Collects module-provided targets via Chip.CollectHintTargets and checks FillableChipsByData (containers). All hinted chips are tracked in hintedChips for cleanup.
 ---
 
 ## MergeHintEffect
@@ -3478,22 +3590,11 @@
 - `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
 ---
 
-## MergeResult
-
-> - **Purpose**: Describes a single potential outcome of a merge
-> - **Usage**: Member of MergeCombination
-> - used with weighted random selection
-#### Fields
-- `++ ExtraChip: Optional<ExtraChip>`
-- `++ Result: ChipData`
-- `++ Weight: int`
----
-
 ## NeighborChipFinder
 
 > - **Purpose**: Finds all unique neighboring chips around a given cell, handling multi-cell chips correctly
 > - **Usage**: Injected through VContainer with key 'Neighbors'
-> - called from MergeableChipLogic to identify chips affected by merges
+> - called from Merge2Module to identify chips affected by merges
 > - **Notes**: Returns a HashSet to automatically handle duplicates
 > - **correctly excludes cells occupied by the source chip itself. Optimized**: caches grid dimensions and uses direct x,y bounds checks to eliminate allocations
 #### Fields

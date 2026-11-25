@@ -41,7 +41,7 @@
 
 ### 3.4. Technical Design
 Документ `Docs/Technical/TechnicalDesign.md` є центральним місцем опису архітектури.
-- **Вимога**: Цей документ повинен описувати всі інтерфейси з папки `Modules/Merge2/Scripts/VContainer/Interfaces`.
+- **Вимога**: Цей документ повинен описувати всі інтерфейси з папки `Core/Scripts/VContainer/Interfaces`.
 - **Вміст**: Для кожного інтерфейсу необхідно вказати його призначення та конкретну реалізацію (клас).
 
 ### 3.5. Testing Documentation

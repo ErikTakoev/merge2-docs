@@ -13,7 +13,7 @@
 - **Властивості та конфігурація**:
   - `rechargeEffect` (`ChargingEffectRef`): Ефект індикації перезарядки.
   - `chargedEffect` (`EffectRef`): Ефект готовності генератора.
-  - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при вичерпанні циклів генератора (тригери анімацій, прапорець `ForceDestroyOnEmpty`). Доступні публічно через властивість `EvolutionSettings`.
+  - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при вичерпанні циклів генератора (`Triggers`, `SpawnFlight`, `Behavior`, включно з `Behavior.ForceDestroyOnEmpty`). Доступні публічно через властивість `EvolutionSettings`.
   - `generationSettings` (`GenerationExecutionSettings`): Налаштування анімації та затримки спавну фішок (`DelayBetweenSpawns`). Доступні публічно через властивість `GenerationSettings`.
 - **Вхідні дані (Input)**:
   - **Manual**: Обробляє `OnTap` через делегування подій з `Chip` (перевіряє стан блокування `BlockingState.CanBeTaped` та `BlockingState.CanGenerate`).
@@ -35,7 +35,7 @@
   - **`ConstantGenerationProvider`**: Повертає фіксований список `List<ChipSpawnData> Chips`.
   - **`RandomGenerationProvider`**: Обирає випадковий вкладений під-провайдер за зваженими коефіцієнтами (`WeightedProviderEntry[] Entries`).
   - **`SequenceGenerationProvider`**: Послідовно перемикає кроки (`[SerializeReference] IChipGenerationProvider[] Steps`) за формулою `SequenceIndex % Steps.Length`, циклічно повторюючи послідовність.
-- **Еволюція**: Поле `EvolutionProvider` типу `IChipEvolutionProvider` визначає фішки для створення після вичерпання всіх циклів перезарядок. Якщо поточна генерація остання перед еволюцією, виконується попередня перевірка вільного місця як під згенеровані фішки (будь-якого розміру), так і під еволюцію через `IChipEvolutionService.CanEvolve(..., cellsToExclude)`. Лише при успішній перевірці обох умов спавняться фішки та викликається `Evolve(chip, plan, evolutionSettings)` з використанням налаштувань `evolutionSettings`.
+- **Еволюція**: Поле `EvolutionProvider` типу `IChipEvolutionProvider` визначає фішки для створення після вичерпання всіх циклів перезарядок. Якщо поточна генерація остання перед еволюцією, виконується попередня перевірка вільного місця як під згенеровані фішки (будь-якого розміру), так і під еволюцію через `IChipEvolutionService.CanEvolve(..., evolutionSettings.Behavior.NotifyNotEnoughSpace, cellsToExclude)`. Лише при успішній перевірці обох умов спавняться фішки та викликається `Evolve(chip, plan, evolutionSettings)` з використанням налаштувань `evolutionSettings`.
 
 ### 3. `ChipGeneratorRuntimeData.cs` (Runtime State)
 Реалізує маркерний інтерфейс `IChipModuleRuntimeData` для зберігання динамічного стану генератора всередині списку `moduleRuntimeDatas` у `ChipRuntimeData`.

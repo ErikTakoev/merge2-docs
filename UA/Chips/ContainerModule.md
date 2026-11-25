@@ -11,7 +11,7 @@
 - **Властивості (Data)**:
   - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, стратегія еволюції `EvolutionProvider` типу `IChipEvolutionProvider`), які отримуються через `data.GetModuleData<ChipContainerData>()`. `EvolutionProvider` повертає список фішок для створення після заповнення контейнера (з підтримкою накладання `BlockerEffectIds`). Також кожна потрібна фішка визначає префаб візуального елемента через власні дані модуля `ChipContainerElementData`.
   - `ContainerRequirements`: Публічна властивість тільки для читання (`IReadOnlyDictionary<ContainerInfo, int>`), що надає доступ до поточних вимог контейнера для підсистеми `ChipCollections`.
-  - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при заповненні контейнера (тригери анімацій, прапорці). Доступні публічно через властивість `EvolutionSettings`.
+  - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при заповненні контейнера, згруповані у `Triggers` (`DestroyTrigger`, `EmptyDestroyTrigger`, `SpawnTrigger`, `GrowTrigger`, `MultiSpawnTrigger`), `SpawnFlight` (`KeepPrimaryChipInPlace`, `MultiChipFlightSettings`, затримки, `EvolutionPoint`) та `Behavior` (`PlayMergeLight`, `ForceDestroyOnEmpty`, `NotifyNotEnoughSpace`). Доступні публічно через властивість `EvolutionSettings`.
 - **Події та Делегати**:
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
   - `OnFillContainer`: Подія, що викликається при ініціалізації, додаванні предмету або повному заповненні.
@@ -30,9 +30,12 @@
 
 **Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipContainerData` (через `GetModuleData<ChipContainerData>()`).
 
-### 2. `FillContainerLogic.cs` (Logic)
-Керує процесом додавання фішок до контейнера через механізм `IChipInteractionLogic`.  
-Детальний опис (CanInteract, ExecuteInteraction, цільові об'єкти) див. [FillContainerLogic](../Interactions/FillContainerLogic.md).
+### 2. Drag-and-Drop Interaction (`CanInteract` & `OnInteract`)
+Логіка взаємодії при перетягуванні реалізована безпосередньо у `ContainerModule` як частина контракту `IChipModule`:
+- **`CanInteract(ICell sourceCell, ICell targetCell)`**: Дозволяє взаємодію, якщо `sourceCell` і `targetCell` валідні, містять фішки, `targetCell.Chip` є цим контейнером (`targetChip == chip`), вхідна фішка не збігається з контейнером (`sourceChip != chip`), контейнер не заблокований для наповнення (`chip.BlockingState.CanBeFilled`) і `IsChipCompatible(sourceChip)` повертає `true`.
+- **`OnInteract(ICell sourceCell, ICell targetCell, out DragInteractionResult result)`**: Повторно перевіряє `CanInteract` і викликає `TryAddChip(sourceCell.Chip)`. При успіху повертає `DragInteractionResult.Partial` (якщо в `ContainerRequirements` ще залишилися вимоги) або `DragInteractionResult.Full` (якщо контейнер повністю заповнено). При невдачі повертає `false` із `DragInteractionResult.None`.
+
+Детальніше про життєвий цикл перетягування див. [ChipInteractions](../Interactions/ChipInteractions.md).
 
 ## Key Methods (`ContainerModule.cs`)
 
@@ -43,7 +46,7 @@
 Основний метод додавання фішки:
 1. Знаходить відповідну вимогу в словнику `containers` за прямим збігом `RequiredChip == chip.Data`.
 2. Якщо лічильник досягає необхідної кількості:
-   - Якщо це остання активна вимога (`isFull`): попередньо перевіряє доступність місця для еволюції контейнера через `evolutionService.CanEvolve(this.chip, chipContainerData?.EvolutionProvider, evolutionSettings, out evolutionPlan, cellsToFree: cellsToFreeBuffer)`, передаючи клітинки вхідного чіпа `chip` як такі, що звільняються (`cellsToFree`). Якщо місця немає — додавання відхиляється (`return false`), генерується подія `RaiseNotEnoughSpaceForEvolution`, а вхідна фішка залишається неушкодженою.
+   - Якщо це остання активна вимога (`isFull`): попередньо перевіряє доступність місця для еволюції контейнера через `evolutionService.CanEvolve(this.chip, chipContainerData?.EvolutionProvider, out evolutionPlan, evolutionSettings.Behavior.NotifyNotEnoughSpace, cellsToFree: cellsToFreeBuffer)`, передаючи клітинки вхідного чіпа `chip` як такі, що звільняються (`cellsToFree`). Якщо місця немає — додавання відхиляється (`return false`), генерується подія `RaiseNotEnoughSpaceForEvolution`, а вхідна фішка залишається неушкодженою.
    - Видаляє виконану вимогу зі словника.
    - Знищує вхідну фішку (`chip.Destroy(chipCell, true)`), звільняючи зайняті нею клітинки.
    - Викликає `OnFillContainer` з прапорцем `isFull`.
@@ -67,9 +70,8 @@ containerEffect?.UpdateElements(this, containers, false);
 
 ## Flow
 
-1. **Input**: Гравець починає перетягувати фішку.
-2. **Move**: Система через `FillContainerLogic.CanInteract` постійно перевіряє сумісність при наведенні на контейнери.
-3. **Check**: Контейнер через `IsChipCompatible` підтверджує, що фішка йому потрібна.
-4. **Drop**: При відпусканні викликається `ExecuteInteraction` -> `TryAddChip`.
-5. **Update**: Контейнер видаляє/змінює вимоги, `ContainerHintEffect` оновлює "бабли" (або ховає їх, якщо вимога виконана).
-6. **Complete**: Якщо вимог не залишилось, контейнер замінюється на нову фішку (result).
+1. **Input**: Гравець починає перетягувати фішку; `MergeHintDragFeedback` підсвічує сумісні контейнери зі словника `IChipCollections.FillableChipsByData`.
+2. **Hover (`CanInteract`)**: `DraggableChipLogic` через `targetChip.CanInteract` -> `ContainerModule.CanInteract` перевіряє `BlockingState.CanBeFilled` і сумісність (`IsChipCompatible`).
+3. **Drop (`OnInteract`)**: При відпусканні викликається `ContainerModule.OnInteract` -> `TryAddChip`.
+4. **Update**: Контейнер оновлює вимоги, `ContainerHintEffect` оновлює "бабли", а `OnInteract` повертає `DragInteractionResult.Partial` або `DragInteractionResult.Full`.
+5. **Complete**: Якщо вимог не залишилось, `TryAddChip` заздалегідь валідує місце через `IChipEvolutionService.CanEvolve(..., cellsToFree)` та запускає `Evolve` для заміни контейнера результуючими фішками.

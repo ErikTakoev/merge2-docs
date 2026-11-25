@@ -123,7 +123,7 @@ Level Editor підтримує два режими редагування:
 - **Module Data Validation**: Автоматична валідація відповідності модулів префаба конфігураційним даним. Якщо на зв'язаному префабі присутні компоненти `IChipModule` з атрибутом `[RequireModuleData]`, але відповідний тип даних відсутній у `moduleDatas`, під заголовком секції відображається попередження `HelpBox` із зазначенням відсутніх типів.
 - **Module Data Section**: Керування поліморфними даними `ChipData.moduleDatas` (типи `IChipModuleData`) з додаванням/видаленням елементів.
 - **Default Module Data (Create Only)**: У вкладці **Project Settings** можна задати шаблони `defaultModuleDatas`, які автоматично застосовуються лише під час `Create Chip`.
-- **Merge Configuration**: Merge-правила задаються вручну через `ChipMergeData` у секції `Module Data` (без авто-створення self-merge комбінації).
+- **Merge Configuration**: Merge-правила задаються вручну через `ChipMerge2Data` (опціональний модуль `MergeBase.Merge2` під дефайном `MERGE_BASE_MERGE2`) у секції `Module Data` з вибором `IChipEvolutionProvider` для кожної комбінації (без авто-створення self-merge комбінації). Модуль `Merge2Module` не позначається атрибутом `[RequireModuleData]`, тому не-мержабельні фішки не викликають попереджень валідації.
 - **Undo/Redo System**: Повна підтримка скасування змін властивостей та перейменування з автоматичним перемиканням на відповідну фішку при глобальному відкаті.
 - **Asset Management**: Створення нових фішок та оновлення списку; автоматичне збереження змін на диск (Save on Switch/Close/Blur) при перемиканні між фішками, відкритті вкладок **Project Settings** / **New Chip**, натисканні **New Project**, закритті або втраті фокусу вікна; при відсутності template-prefab показується попередження і створення блокується.
 
@@ -136,7 +136,7 @@ Level Editor підтримує два режими редагування:
 
 ### Supported Actions
 - **Редагування властивостей**: Усі зміни, зроблені в `SerializedObject` під час редагування в інспекторі.
-- **Редагування Module Data**: Додавання/видалення записів у `moduleDatas`, редагування полів конкретного типу (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо).
+- **Редагування Module Data**: Додавання/видалення записів у `moduleDatas`, редагування полів конкретного типу (`ChipMerge2Data`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо), включно з вибором `IChipEvolutionProvider` через `ChipEvolutionProviderDrawer`.
 - **Перейменування**: Перейменування асета фішки (також перейменовує пов'язаний префаб).
 - **Стабільний Undo/Redo після rename/type-change**: Після змін імені або `Type` список фішок і фільтри синхронізуються коректно.
 
@@ -180,7 +180,7 @@ Level Editor підтримує два режими редагування:
     - У секції `Create Next Level Chip` відображає лише `Chip Name:` (тільки для читання) та кнопку `Create`. При натисканні на `Create` відкриває вкладку `New Chip` (`State.CreateChip`) і попередньо заповнює назву наступного рівня як для дублювання (`duplicateChipName`), так і для створення за шаблоном (`newChipName`), залишаючи `duplicateSourceChip` порожнім (`null`).
 
 ### Workflow (Flow)
-Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Module Data` (зокрема `ChipMergeData`). Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`. Під час створення нового чіпа (`Create Chip`) застосовуються шаблони з `defaultModuleDatas`, тому default-налаштування `MoveLocked` також переносяться через `ChipMoveLockedData`, а не через окреме поле префаба.
+Коли властивість змінюється в методі `DrawRightPanel`, вікно створює `SetChipPropertyCommand` із захопленням станів асета. Це включає як звичайні поля `ChipData`, так і секцію `Module Data` (зокрема `ChipMerge2Data`). Для перейменування використовується `RenameChipCommand`. Ці команди передаються в `RecordAndExecute(command)`, що оновлює історію та забезпечує оновлення `SerializedObject`. Під час створення нового чіпа (`Create Chip`) застосовуються шаблони з `defaultModuleDatas`, тому default-налаштування `MoveLocked` також переносяться через `ChipMoveLockedData`, а не через окреме поле префаба.
 
 ---
 
