@@ -732,7 +732,7 @@
 ## ChipContainerData
 
 > - **Purpose**: Configuration data for chip containers, defining accepted chip requirements and evolution provider on fill completion.
-> - **Usage**: Used in ChipData moduleDatas to define container behavior and required chips. Edited via Inspector or Chip Editor.
+> - **Usage**: Used in ChipData moduleDatas to define container behavior and required chips. Edited via Inspector or Merge Toolkit.
 > - **Notes**: EvolutionProvider uses polymorphic serialization via [SerializeReference] to determine the result chips upon completion.
 #### Fields
 - `+ containers: ContainerInfo[]`
@@ -1223,7 +1223,7 @@
 - `+ EffectEnables: List<int>`
     - **Purpose**: List of blocker effect IDs (from EffectConsts/EffectConsts.Blockers) that should be active on this chip
     - **Usage**: Populated from ChipSpawnData.BlockerEffectIds during level load or at runtime
-    - queried by Chip.InitEffects and UpdateVisual to determine which extra effects to instantiate and activate
+    - queried by Chip.InitEffects and UpdateVisual to determine which blocker effects to instantiate and activate
     - **Notes**: Serialized directly for save/load support
 - `+- ModuleRuntimeDatas: List<IChipModuleRuntimeData>`
 - `- effectDestroyingDataArray: EffectDestroyingRuntimeData[]`
@@ -2217,15 +2217,14 @@
 - `+- Cells: ICell[]`
 - `+- FieldSize: Vector2Int`
 - `- chipChangeNotifier: IChipChangeNotifier`
-- `- mergeSettings: MergeSettings`
 - `- resolver: IObjectResolver`
 #### Methods
 - `+ CreateCells(FieldData fieldData): void`
-    - **Purpose**: Creates and initializes the grid of cells based on field size.
+    - **Purpose**: Creates and initializes the grid of cells dynamically for the requested ICell component type.
     - **Usage**: Call during field initialization to create all cells.
-    - **Params**: fieldData - configuration for the field including size and cell data.
+    - **Params**: fieldData - configuration for the field including size and blocked cell coordinates.
     - **Notes**: Centers cells around origin
-    - creates Cell GameObjects with RectTransform.
+    - creates Cell GameObjects with AddComponent<TCell>() and VContainer injection, assigning BlockedCell for blocked coordinates.
 - `+ GetCells(Vector2Int cellPos, Vector2Int size): List<ICell>`
     - **Purpose**: Retrieves all cells in a rectangular area.
     - **Usage**: Call to get cells occupied by a multi-cell chip.
@@ -2316,7 +2315,7 @@
     - **Purpose**: Creates the field grid and sets up camera based on field data.
     - **Usage**: Call first during initialization to create the field structure.
     - **Notes**: Validates FieldData before proceeding
-    - sets camera size and creates cells.
+    - sets camera size and creates cells of specified type.
 - `+ CreateLevelVisual(): void`
     - **Purpose**: Creates the level visual prefab and initializes field-wide visual components
     - **Usage**: Call after field and locked-area runtime state are initialized
@@ -3026,7 +3025,7 @@
 - `+- transform: Transform`
 #### Methods
 - `+ CreateCells(FieldData fieldData): void`
-    - **Purpose**: Initializes the grid
+    - **Purpose**: Initializes the grid with cells of specified type
     - **Usage**: Call during initialization for level setup
     - **Params**: fieldData - configuration for the field
 - `+ GetCells(Vector2Int cellPos, Vector2Int size): List<ICell>`
@@ -3089,7 +3088,7 @@
 > - **Usage**: Injected and called by the field initialization orchestrator (e.g., Merge2Initializer). Implementations should handle both 2D and Isometric layouts.
 #### Methods
 - `+ CreateField(): void`
-    - **Purpose**: Creates the cells and logical field grid structure.
+    - **Purpose**: Creates the cells and logical field grid structure with cells of specified type.
     - **Usage**: Called first during initialization.
 - `+ CreateLevelVisual(): void`
     - **Purpose**: Creates the level visual prefab and initializes field-wide visual components.
@@ -3212,12 +3211,13 @@
 
 ## IMergeLifetimeScope
 
-> - **Purpose**: Interface for LifetimeScope components in Merge2 and IsoMerge to expose configuration
-> - **Usage**: Implemented by Merge2LifetimeScope and IsoMergeLifetimeScope to allow Editor and Runtime tools to query and set properties without tight coupling
+> - **Purpose**: Interface for LifetimeScope components in MergeClassic and IsoMerge to expose configuration and Unity lifecycle reference
+> - **Usage**: Implemented by MergeClassicLifetimeScope and IsoMergeLifetimeScope to allow Editor and Runtime tools to query and set properties without tight coupling
 #### Fields
 - `++ FieldData: FieldData`
-- `++ MergeSettings: MergeSettings`
+- `+- CellType: Type`
 - `+- Container: IObjectResolver`
+- `+- UnityObject: object`
 ---
 
 ## IPowerBoosterTarget
@@ -3742,7 +3742,7 @@
 
 > - **Purpose**: Specifies that an IChipModule component requires a specific IChipModuleData in the ChipData.moduleDatas list
 > - **Usage**: Apply to IChipModule classes (e.g., [RequireModuleData(typeof(ChipTapEvolutionData))])
-> - **Notes**: Used by ChipEditorWindow to display missing data warnings when editing ChipData assets
+> - **Notes**: Used by MergeToolkitWindow to display missing data warnings when editing ChipData assets
 #### Fields
 - `+- ModuleDataType: Type`
 ---

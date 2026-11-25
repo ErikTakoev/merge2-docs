@@ -26,7 +26,7 @@
 Швидкий старт та керівництво з розширення проекту.
 
 - **[Quick Start](Quick_Start.md)**
-  > **Контекст**: Перший запуск модуля, підключення `VContainer`, запуск `GardenMerge` та практичний workflow через `Level Editor` і `Chip Editor`.
+  > **Контекст**: Перший запуск модуля, підключення `VContainer`, запуск `MergeClassic` та практичний workflow через `Level Editor` і `Merge Toolkit`.
 
 - **[Extension Guide](ExtensionGuide.md)**
   > **Контекст**: Покрокове керівництво з розширення проєкту: додавання нових типів фішок, ефектів, взаємодій та сервісів.
@@ -95,7 +95,7 @@
 
 - **[Technical Design](Technical/TechnicalDesign.md)**
   > **Контекст**: Опис Core-архітектури.
-  > - **DI (VContainer)**: Як працює ін'єкція залежностей через `Merge2LifetimeScope`.
+  > - **DI (VContainer)**: Як працює ін'єкція залежностей через `IMergeLifetimeScope` (`MergeClassicLifetimeScope`, `IsoMergeLifetimeScope`).
   > - **Interfaces**: Опис ключових абстракцій (`IFieldGrid`, `IChipMovingLogic`, `IFieldEventHandler` і т.д).
 
 - **[Testing](Technical/Testing.md)**

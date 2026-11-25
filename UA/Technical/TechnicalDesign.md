@@ -7,8 +7,8 @@
 
 ## Dependency Injection (VContainer)
 Ми використовуємо **VContainer** для керування залежностями.
-- **LifetimeScope**: `Merge2LifetimeScope` та `IsoMergeLifetimeScope` реалізують інтерфейс `IMergeLifetimeScope` і є точками конфігурації для відповідних сцен Merge та IsoMerge. Тут реєструються дані рівня (`FieldData`, `ChipDataCollection`), а також глобальні налаштування злиття (`MergeSettings`) як синглтони. `FieldData` та `MergeSettings` можуть бути призначені динамічно (наприклад, у тестах).
-- **Initialization**: `Merge2Initializer` та `IsoMergeInitializer` виступають як Entry Point. Вони отримують через конструктор ключові інтерфейси (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) та ініціалізують поле через послідовність викликів `IFieldInitializeCommand` (`CreateField()`, `lockedAreaManager.Initialize()`, `CreateLevelVisual()`, `CreateVScripting()`, `LoadChips()`, `InitCamera()`).
+- **LifetimeScope**: `MergeClassicLifetimeScope` та `IsoMergeLifetimeScope` реалізують інтерфейс `IMergeLifetimeScope` і є точками конфігурації для відповідних сцен MergeClassic та IsoMerge. Тут реєструються дані рівня (`FieldData`, `ChipDataCollection`), а також визначається тип клітинки (`CellType`). `FieldData` може бути призначено динамічно (наприклад, у тестах).
+- **Initialization**: `MergeClassicInitializer` та `IsoMergeInitializer` виступають як Entry Point. Вони отримують через конструктор ключові інтерфейси (`IFieldGrid`, `IFieldEventHandler`, `ChipFactory`, `IInputManager`) та ініціалізують поле через послідовність викликів `IFieldInitializeCommand` (`CreateField<Cell>()` або `CreateField<IsoCell>()`, `lockedAreaManager.Initialize()`, `CreateLevelVisual()`, `CreateVScripting()`, `LoadChips()`, `InitCamera()`).
 - **Component Injection**: Всі ігрові сервіси та логічні класи отримують залежності через `[Inject]` або конструктор.
 
 ## Core Interfaces & Implementations
@@ -21,16 +21,16 @@
 
 - **`IFieldGrid`** -> `FieldGrid`
   - **Призначення**: Управління станом сітки (2D масив `ICell`).
-  - **Відповідальність**: Створення комірок, валідація координат, перевірка заблокованих зон (`HasBlockedCells`), низькорівневі операції розміщення чіпів (`SetChipInCell`), надання посилання на кореневий `Transform` сітки (`transform`), обчислення світових координат клітини чи чіпа (`GetCellWorldPosition`) з урахуванням розміру фішки та якоря `MainCell`, а також отримання клітинок прямокутної області (`GetCells`) у списки або хеш-сети без зайвих алокацій.
+  - **Відповідальність**: Динамічне створення комірок через `CreateCells<TCell>(FieldData)` (`AddComponent<TCell>()` із VContainer-ін'єкцією замість інстанціювання префабу, та `BlockedCell` для заблокованих клітинок), валідація координат, перевірка заблокованих зон (`HasBlockedCells`), низькорівневі операції розміщення чіпів (`SetChipInCell`), надання посилання на кореневий `Transform` сітки (`transform`), обчислення світових координат клітини чи чіпа (`GetCellWorldPosition`) з урахуванням розміру фішки та якоря `MainCell`, а також отримання клітинок прямокутної області (`GetCells`) у списки або хеш-сети без зайвих алокацій.
   - **Деталь `SetChipInCell`**: При встановленні чіпа `FieldGrid` призначає `chip.CellPosition` до `IChipChangeNotifier.Enqueue(...)`, щоб підписники отримували подію вже з актуальними координатами. При очищенні спочатку скидає occupancy (`ClearCells`), потім enqueue події `oldChip -> null`.
 
 - **`IMergeLifetimeScope`** (Інтерфейс)
-  - **Призначення**: Уніфікований доступ до конфігурації LifetimeScope в Merge та IsoMerge.
-  - **Відповідальність**: Дозволяє Editor- та Runtime-інструментам динамічно зчитувати та записувати `FieldData` і `MergeSettings`, а також отримувати доступ до контейнера `IObjectResolver` без жорсткої залежності від конкретної реалізації LifetimeScope.
+  - **Призначення**: Уніфікований доступ до конфігурації LifetimeScope в MergeClassic та IsoMerge.
+  - **Відповідальність**: Дозволяє Editor- та Runtime-інструментам динамічно зчитувати та записувати `FieldData`, отримувати тип клітинки `CellType`, безпечно перевіряти життєздатність об'єкта та позначати його як змінений через `UnityObject` (`UnityEngine.Object`), а також отримувати доступ до контейнера `IObjectResolver` без жорсткої залежності від конкретної реалізації LifetimeScope.
 
 - **`IFieldInitializeCommand`** -> `FieldInitializeCommand`
   - **Призначення**: Команда ініціалізації рівня.
-  - **Відповідальність**: Створення візуальної сітки (`CreateLevelVisual`), інстанціювання префабу Visual Scripting (`CreateVScripting`), завантаження початкових чіпів (`LoadChips`) та ініціалізація камери (`InitCamera`). Отримує `FieldData`, `ChipDataCollection` та `IMergeCamera` через Injection.
+  - **Відповідальність**: Створення логічної сітки клітинок (`CreateField<TCell>()` → `fieldGrid.CreateCells<TCell>()`), створення візуальної сітки (`CreateLevelVisual`), інстанціювання префабу Visual Scripting (`CreateVScripting`), завантаження початкових чіпів (`LoadChips`) та ініціалізація камери (`InitCamera`). Отримує `FieldData`, `ChipDataCollection` та `IMergeCamera` через Injection.
 
 - **`IChipChangeNotifier`** -> `DeferredChipChangeNotifier`
   - **Призначення**: Агрегація змін клітинок (реалізацій `ICell`) протягом кадру та єдиний `Flush` у `LateUpdate`.
@@ -129,10 +129,10 @@
 
 ## Input System
 Система вводу базується на **Unity Input System (New Package)**.
-- **Asset**: `Merge2Input.inputactions` — містить визначення Action Maps (Game, UI).
+- **Asset**: `MergeInput.inputactions` — містить визначення Action Maps (Game, UI).
 - **Architecture**:
   - **Інтерфейс**: `IInputManager` — визначає контракт для системи вводу, дозволяє Dependency Injection через VContainer.
-  - **Реалізація**: `InputManager` — клас-адаптер, що ініціалізує Generated Class `Merge2Input` та трансформує події вводу (Press, Drag) у C# події (`OnTap`, `OnDragStart`, `OnDrag`, `OnDragEnd`). Надає методи симуляції (`SimulateTap`, `SimulateDrag*`) для тестування в Unity Editor.
+  - **Реалізація**: `InputManager` — клас-адаптер, що ініціалізує Generated Class `MergeInput` та трансформує події вводу (Press, Drag) у C# події (`OnTap`, `OnDragStart`, `OnDrag`, `OnDragEnd`). Надає методи симуляції (`SimulateTap`, `SimulateDrag*`) для тестування в Unity Editor.
   - **Інтеграція**: `FieldEventHandler` підписується на події `IInputManager` і делегує їх обробку відповідним компонентам (фішкам або полю).
 
 ## Animation System
@@ -152,7 +152,7 @@
 - **Доступ**:
   - `GetModuleData<T>()` повертає типізований блок даних (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, `ChipEffectsData` тощо).
   - `CreateModuleData<T>()` — динамічно створює нову інстанцію даних модуля, додає її до колекції та повертає посилання. Зручний для тестів, коли потрібно клонувати `ChipData` та змінити його конфіг на льоту.
-  - `AddModuleData(IChipModuleData)` — додає готовий екземпляр даних модуля у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Chip Editor).
+  - `AddModuleData(IChipModuleData)` — додає готовий екземпляр даних модуля у колекцію (використовується, зокрема, при клонуванні default-шаблонів у Merge Toolkit).
     ```csharp
     ChipData clonedData = originalData.Clone();
     ChipMergeData mergeData = clonedData.CreateModuleData<ChipMergeData>();
@@ -171,7 +171,6 @@
 - **VScriptingFieldPrefab**: Посилання на префаб Visual Scripting сцени (`GameObject`), що автоматично інстанціюється під час ініціалізації поля.
 - **Позиція**: Координати якоря (top-left) для розміщених фішок у `CellData`.
 - **Розташування в коді**: `FieldData` і `ChipSpawnData` знаходяться в `Core/Scripts/Field/Data`, `IFieldModuleData` — у `Core/Scripts/Field/Data/ModuleData`.
-- **MergeSettings**: Глобальні налаштування сцени, які зокрема містять `CellPrefab` для створення стандартних ігрових клітинок.
 
 ### Runtime State
 У грі інформація про активні blocker-ефекти зберігається у `ChipRuntimeData.EffectEnables` (`List<int>`). Цей список використовується як індикатор стану — `Chip.InitEffects()` та `UpdateVisual()` активують ефекти, чиї ID є в списку. А вже сам ефект, маючи `EffectBlockingSettings`, передає конкретні заборони до загального `CombinedBlockingState` чіпа (з яким вже працює ігрова логіка). Додатково, `EffectDestroyingData` (`Dictionary<int, EffectDestroyingRuntimeData>`) трекає прогрес руйнування ефектів при сусідніх злиттях. Це дозволяє динамічно змінювати стан фішок (наприклад, розблокувати після виконання певних умов), розмежовуючи візуальні ефекти та логіку блокування.
@@ -180,7 +179,7 @@
 Ми надаємо інструменти редактора для полегшення процесу створення та налаштування контенту.
 - **[Level Editor](../Editors.md)**: Візуальний редактор рівнів та Scene View Overlay toolbar (`LevelEditorOverlay`), що дозволяє налаштовувати сітку, малювати заблоковані зони та розміщувати фішки безпосередньо у Scene View.
 - **Property Drawers**: Атрибути `[ChipSelector]` та `[EffectBlockerSelector]` інтегровані в `ChipSpawnData` для зручного вибору ID фішок та ефектів прямо в інспекторі.
-- **Chip Editor**: Редактор `ChipData`, який підтримує редагування `moduleDatas` (включно з поліморфними типами `IChipModuleData`).
+- **Merge Toolkit**: Редактор `ChipData` (`MergeToolkitWindow`), який підтримує редагування `moduleDatas` (включно з поліморфними типами `IChipModuleData`), налаштування проєкту (`Project Settings`) та створення нових проєктів (`New Project`).
 - **Undo/Redo (Command Pattern)**: Всі дії в редакторі інкапсульовані в об'єкти команд (`IEditorCommand`). Це дозволяє реалізувати надійну систему скасування та повторення дій, запобігаючи втраті прогресу при помилках редагування.
 - **Validation**: Система автоматичної перевірки цілісності даних рівня перед збереженням.
 

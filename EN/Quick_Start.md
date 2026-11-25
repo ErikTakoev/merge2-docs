@@ -26,7 +26,7 @@ After connecting dependencies, make sure that:
 - the project opens without critical compile errors;
 - tests pass successfully: **Window > General > Test Runner** -> run tests.
 
-## Run Sample: GardenMerge
+## Run Sample: MergeClassic
 To run the demo example:
 1. Open the scene `Assets/Expecto/MergeBase/Examples/GardenMerge/Scenes/GardenMerge.unity`.
 2. Press **Play**.
@@ -34,22 +34,22 @@ To run the demo example:
 
 ---
 
-## Create New Merge Game (Clean Project)
+## Create New Merge Game (New Merge Project)
 
-This section explains how to create a new merge game from scratch using the built-in **Chip Viewer** tool.
+This section explains how to create a new merge game from scratch using the built-in **New Merge Project** tool inside **Merge Toolkit**.
 
-### Step 1 - Open Chip Viewer
+### Step 1 - Open New Merge Project
 
-In the Unity menu: **Window -> Expecto -> MergeBase -> Chip Viewer**
+In the Unity menu, open **Window -> Expecto -> Merge Toolkit** and click **New Project** on the toolbar.
 
-### Step 2. Create a new game folder
-Open `Window -> Expecto -> MergeBase -> Chip Viewer`.
-1. In the **Settings** tab, click the **New Game Folder** button.
-2. Choose a path for the new game (inside `Assets/`).
+### Step 2 - Configuration and New Game Folder Creation
+1. In the **New Merge Project** window, select a template configuration in **Template Settings** (`MergeTemplateSettings` ScriptableObject).
+2. Enter your desired **Namespace** and unique **Prefix** for generated scripts (`MergeLifetimeScope` and `MergeInitializer`).
+3. Click **Create New Merge Project** and choose or create an empty folder inside `Assets/`.
 
 **The tool automatically:**
 - Creates the folder structure (Data, Scripts, Scenes, Tests, etc.).
-- Creates `ChipCreatorSettings` and `ChipDataCollection`.
+- Creates `MergeProjectSettings` and `ChipDataCollection`, and switches the open **Merge Toolkit** window to the new settings.
 - Generates the initial scene `{folderName}Scene.unity` with configured `Merge2LifetimeScope`.
 - Creates test infrastructure: `.asmdef`, test template, and test assets (`TestSettings`, `FieldData`).
 
@@ -73,6 +73,6 @@ After confirmation, the following folders are created automatically:
 | `Tests/Integration/` | Integration tests |
 | `Tests/Prefabs/` | Prefabs for tests |
 
-Chip Viewer automatically switches to the new settings and is immediately ready to work.
+Merge Toolkit automatically switches to the new settings and is immediately ready to work.
 
 

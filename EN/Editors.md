@@ -100,19 +100,19 @@ Instead of directly changing `placedChips` or `gridSize`, editor methods (for ex
 
 ---
 
-# Chip Creator (Chip Viewer)
+# Merge Toolkit
 
-This tool provides a centralized interface for viewing, creating, and modifying `ChipData` assets.
+This tool (`MergeToolkitWindow`, opened via **Window -> Expecto -> Merge Toolkit**) provides a centralized interface for viewing, creating, and modifying `ChipData` assets, configuring project settings (**Project Settings**), and launching new merge project creation (**New Project**).
 
 ## Main Features
 - **Chip List**: View all chips in the project with icons (left panel).
 - **Properties Editor**: View and edit serialized chip data (right panel).
 - **Base Sprite Validation**: Automatically validates the presence of a sprite on the base renderer (`IChipSortingLayer.SortingLayers[0].Renderer`). If the renderer is assigned but its `sprite` is null, an `Error` level `HelpBox` is displayed along with an `Open` button that opens the prefab in Prefab Mode and selects the corresponding `GameObject` with the `SpriteRenderer`.
-- **Special Data Section**: Manage polymorphic `ChipData.specialDatas` data (`IChipSpecialData` types) with add/remove operations.
-- **Default Special Data (Create Only)**: In the Settings tab, you can define `defaultSpecialDatas` templates that are automatically applied only during `Create Chip`.
-- **Merge Configuration**: Merge rules are set manually through `ChipMergeData` in the `Special Data` section (without auto-creating a self-merge combination).
+- **Module Data Section**: Manage polymorphic `ChipData.moduleDatas` data (`IChipModuleData` types) with add/remove operations.
+- **Default Module Data (Create Only)**: In the **Project Settings** tab, you can define `defaultModuleDatas` templates that are automatically applied only during `Create Chip`.
+- **Merge Configuration**: Merge rules are set manually through `ChipMergeData` in the `Module Data` section (without auto-creating a self-merge combination).
 - **Undo/Redo System**: Full support for undoing property changes and rename operations with automatic switching to the target chip during global undo/redo.
-- **Asset Management**: Create new chips and refresh the list; automatic saving of modifications to disk (Save on Switch/Close/Blur) when switching chips, opening Settings/Create Chip tabs, closing the window, or on focus lost; if template-prefab is missing, a warning is shown and creation is blocked.
+- **Asset Management**: Create new chips and refresh the list; automatic saving of modifications to disk (Save on Switch/Close/Blur) when switching chips, opening **Project Settings** / **New Chip** tabs, clicking **New Project**, closing the window, or on focus lost; if template-prefab is missing, a warning is shown and creation is blocked.
 
 ## Undo/Redo System
 The chip editor uses the same **Command** pattern as Level Editor to track changes.
@@ -123,43 +123,50 @@ The chip editor uses the same **Command** pattern as Level Editor to track chang
 
 ### Supported Actions
 - **Property Editing**: All changes made in `SerializedObject` during inspector editing.
-- **Special Data Editing**: Add/remove entries in `specialDatas`, edit fields of a specific type (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, etc.).
+- **Module Data Editing**: Add/remove entries in `moduleDatas`, edit fields of a specific type (`ChipMergeData`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, etc.).
 - **Renaming**: Rename a chip asset (also renames the related prefab).
 - **Stable Undo/Redo after rename/type-change**: After name or `Type` changes, the chip list and filters synchronize correctly.
 
 ## Technical Implementation
 
 ### Key Components
-- **`IChipCreatorCommand`**: Interface for commands that manage `ChipData` state.
-- **`ChipCreatorCommandHistory`**: Manages undo/redo stacks specifically for chip editing context.
-- **`ChipCreatorWindow.SpecialDataSection.cs`**: Separate partial for `Special Data` UI section.
-    - Lazily finds all `IChipSpecialData` implementations in loaded assemblies.
-    - Shows each `specialDatas` element as a foldout with field editing via `SerializeReference`.
+- **`EditorContext`**: Centralized editor context provider holding the active `FieldData`, `MergeProjectSettings` (`ActiveMergeProjectSettings`), and active `ChipDataCollection`.
+- **`IChipEditorCommand`**: Interface for commands that manage `ChipData` state.
+- **`ChipEditorCommandHistory`**: Manages undo/redo stacks specifically for chip editing context.
+- **`MergeToolkitWindow.ModuleDataSection.cs`**: Separate partial for `Module Data` UI section.
+    - Lazily finds all `IChipModuleData` implementations in loaded assemblies.
+    - Shows each `moduleDatas` element as a foldout with field editing via `SerializeReference`.
     - Allows adding only types not yet present in the current `ChipData` (no type duplicates).
     - Allows removing an element from the list.
-- **`ChipEditorWindow.RightPanel.cs`**:
+- **`MergeToolkitWindow.RightPanel.cs`**:
     - Displays chip details, preview thumbnail, header, properties, and data sections.
     - Performs validation in `DrawMissingBaseSpriteWarning()`: checks `IChipSortingLayer.SortingLayers[0].Renderer.sprite`. If renderer is assigned but sprite is missing, displays an `Error` `HelpBox` with an `Open` button.
     - `OpenPrefabAndSelectRenderer()` loads the prefab via `PrefabStageUtility.OpenPrefab()`, locates the target `GameObject` with the `SpriteRenderer` via transform path or via the opened prefab stage's sorting layer, selects it (`Selection.activeGameObject`), and pings it (`EditorGUIUtility.PingObject()`).
-    - In the Settings tab, contains the **Default Special Data (Create Only)** section to configure `defaultSpecialDatas` in `ChipEditorSettings`.
-    - Allows adding only unique `IChipSpecialData` types (one type -> one entry), editing their fields, and removing entries.
-- **`ChipCreatorSettings`**:
-    - Stores `defaultSpecialDatas` instead of a separate field for default lock-effect prefab.
-    - Recommended lock-effect scenario: add `ChipMoveLockedData` to `defaultSpecialDatas` and set `Prefab`.
-- **`ChipCreatorWindow.UndoRedo.cs`**: Contains command definitions:
+    - In the **Project Settings** tab (`DrawProjectSettingsPanel`), provides the `MergeProjectSettings` field and the **Default Module Data (Create Only)** section to configure `defaultModuleDatas` in `MergeProjectSettings`.
+    - Allows adding only unique `IChipModuleData` types (one type -> one entry), editing their fields, and removing entries.
+- **`MergeProjectSettings`**:
+    - Stores `defaultModuleDatas` instead of a separate field for default lock-effect prefab.
+    - Recommended lock-effect scenario: add `ChipMoveLockedData` to `defaultModuleDatas` and set `Prefab`.
+- **`MergeToolkitWindow.UndoRedo.cs`**: Contains command definitions:
     - `SetChipPropertyCommand` — stores JSON snapshots of `ChipData` asset state "before" and "after".
     - `RenameChipCommand` — handles asset rename for both `ChipData` and prefab.
     - During Undo/Redo of changes affecting the list (name/type), `SerializedObject` sync, list sorting, and filter update are performed.
-- **`ChipEditorWindow.ContextMenu.cs`**:
+- **`MergeToolkitWindow.ContextMenu.cs`**:
     - Implements the context menu (right-click on a chip in the left panel).
     - Contains `Duplicate`, a separator, and `Delete` menu items.
     - `Duplicate` switches the editor into chip creation mode (`State.CreateChip`), sets the chosen `ChipData` as the duplication source (`duplicateSourceChip`), and leaves the name field blank for user input.
     - `Delete` prompts for confirmation and safely deletes the chip asset and associated prefab (if not owned by other chips).
-- **`ChipEditorWindow.CreateChip.cs`**:
+- **`MergeToolkitWindow.CreateChip.cs`**:
     - Caches the list of template prefabs for creating new chips.
     - Correctly handles empty template folder (shows warning instead of incorrect creation).
-    - During `Create Chip`, clones all elements from `DefaultSpecialDatas` into the new `ChipData` (`ApplyDefaultSpecialDataToNewChip` + `CloneSpecialData`).
+    - During `Create Chip`, clones all elements from `DefaultModuleDatas` into the new `ChipData` (`ApplyDefaultModuleDataToNewChip` + `CloneModuleData`).
     - In the `Create Next Level Chip` section, displays only `Chip Name:` (read-only) and a `Create` button. Clicking `Create` opens the `New Chip` tab (`State.CreateChip`) and pre-fills the next-level name for both duplication (`duplicateChipName`) and template creation (`newChipName`), leaving `duplicateSourceChip` empty (`null`).
 
 ### Workflow (Flow)
-When a property changes in `DrawRightPanel`, the window creates `SetChipPropertyCommand` with captured asset states. This includes both regular `ChipData` fields and the `Special Data` section (including `ChipMergeData`). `RenameChipCommand` is used for renaming. These commands are passed to `RecordAndExecute(command)`, which updates history and ensures `SerializedObject` refresh. During new chip creation (`Create Chip`), templates from `defaultSpecialDatas` are applied, so default `MoveLocked` settings are also transferred through `ChipMoveLockedData`, not through a separate prefab field.
+When a property changes in `DrawRightPanel`, the window creates `SetChipPropertyCommand` with captured asset states. This includes both regular `ChipData` fields and the `Module Data` section (including `ChipMergeData`). `RenameChipCommand` is used for renaming. These commands are passed to `RecordAndExecute(command)`, which updates history and ensures `SerializedObject` refresh. During new chip creation (`Create Chip`), templates from `defaultModuleDatas` are applied, so default `MoveLocked` settings are also transferred through `ChipMoveLockedData`, not through a separate prefab field.
+
+---
+
+# New Merge Project
+
+Opened via the **New Project** button on the **Merge Toolkit** toolbar (`MergeToolkitWindow`), `NewMergeProjectWindow` generates a complete project folder structure, `MergeProjectSettings`, `ChipDataCollection`, field prefabs, scripts (`{Prefix}MergeLifetimeScope`, `{Prefix}MergeInitializer`), integration test setup, and initial scene from a `MergeTemplateSettings` asset.

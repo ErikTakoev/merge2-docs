@@ -5,7 +5,7 @@
 ## Overview
 Цей гайд допоможе швидко підключити Merge Toolkit:
 - підключити залежність `VContainer`;
-- запустити приклад `GardenMerge`;
+- запустити приклад `MergeClassic`;
 - запустити тести
 - переглянути базові взаємодії.
 
@@ -22,39 +22,39 @@ Merge Toolkit має три залежності:
 
 ## Getting Started
 Після підключення залежностей переконайтесь що:
-- у проєкті присутній `Merge Toolkit` за шляхом `Assets/Expecto/Merge2`;
+- у проєкті присутній `Merge Toolkit` у папці `Assets/Expecto/MergeBase` (та модулі `MergeCommon`, `MergeClassic`, `MergeIsometric`);
 - проєкт відкривається без критичних compile errors;
 - тести проходять успішно: **Window > General > Test Runner** → запустіть тести.
 
-## Run Sample: GardenMerge
+## Run Sample: MergeClassic
 Щоб запустити демонстраційний приклад:
-1. Відкрийте сцену `Assets/Expecto/MergeBase/Examples/GardenMerge/Scenes/GardenMerge.unity`.
+1. Відкрийте сцену `Assets/Expecto/MergeClassic/Scenes/MergeClassicScene.unity`.
 2. Натисніть **Play**.
 3. Перевірте базовий цикл: переміщення фішок, взаємодії та merge.
 
 ---
 
-## Create New Merge Game (Clean Project)
+## Create New Merge Game (New Merge Project)
 
-Цей розділ пояснює, як створити нову мерж-гру з нуля за допомогою вбудованого інструменту **Clean Merge Project**.
+Цей розділ пояснює, як створити нову мерж-гру з нуля за допомогою вбудованого інструменту **New Merge Project**.
 
-### Step 1 — Open Clean Merge Project
+### Step 1 — Open New Merge Project
 
-У меню Unity: **Window → Expecto → Clean Merge Project**
+У меню Unity відкрийте **Window → Expecto → Merge Toolkit** та натисніть кнопку **New Project** на панелі інструментів.
 
 ### Step 2 — Configuration and New Game Folder Creation
-1. У вікні **Clean Merge Project** виберіть потрібний шаблон конфігурації у полі **Template Settings** (використовує ScriptableObject асети типу `MergeTemplateSettings`).
-2. Вкажіть бажаний **Namespace** та унікальний **Prefix** для ваших згенерованих файлів (вони будуть використані під час генерації скриптів `MergeLifetimeScope` та `MergeInitializer`).
-3. Натисніть кнопку **Select Folder For Clean Project** та виберіть або створіть порожню папку для нової гри (обов'язково всередині папки `Assets/` вашого проекту).
+1. У вікні **New Merge Project** виберіть потрібний шаблон конфігурації у полі **Template Settings** (використовує ScriptableObject асети типу `MergeTemplateSettings`).
+2. Вкажіть бажаний **Namespace** та унікальний **Prefix** для ваших згенерованих файлів (вони будуть використані під час генерації скриптів `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer`).
+3. Натисніть кнопку **Create New Merge Project** та виберіть або створіть порожню папку для нової гри (обов'язково всередині папки `Assets/` вашого проекту, окрім самої кореневої папки `Assets`).
 
 **Інструмент автоматично:**
 - Створить структуру папок на основі конфігурації у вибраному шаблоні (Data, Scripts, Scenes, Tests тощо).
-- Згенерує `ChipEditorSettings` та `ChipDataCollection` і автоматично перемкне відкрите вікно **Chip Editor** на використання нових налаштувань.
-- Скопіює базові префаби поля (`FieldPrefab`) та візуального відображення поля (`VisualFieldPrefab`) з шаблону, додавши до них ваш **Prefix**.
-- Згенерує скрипти `MergeLifetimeScope` та `MergeInitializer` із вказаним namespace та prefix.
-- Створить інфраструктуру для інтеграційних тестів: `.Tests.asmdef`, шаблон класу тесту та тестові ассети (`TestSettings`, `FieldData`).
-- Збереже початкову сцену `{folderName}Scene.unity` з інстансом вашого поля.
-- Після успішної компіляції нових скриптів автоматично виконає DidReloadScripts-міграцію даних у префабах поля та сцени, замінивши старі базові класи на ваші нові згенеровані компоненти із повним збереженням серіалізованих даних.
+- Скопіює папку шаблонних фішок у `Prefabs/TemplateChips/` (якщо задано `ChipTemplatesFolder` у шаблоні).
+- Згенерує `MergeProjectSettings` (із прив'язкою `ChipsTemplateFolder`) та `ChipDataCollection` і автоматично перемкне відкрите вікно **Merge Toolkit** на використання нових налаштувань.
+- Скопіює базові префаби поля (`FieldPrefab`) та візуального відображення поля (`VisualFieldPrefab`, визначений із `IMergeLifetimeScope.FieldData` на `FieldPrefab`), додавши до них ваш **Prefix**.
+- Згенерує скрипти `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer` із вказаним namespace та prefix.
+- Створить інфраструктуру для інтеграційних тестів: `.Tests.asmdef`, шаблон класу тесту та тестові асети (`TestSettings`, `FieldData`, тестовий префаб поля).
+- Після успішної компіляції нових скриптів автоматично виконає `DidReloadScripts`-міграцію даних у префабах поля й тестів, створить `FieldData` із розмірами поля з `FieldPrefab`, збереже й відкриє початкову сцену `{folderName}Scene.unity` з інстансом вашого поля та закриє вікно генерації.
 
 Після завершення процесу автоматично створюються такі папки та файли:
 
@@ -69,6 +69,7 @@ Merge Toolkit має три залежності:
 | `Prefabs/ChipsForContainer/` | Префаби фішок для контейнерів |
 | `Prefabs/Effects/` | Префаби візуальних ефектів |
 | `Prefabs/Field/` | Префаби поля та візуального поля з вашим префіксом |
+| `Prefabs/TemplateChips/` | Шаблонні префаби для створення нових фішок у Merge Toolkit |
 | `Scenes/` | Початкова сцена `{folderName}Scene.unity` |
 | `Textures/` | Текстури та спрайти |
 | `Tests/Editor/` | EditMode тести |

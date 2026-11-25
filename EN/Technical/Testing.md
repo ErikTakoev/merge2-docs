@@ -163,7 +163,7 @@ Class configuration for test settings.
 - **Purpose**: Stores path to test scene prefab and debug flags.
 - **Features**: 
   - Menu item `Window/Expecto/MergeBase/Tests/Enable Debug Mode` for quick debug mode enabling.
-  - Reference to `ChipCreatorSettings` for automatic path setup for data and prefabs during test runs.
+  - Reference to `MergeProjectSettings` for automatic path setup for data and prefabs during test runs.
 
 ### Automated Scaffolding
 "New Game Folder" tool automatically creates:

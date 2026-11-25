@@ -8,13 +8,13 @@
 
 ## 1. Creating a New Game
 
-Перед розширенням рекомендується створити чисту структуру проєкту. Детальна інструкція знаходиться у [Quick Start → Create New Merge Game (Clean Project)](Quick_Start.md#create-new-merge-game-clean-project).
+Перед розширенням рекомендується створити чисту структуру проєкту. Детальна інструкція знаходиться у [Quick Start → Create New Merge Game (New Merge Project)](Quick_Start.md#create-new-merge-game-new-merge-project).
 
 **Коротко:**
-1. Відкрийте **Window → Expecto → Clean Merge Project**.
+1. Відкрийте **Window → Expecto → Merge Toolkit** та натисніть **New Project**.
 2. Оберіть потрібний шаблон конфігурації у полі **Template Settings** (використовує ScriptableObject асети типу `MergeTemplateSettings`).
-3. Вкажіть бажаний **Namespace**, унікальний **Prefix** та натисніть кнопку **Select Folder For Clean Project**, обравши або створивши папку нової гри.
-4. Інструмент автоматично створить повну структуру папок на основі конфігурації шаблону, сцену, згенерує C# класи `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer`, скопіює та перейменує базові префаби поля, підготує інтеграційні тести (`.Tests.asmdef`, тестові ассети та шаблон класу тесту) та автоматично перемкне відкрите вікно **Chip Editor** на використання нових налаштувань.
+3. Вкажіть бажаний **Namespace**, унікальний **Prefix** та натисніть кнопку **Create New Merge Project**, обравши або створивши папку нової гри.
+4. Інструмент автоматично створить повну структуру папок на основі конфігурації шаблону, сцену, згенерує C# класи `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer`, скопіює та перейменує базові префаби поля, підготує інтеграційні тести (`.Tests.asmdef`, тестові ассети та шаблон класу тесту) та автоматично перемкне відкрите вікно **Merge Toolkit** на використання нових налаштувань.
 
 Після цього ваш проєкт готовий до розширення.
 
@@ -22,7 +22,7 @@
 
 ## 2. Extension via VContainer (Dependency Injection)
 
-Проєкт використовує **VContainer** для керування залежностями. Точка конфігурації — клас `Merge2LifetimeScope`, який наслідує `LifetimeScope`.
+Проєкт використовує **VContainer** для керування залежностями. Точка конфігурації для класичного 2D поля — клас `MergeClassicLifetimeScope`, який наслідує `LifetimeScope` та реалізує `IMergeLifetimeScope`.
 
 ### How It Works
 
@@ -36,10 +36,11 @@ protected override void Configure(IContainerBuilder builder)
     builder.RegisterInstance(fieldData.ChipDataCollection);
 
     // MonoBehaviour components (scene hierarchy)
-    builder.RegisterComponentInHierarchy<FieldEventHandler>().As<IFieldEventHandler>();
-    builder.RegisterComponentInHierarchy<FieldGrid>().As<IFieldGrid>();
-    builder.RegisterComponentInHierarchy<FieldInitializeCommand>().As<IFieldInitializeCommand>();
-    builder.RegisterComponentInHierarchy<InputManager>().AsSelf();
+    builder.RegisterComponentInHierarchy<FieldEventHandler>().As<IFieldEventHandler>().AsSelf();
+    builder.RegisterComponentInHierarchy<FieldGrid>().As<IFieldGrid>().AsSelf();
+    builder.RegisterComponentInHierarchy<FieldInitializeCommand>().As<IFieldInitializeCommand>().AsSelf();
+    builder.RegisterComponentInHierarchy<InputManager>().As<IInputManager>().AsSelf();
+    builder.RegisterComponentInHierarchy<MergeCamera>().As<IMergeCamera>().AsSelf();
 
     // Pure C# services (singletons)
     builder.Register<ChipFactory>(Lifetime.Singleton);
@@ -48,7 +49,7 @@ protected override void Configure(IContainerBuilder builder)
     builder.Register<ChipFlyAnimation>(Lifetime.Transient).As<IChipFlyAnimation>();
 
     // Entry Point
-    builder.RegisterEntryPoint<Merge2Initializer>();
+    builder.RegisterEntryPoint<MergeClassicInitializer>();
 }
 ```
 
@@ -56,9 +57,10 @@ protected override void Configure(IContainerBuilder builder)
 
 | Інтерфейс | Реалізація | Призначення |
 |---|---|---|
-| `IFieldGrid` | `FieldGrid` | Управління сіткою (2D масив `Cell`): створення комірок, валідація координат, розміщення чіпів |
+| `IFieldGrid` | `FieldGrid` | Управління сіткою (2D масив `ICell`): динамічне створення комірок через `CreateCells<TCell>`, валідація координат, розміщення чіпів |
 | `IFieldEventHandler` | `FieldEventHandler` | Точка входу для подій вводу (Tap, Drag), координація взаємодії між Input та полем |
-| `IFieldInitializeCommand` | `FieldInitializeCommand` | Ініціалізація рівня: створення візуальної сітки та завантаження початкових чіпів |
+| `IFieldInitializeCommand` | `FieldInitializeCommand` | Ініціалізація рівня: створення комірок (`CreateField<TCell>`), візуалу, камери та завантаження початкових чіпів |
+| `IMergeLifetimeScope` | `MergeClassicLifetimeScope`, `IsoMergeLifetimeScope` | Уніфікований доступ до `FieldData`, `CellType`, `Container` та `UnityObject` |
 | `IChipMovingLogic` | `ChipMovingLogic` | Валідація та виконання переміщень, розрахунок ланцюгових релокацій сусідніх чіпів |
 | `IFreeCellFinder` | `FreeCellFinder` | Пошук найближчої вільної комірки (спіральний алгоритм) |
 | `IChipFlyAnimation` | `ChipFlyAnimation` | Анімація "польоту" чіпа до цільової позиції |
@@ -67,39 +69,47 @@ protected override void Configure(IContainerBuilder builder)
 ### Recommended Approach: Creating Custom LifetimeScope
 
 > [!IMPORTANT]
-> Рекомендується **не змінювати** `Merge2LifetimeScope` напряму. Замість цього створіть **власний клас**, який наслідує `LifetimeScope`, та скопіюйте конфігурацію з `Merge2LifetimeScope` як базу. Після цього замінюйте або додавайте реалізації за потребою.
+> Рекомендується **не змінювати** `MergeClassicLifetimeScope` напряму. Замість цього створіть **власний клас**, який наслідує `LifetimeScope` та реалізує `IMergeLifetimeScope`, скопіювавши конфігурацію з `MergeClassicLifetimeScope` як базу (або згенеруйте його через **New Merge Project**). Після цього замінюйте або додавайте реалізації за потребою.
 
 Це дозволяє:
-- Зберегти оригінальний `Merge2LifetimeScope` без змін.
+- Зберегти оригінальний `MergeClassicLifetimeScope` без змін.
 - Мати повний контроль над реєстрацією залежностей.
 - Замінювати окремі реалізації (наприклад, `IChipMovingLogic`, `IFreeCellFinder`) на власні.
-- Так як `Merge2LifetimeScope` не використовується — він не потрапить у білд.
+- Так як `MergeClassicLifetimeScope` не використовується — він не потрапить у білд.
 
 ```csharp
-public class MyGameLifetimeScope : LifetimeScope
+public class MyGameLifetimeScope : LifetimeScope, IMergeLifetimeScope
 {
     [SerializeField] private FieldData fieldData;
 
+    public FieldData FieldData { get => fieldData; set => fieldData = value; }
+    public System.Type CellType => typeof(Cell);
+    public UnityEngine.Object UnityObject => this;
+
     protected override void Configure(IContainerBuilder builder)
     {
-        // --- Скопійовано з Merge2LifetimeScope ---
+        // --- Скопійовано з MergeClassicLifetimeScope ---
         _ = builder.RegisterInstance(fieldData);
         _ = builder.RegisterInstance(fieldData.ChipDataCollection);
 
         _ = builder.RegisterComponentInHierarchy<FieldEventHandler>().As<IFieldEventHandler>().AsSelf();
         _ = builder.RegisterComponentInHierarchy<FieldGrid>().As<IFieldGrid>().AsSelf();
         _ = builder.RegisterComponentInHierarchy<FieldInitializeCommand>().As<IFieldInitializeCommand>().AsSelf();
-        _ = builder.RegisterComponentInHierarchy<InputManager>().AsSelf();
+        _ = builder.RegisterComponentInHierarchy<InputManager>().As<IInputManager>().AsSelf();
         
         _ = builder.Register<DeferredChipChangeNotifier>(Lifetime.Singleton).As<IChipChangeNotifier>();
         _ = builder.RegisterComponentInHierarchy<CellObserverManager>().AsSelf();
 
+        _ = builder.Register<MergeEventHandler>(Lifetime.Singleton).As<IMergeEventHandler>();
         _ = builder.Register<ChipFactory>(Lifetime.Singleton);
         _ = builder.Register<FreeCellFinder>(Lifetime.Singleton).As<IFreeCellFinder>();
         _ = builder.Register<ChipFlyAnimation>(Lifetime.Transient).As<IChipFlyAnimation>();
         _ = builder.Register<NeighborChipFinder>(Lifetime.Singleton).As<IChipFinder>();
+        _ = builder.Register<ChipCollections>(Lifetime.Singleton).As<IChipCollections>();
+        _ = builder.Register<ChipEvolutionService>(Lifetime.Singleton).As<IChipEvolutionService>();
+        _ = builder.RegisterComponentInHierarchy<MergeCamera>().As<IMergeCamera>().AsSelf();
 
-        _ = builder.RegisterEntryPoint<Merge2Initializer>();
+        _ = builder.RegisterEntryPoint<MergeClassicInitializer>();
 
         // --- Замінена реалізація ---
         _ = builder.Register<MyChipMovingLogic>(Lifetime.Singleton).As<IChipMovingLogic>();
@@ -110,20 +120,20 @@ public class MyGameLifetimeScope : LifetimeScope
 }
 ```
 
-Після цього замініть компонент `Merge2LifetimeScope` на `MyGameLifetimeScope` на сцені.
+Після цього замініть компонент `MergeClassicLifetimeScope` на `MyGameLifetimeScope` на сцені (або скористайтеся **New Merge Project**, який виконує це автоматично).
 
 ### Recommended Approach: Creating Custom Initializer
 
 > [!IMPORTANT]
-> Аналогічно до `Merge2LifetimeScope`, рекомендується створити **власний клас ініціалізатора** замість зміни `Merge2Initializer`. Скопіюйте його як базу та розширюйте за потребою.
+> Аналогічно до `MergeClassicLifetimeScope`, рекомендується створити **власний клас ініціалізатора** замість зміни `MergeClassicInitializer`. Скопіюйте його як базу та розширюйте за потребою.
 
-`Merge2Initializer` — це **Entry Point** (точка входу), зареєстрований через `builder.RegisterEntryPoint<Merge2Initializer>()`. Він реалізує `IInitializable` від VContainer і автоматично викликається при старті гри. Його задачі:
-- Ініціалізація `ChipFactory`.
+`MergeClassicInitializer` — це **Entry Point** (точка входу), зареєстрований через `builder.RegisterEntryPoint<MergeClassicInitializer>()`. Він реалізує `VContainer.Unity.IInitializable` і автоматично викликається при старті гри. Його задачі:
+- Ініціалізація системи вводу (`InputManager`) та `ChipFactory`.
 - Підключення подій вводу (`OnTap`, `OnDrag`, тощо) до `IFieldEventHandler`.
-- Створення ігрового поля та завантаження початкових фішок.
+- Створення ігрового поля (`CreateField<Cell>()`), візуального поля, VScripting, завантаження початкових фішок та налаштування камери.
 
 ```csharp
-public class MyGameInitializer : IInitializable
+public class MyGameInitializer : VContainer.Unity.IInitializable
 {
     [Inject] private readonly InputManager inputManager;
     [Inject] private readonly ChipFactory chipFactory;
@@ -131,22 +141,28 @@ public class MyGameInitializer : IInitializable
     [Inject] private readonly IFieldEventHandler field;
     [Inject] private readonly IFieldGrid fieldGrid;
     [Inject] private readonly IFieldInitializeCommand fieldInitializeCommand;
+    [Inject] private readonly IChipCollections chipCollections;
+    [Inject] private readonly IMergeEventHandler mergeEventHandler;
 
     // --- Додані залежності ---
     [Inject] private readonly IMyNewService myNewService;
 
     public void Initialize()
     {
-        // --- Скопійовано з Merge2Initializer ---
-        chipFactory.Init(resolver, fieldGrid);
+        // --- Скопійовано з MergeClassicInitializer ---
+        inputManager.Init();
+        chipFactory.Init(resolver, fieldGrid, chipCollections, mergeEventHandler);
 
         inputManager.OnTap += field.OnTap;
         inputManager.OnDragStart += field.OnDragStart;
         inputManager.OnDrag += field.OnDrag;
         inputManager.OnDragEnd += field.OnDragEnd;
 
-        fieldInitializeCommand.CreateField();
+        fieldInitializeCommand.CreateField<Cell>();
+        fieldInitializeCommand.CreateLevelVisual();
+        fieldInitializeCommand.CreateVScripting();
         fieldInitializeCommand.LoadChips();
+        fieldInitializeCommand.InitCamera();
 
         // --- Додана власна ініціалізація ---
         myNewService.Init();
@@ -157,14 +173,14 @@ public class MyGameInitializer : IInitializable
 Не забудьте замінити реєстрацію у вашому `LifetimeScope`:
 
 ```csharp
-// Замість: builder.RegisterEntryPoint<Merge2Initializer>();
+// Замість: builder.RegisterEntryPoint<MergeClassicInitializer>();
 builder.RegisterEntryPoint<MyGameInitializer>();
 ```
 
 ### How to Add Custom Service
 
 1. **Створіть інтерфейс** (за потреби) та **реалізацію**.
-2. **Зареєструйте у `Merge2LifetimeScope`**:
+2. **Зареєструйте у `MergeClassicLifetimeScope`** (або у вашому власному `LifetimeScope`):
    ```csharp
    // Pure C# service
    builder.Register<MyService>(Lifetime.Singleton).As<IMyService>();
@@ -435,7 +451,7 @@ public class MyPureEffect : MonoBehaviour, IEffect
 
 Починайте з визначення даних. Бажано не захаращувати базовий `ChipData`.
 1. Створіть окремий serializable-клас для параметрів вашої механіки (наприклад, `ExtensionChipData`), який реалізує `IChipModuleData`.
-2. Додайте цей тип у `ChipData.moduleDatas` через `Chip Editor` -> секцію **Module Data**.
+2. Додайте цей тип у `ChipData.moduleDatas` через `Merge Toolkit` -> секцію **Module Data**.
 3. В коді чіпа отримуйте дані в `Init` так: `var settings = data.GetModuleData<ExtensionChipData>();` (рекомендовано викликати один раз і зберігати в полі).
 
 ```csharp
@@ -469,7 +485,7 @@ public class ChipGeneratorDataEx : ChipGeneratorData
 
 Створіть свій модуль або клас відповідно до композиційної архітектури:
 - Створіть компонент, що реалізує `IChipModule` (рекомендований підхід), та приєднайте його до префабу `Chip`.
-- Позначте клас модуля атрибутом `[RequireModuleData(typeof(YourModuleData))]`, щоб декларативно зв'язати його з відповідним класом конфігурації та увімкнути автоматичну валідацію в `ChipEditorWindow`.
+- Позначте клас модуля атрибутом `[RequireModuleData(typeof(YourModuleData))]`, щоб декларативно зв'язати його з відповідним класом конфігурації та увімкнути автоматичну валідацію в `MergeToolkitWindow`.
 - Якщо механіка передбачає перетворення або створення наступних фішок після виконання умови (еволюцію):
   - Додайте поле `[SerializeReference] public IChipEvolutionProvider EvolutionProvider;` у відповідний `IChipModuleData`.
   - Інжектуйте `IChipEvolutionService` через VContainer.

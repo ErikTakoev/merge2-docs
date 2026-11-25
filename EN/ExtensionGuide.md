@@ -8,12 +8,12 @@ This document describes how to extend Merge Toolkit project: from creating a new
 
 ## 1. Creating a New Game
 
-Before extending, it is recommended to create a clean project structure. Detailed instructions are in [Quick Start -> Create New Merge Game (Clean Project)](Quick_Start.md#create-new-merge-game-clean-project).
+Before extending, it is recommended to create a clean project structure. Detailed instructions are in [Quick Start -> Create New Merge Game (New Merge Project)](Quick_Start.md#create-new-merge-game-new-merge-project).
 
 **In short:**
-1. Open **Window -> Expecto -> MergeBase -> Chip Viewer**.
-2. In **Settings** tab click **New Game Folder**.
-3. Tool will automatically create full folder structure, scene, `Merge2LifetimeScope`, `ChipCreatorSettings`, tests, and all required assets.
+1. Open **Window -> Expecto -> Merge Toolkit** and click **New Project**.
+2. Select a `MergeTemplateSettings` asset, enter **Namespace** and **Prefix**, and click **Create New Merge Project**.
+3. Tool will automatically create full folder structure, scene, `Merge2LifetimeScope`, `MergeProjectSettings`, tests, and all required assets.
 
 After that, your project is ready for extension.
 
@@ -144,7 +144,7 @@ public class MyGameInitializer : IInitializable
         inputManager.OnDrag += field.OnDrag;
         inputManager.OnDragEnd += field.OnDragEnd;
 
-        fieldInitializeCommand.CreateField();
+        fieldInitializeCommand.CreateField<Cell>();
         fieldInitializeCommand.LoadChips();
 
         // --- Added custom initialization ---
@@ -433,7 +433,7 @@ When you want to add a new chip type (for example, a chip that accelerates neigh
 
 Start with data definition. It is better not to clutter base `ChipData`.
 1. Create a separate serializable class for your mechanic parameters (for example, `ExtensionChipData`) that implements `IChipSpecialData`.
-2. Add this type into `ChipData.specialDatas` through `Chip Creator` -> **Special Data** section.
+2. Add this type into `ChipData.moduleDatas` through `Merge Toolkit` -> **Module Data** section.
 3. In chip code, get data in `Init` as follows: `var settings = data.GetSpecialData<ExtensionChipData>();` (recommended to call once and store in field).
 
 ```csharp

@@ -116,7 +116,7 @@
 ### RequireModuleData Attribute
 Для декларативного зв'язування компонентів `IChipModule` з їх конфігураційними даними використовується атрибут `[RequireModuleData(Type moduleDataType)]` ([RequireModuleDataAttribute.cs](../../../Core/Scripts/Attributes/RequireModuleDataAttribute.cs)):
 - **Призначення**: Застосовується до класів модулів для вказівки типу даних конфігурації, який модуль вимагає в `ChipData.moduleDatas` (наприклад, `[RequireModuleData(typeof(ChipGeneratorData))]`).
-- **Валідація в редакторі**: Використовується `ChipEditorWindow` для відображення попередження (`HelpBox`), якщо на зв'язаному префабі фішки присутній модуль, але відповідний конфігураційний блок відсутній у списку `moduleDatas` асета `ChipData`.
+- **Валідація в редакторі**: Використовується `MergeToolkitWindow` для відображення попередження (`HelpBox`), якщо на зв'язаному префабі фішки присутній модуль, але відповідний конфігураційний блок відсутній у списку `moduleDatas` асета `ChipData`.
 
 ### Lifecycle Delegation to Modules
 Клас `Chip` автоматично збирає всі компоненти `IChipModule` на своєму GameObject за допомогою `GetComponents<IChipModule>()` і делегує їм виклики у ключових точках життєвого циклу:

@@ -74,6 +74,8 @@ Level Editor підтримує два режими редагування:
 ### Core Architecture and Synchronization
 - **`IMergeLifetimeScope` як єдине джерело правди**: Редактор активується та рендериться лише за наявності компонента `IMergeLifetimeScope` у поточній ієрархії активної сцени. Зв'язок між редактором та сценою є прямим: поле `FieldData` в активному scope виступає єдиним джерелом правди. Будь-які дії створення рівнів (`OnNewLevel`), завантаження або автоматичного збереження (`EnsureAutosaveTarget`, `AutosaveCurrentField`) записують асет безпосередньо в active scope та позначають його зміненим (`EditorUtility.SetDirty`).
 - **Інтеграція з VContainer**: Сітка поля (`IFieldGrid`) першочергово розділяється через DI-контейнер (`scope.Container.Resolve<IFieldGrid>()`), що забезпечує повну сумісність з runtime-залежностями та конфігурацією сцени. Якщо контейнер не побудовано в режимі редагування, використовується резервний пошук компонента прямо у сцені.
+- **Динамічний тип клітинки для прев'ю (`CellType`)**: Для обчислення локального зміщення фішок (`CalculateChipLocalPosition`) редактор бере `IMergeLifetimeScope.CellType` (за замовчуванням `Cell`) і створює/кешує прихований тимчасовий об'єкт `[LevelEditor_PreviewCell]` через `GetOrCreatePreviewCell()` (`HideFlags.HideAndDontSave`), без потреби у окремому префабі клітинки.
+- **Скидання сесії при створенні проєкту (`ResetSessionForProjectCreation`)**: Перед генерацією нового проєкту `NewMergeProjectWindow` викликає `LevelEditorWindow.ResetSessionForProjectCreation()`, який зберігає змінені `FieldData`, очищає стан відкритих вікон редактора рівнів і скидає `EditorContext.ActiveFieldData`, не перезаписуючи асети з розсинхронізованих словників.
 - **Ізоляція та придушення в Prefab Mode**: Редактор відстежує стан Prefab Mode за допомогою подій `PrefabStage` та `PrefabStageUtility`. При переході в режим редагування префабів взаємодія з редактором призупиняється, а візуальне прев'ю сцени негайно знищується. Після закриття Prefab Mode редактор автоматично відновлює свій стан та виконує ресинхронізацію.
 - **Стійкість до перезавантаження домену (Domain Reload)**: Після перезавантаження домену Unity, коли несеріалізований словник розміщених фішок (`placedChips`) скидається, редактор автоматично виявляє розсинхронізацію та повторно наповнює словник на основі серіалізованого асета `FieldData` з активного scope.
 - **Ізольована сцена візуалізації сцени**: Для відображення префабу поля та розміщених фішок редактор динамічно створює окрему тимчасову адитивну сцену (`LevelEditorPreviewScene`). Це запобігає забрудненню або випадковій модифікації основної відкритої сцени проекту. Усі прев'ю-об'єкти створюються з прапорцем `HideFlags.DontSave`.
@@ -110,9 +112,9 @@ Level Editor підтримує два режими редагування:
 
 ---
 
-# Chip Editor
+# Merge Toolkit
 
-Цей інструмент надає централізований інтерфейс для перегляду, створення та модифікації асетів `ChipData`.
+Цей інструмент (`MergeToolkitWindow`, відкривається через **Window → Expecto → Merge Toolkit**) надає централізований інтерфейс для перегляду, створення та модифікації асетів `ChipData`, керування конфігурацією проєкту (`Project Settings`) та запуску створення нового мерж-проєкту (`New Project`).
 
 ## Main Features
 - **Chip List**: Перегляд усіх фішок у проекті з іконками (ліва панель).
@@ -120,13 +122,13 @@ Level Editor підтримує два режими редагування:
 - **Base Sprite Validation**: Автоматична валідація наявності спрайта у базового рендерера (`IChipSortingLayer.SortingLayers[0].Renderer`). Якщо рендерер призначений, але поле `sprite` порожнє, відображається `HelpBox` з рівнем `Error` та кнопкою `Open`, яка відкриває префаб у Prefab Mode та виділяє відповідний `GameObject` зі `SpriteRenderer`.
 - **Module Data Validation**: Автоматична валідація відповідності модулів префаба конфігураційним даним. Якщо на зв'язаному префабі присутні компоненти `IChipModule` з атрибутом `[RequireModuleData]`, але відповідний тип даних відсутній у `moduleDatas`, під заголовком секції відображається попередження `HelpBox` із зазначенням відсутніх типів.
 - **Module Data Section**: Керування поліморфними даними `ChipData.moduleDatas` (типи `IChipModuleData`) з додаванням/видаленням елементів.
-- **Default Module Data (Create Only)**: У вкладці Settings можна задати шаблони `defaultModuleDatas`, які автоматично застосовуються лише під час `Create Chip`.
+- **Default Module Data (Create Only)**: У вкладці **Project Settings** можна задати шаблони `defaultModuleDatas`, які автоматично застосовуються лише під час `Create Chip`.
 - **Merge Configuration**: Merge-правила задаються вручну через `ChipMergeData` у секції `Module Data` (без авто-створення self-merge комбінації).
 - **Undo/Redo System**: Повна підтримка скасування змін властивостей та перейменування з автоматичним перемиканням на відповідну фішку при глобальному відкаті.
-- **Asset Management**: Створення нових фішок та оновлення списку; автоматичне збереження змін на диск (Save on Switch/Close/Blur) при перемиканні між фішками, відкритті вкладок Settings/Create Chip, закритті або втраті фокусу вікна; при відсутності template-prefab показується попередження і створення блокується.
+- **Asset Management**: Створення нових фішок та оновлення списку; автоматичне збереження змін на диск (Save on Switch/Close/Blur) при перемиканні між фішками, відкритті вкладок **Project Settings** / **New Chip**, натисканні **New Project**, закритті або втраті фокусу вікна; при відсутності template-prefab показується попередження і створення блокується.
 
 ## Undo/Redo System
-редактор фішок використовує той самий патерн **Command**, що і Редактор Рівнів, для відстеження змін.
+Редактор фішок використовує той самий патерн **Command**, що і Редактор Рівнів, для відстеження змін.
 
 ### Hotkeys
 - **Ctrl + Z**: Скасувати останню зміну.
@@ -141,36 +143,37 @@ Level Editor підтримує два режими редагування:
 ## Technical Implementation
 
 ### Key Components
-- **`EditorContext`**: Централізований провайдер контексту редактора, що надає доступ до активного `FieldData`, налаштувань `ChipEditorSettings` та поточної `ChipDataCollection`. Зберігає шляхи до асетів в `EditorPrefs` для забезпечення стабільності при роботі в Unity з вимкненим перезавантаженням домену (Enter Play Mode Options).
+- **`MergeToolkitWindow`**: Головне вікно редактора (`Window → Expecto → Merge Toolkit`) з тулбаром (`New Chip`, `Refresh`, `Project Settings`, `New Project`, `Undo/Redo`, `Asset Store`, `Discord`), лівим списком фішок та перемиканням режимів правої панелі (`Default`, `CreateChip`, `ProjectSettings`). Кнопка **New Project** (`OnNewProject()`) зберігає поточні правки фішки та відкриває `NewMergeProjectWindow`.
+- **`EditorContext`**: Централізований провайдер контексту редактора, що надає доступ до активного `FieldData`, налаштувань `MergeProjectSettings` (`ActiveMergeProjectSettings`) та поточної `ChipDataCollection`. Зберігає шляхи до асетів в `EditorPrefs` для забезпечення стабільності при роботі в Unity з вимкненим перезавантаженням домену (Enter Play Mode Options) і мігрує збережений шлях зі старого ключа `ChipEditorWindow.SettingsPath`.
 - **`ChipEvolutionProviderDrawer`**: Кастомний `PropertyDrawer` для поліморфних полів `IChipEvolutionProvider` (`[SerializeReference]`). Використовує `TypeCache` для швидкого вибору конкретної реалізації стратегії еволюції (`ConstantEvolutionProvider`, `RandomEvolutionProvider`) та рендерингу її внутрішніх полів в інспекторі.
 - **`ChipSelectorDrawer`**: Кастомний `PropertyDrawer` для атрибута `[ChipSelector]`. Відображає випадаючий список із пошуком для швидкого вибору фішки з активної колекції `EditorContext.ActiveChipDataCollection`.
 - **`IChipEditorCommand`**: Інтерфейс для команд, що керують станом `ChipData`.
 - **`ChipEditorCommandHistory`**: Керує стеками undo/redo спеціально для контексту редагування фішок.
-- **`ChipEditorWindow.ModuleDataSection.cs`**: Окремий partial для UI секції `Module Data`.
+- **`MergeToolkitWindow.ModuleDataSection.cs`**: Окремий partial для UI секції `Module Data`.
     - Ліниво знаходить всі реалізації `IChipModuleData` в завантажених assembly.
     - Реалізує валідацію `DrawMissingModuleDataWarning(SerializedProperty listProp)`, яка перевіряє `RequireModuleDataAttribute` на компонентах `IChipModule` префаба та виводить попередження при відсутності необхідних конфігурацій.
     - Показує кожен елемент `moduleDatas` як foldout з редагуванням полів через `SerializeReference`.
     - Дозволяє додати лише ті типи, яких ще немає в поточному `ChipData` (без дублювань типів).
     - Дозволяє видалення елемента зі списку.
-- **`ChipEditorWindow.RightPanel.cs`**:
+- **`MergeToolkitWindow.RightPanel.cs`**:
     - Відображає деталі чіпа, прев'ю, заголовок, властивості та секції даних.
     - Здійснює валідацію `DrawMissingBaseSpriteWarning()`: перевіряє `IChipSortingLayer.SortingLayers[0].Renderer.sprite`. Якщо рендерер призначений, але спрайт відсутній — виводить `HelpBox` (Error) з кнопкою `Open`.
     - Метод `OpenPrefabAndSelectRenderer()` завантажує префаб через `PrefabStageUtility.OpenPrefab()`, знаходить відповідний `GameObject` зі `SpriteRenderer` за шляхом трансформації або через сортувальний шар у сцені префабу, виділяє його (`Selection.activeGameObject`) та фокусує через `EditorGUIUtility.PingObject()`.
-    - У вкладці Settings містить секцію **Default Module Data (Create Only)** для налаштування `defaultModuleDatas` у `ChipEditorSettings`.
+    - У вкладці **Project Settings** (`DrawProjectSettingsPanel`) містить вибір `MergeProjectSettings` та секцію **Default Module Data (Create Only)** для налаштування `defaultModuleDatas` у `MergeProjectSettings`.
     - Дозволяє додавати тільки унікальні типи `IChipModuleData` (один тип — один запис), редагувати їх поля та видаляти записи.
-- **`ChipEditorSettings`**:
+- **`MergeProjectSettings`**:
     - Зберігає `defaultModuleDatas` замість окремого поля для default-префаба lock-ефекту.
     - Рекомендований сценарій для lock-ефекту: додати `ChipMoveLockedData` у `defaultModuleDatas` і задати `Prefab`.
-- **`ChipEditorWindow.UndoRedo.cs`**: Містить визначення команд:
+- **`MergeToolkitWindow.UndoRedo.cs`**: Містить визначення команд:
     - `SetChipPropertyCommand` — записує JSON-знімки стану асета `ChipData` "до" та "після".
     - `RenameChipCommand` — обробляє перейменування асета як для `ChipData`, так і для префаба.
     - При Undo/Redo змін, що впливають на список (name/type), виконується синхронізація `SerializedObject`, сортування списку та оновлення фільтрів.
-- **`ChipEditorWindow.ContextMenu.cs`**:
+- **`MergeToolkitWindow.ContextMenu.cs`**:
     - Реалізує контекстне меню (правий клік по чіпу в лівій панелі).
     - Містить пункти `Duplicate`, розділювач (сепаратор) та `Delete`.
     - `Duplicate` переводить редактор у режим створення чіпа (`State.CreateChip`), призначає обраний `ChipData` як джерело (`duplicateSourceChip`) та залишає поле назви порожнім для введення користувачем.
     - `Delete` запитує підтвердження та безпечно видаляє асет чіпа і пов'язаний префаб (якщо префаб не належить іншим чіпам).
-- **`ChipEditorWindow.CreateChip.cs`**:
+- **`MergeToolkitWindow.CreateChip.cs`**:
     - Кешує список template-префабів для створення нових чіпів.
     - Коректно обробляє порожню папку шаблонів (показує warning замість некоректного створення).
     - Під час `Create Chip` клонує всі елементи з `DefaultModuleDatas` у новий `ChipData` (`ApplyDefaultModuleDataToNewChip` + `CloneModuleData`).
@@ -181,31 +184,34 @@ Level Editor підтримує два режими редагування:
 
 ---
 
-# Clean Merge Project
+# New Merge Project
 
-Цей інструмент призначений для автоматичного створення (scaffolding) нової структури папок, C# скриптів, префабів поля, інтеграційних тестів та початкової сцени для нової гри з нуля на основі конфігураційних шаблонів.
+Цей інструмент призначений для автоматичного створення нової структури папок, C# скриптів, префабів поля, інтеграційних тестів та початкової сцени для нової гри з нуля на основі конфігураційних шаблонів. Відкривається кнопкою **New Project** на панелі інструментів вікна **Merge Toolkit** (`MergeToolkitWindow`).
 
 ## Main Features
-- **Template Configuration**: Можливість створення та вибору довільних конфігурацій шаблонів за допомогою ScriptableObject `MergeTemplateSettings`. Шаблон визначає структуру підкаталогів, шаблони C# скриптів (`.Tests.asmdef`, інтеграційні тести, `LifetimeScope`, `Initializer`) та базові префаби поля.
-- **Dynamic Scaffolding**: Генерація скриптів `MergeLifetimeScope` та `MergeInitializer` із заміною плейсхолдерів на вказані користувачем **Namespace** та **Prefix**.
-- **Automated Copy & Setup**: Копіювання базових префабів поля та візуального відображення поля з додаванням префіксу користувача, встановлення згенерованого асета `FieldData` у `IMergeLifetimeScope` на копіях префабів та розміщення поля на сцені.
-- **Smart Data Migration (DidReloadScripts)**: Автоматична міграція компонентів на префабах поля та сцени після компіляції згенерованого C# коду. Старий базовий компонент scope замінюється на новий згенерований тип зі збереженням раніше налаштованих полів (через тимчасову JSON-серіалізацію).
+- **Template Configuration**: Можливість створення та вибору довільних конфігурацій шаблонів за допомогою ScriptableObject `MergeTemplateSettings`. Шаблон визначає структуру підкаталогів, шаблони `.Tests.asmdef` та інтеграційних тестів, вихідні `MonoScript` для `LifetimeScope` і `Initializer`, папку `TemplateChips` (`ChipTemplatesFolder`) та базовий префаб поля (`FieldPrefab`). `VisualFieldPrefab` і `DefaultFieldSize` автоматично зчитуються з `IMergeLifetimeScope.FieldData` на призначеному `FieldPrefab`.
+- **Dynamic Script Generation**: Генерація скриптів `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer` із заміною namespace, імен класів і плейсхолдерів на вказані користувачем **Namespace** та **Prefix**.
+- **Automated Copy & Setup**: Копіювання папки шаблонних фішок у `Prefabs/TemplateChips` (`CopyTemplateChips` із записом у `MergeProjectSettings.ChipsTemplateFolder`), копіювання базових префабів поля та візуального відображення поля з додаванням префіксу користувача, підготовка тестових асетів (`TestFieldData`, `Test{FolderName}_Field.prefab`, `TestSettings`) та відкладене створення і відкриття початкової сцени після компіляції.
+- **Smart Data Migration (DidReloadScripts)**: Автоматична міграція компонентів на префабах поля та тестів після компіляції згенерованого C# коду. Старий базовий компонент scope замінюється на новий згенерований тип зі збереженням раніше налаштованих полів (через тимчасову JSON-серіалізацію).
 
 ## Technical Implementation
 
 ### Key Components
-- **`CleanMergeProjectWindow`**: Клас вікна редактора (`EditorWindow`), що реалізує інтерфейс налаштування (вибір шаблону, введення Namespace/Prefix, валідація, кнопка старту генерації) та координує процес копіювання файлів.
+- **`NewMergeProjectWindow`**: Клас вікна редактора (`EditorWindow`), розділений на чотири `partial`-файли:
+  - `NewMergeProjectWindow.cs` — UI вікна (відкривається через кнопку **New Project** у `MergeToolkitWindow`, вибір шаблону, введення Namespace/Prefix, валідація наявності `IMergeLifetimeScope` і `FieldData` на `FieldPrefab` через `ValidateProjectConfiguration`, кнопка старту) та створення дефолтного `DefaultMergeTemplateSettings` (`CreateDefaultTemplateSettingsAsset`).
+  - `NewMergeProjectWindow.Generation.cs` — валідація цільової папки, скидання сесії `LevelEditorWindow.ResetSessionForProjectCreation()` і перехід на порожню сцену (`CreateNewProject`), оркестрація створення контенту (`CreateProjectContents`), копіювання `TemplateChips` (`CopyTemplateChips`) і префабів, генерація `MergeProjectSettings`, `.Tests.asmdef` і тестових асетів (`CreateTestAssets`).
+  - `NewMergeProjectWindow.ScriptGeneration.cs` — генерація `{Prefix}MergeLifetimeScope.cs` і `{Prefix}MergeInitializer.cs` (`GenerateProjectScripts`, `ApplyScriptReplacements`, `ResolveScriptTypeInfo`).
+  - `NewMergeProjectWindow.PostCompile.cs` — обробка завершення компіляції після Domain Reload (`OnScriptsReloaded`, `FinalizeProjectAfterReload`, `ReplaceLifetimeScopeInPrefab`, `CreateInitialScene`).
 - **`MergeTemplateSettings`**: Серіалізовані налаштування шаблону, які містять:
   - Список підкаталогів для створення.
-  - Текстові шаблони для `.asmdef`, тесту, LifetimeScope та Initializer.
-  - Посилання на вихідні префаби поля та візуального поля.
-  - Розміри поля за замовчуванням.
-- **`PendingReplacement`**: Допоміжний серіалізований клас для запису інформації про очікувані заміни компонентів в `EditorPrefs` на час компіляції коду.
+  - Текстові шаблони для `.asmdef` і тесту, а також посилання на вихідні `MonoScript` для `LifetimeScope` і `Initializer`.
+  - Посилання на вихідний префаб поля (`FieldPrefab`) та папку `ChipTemplatesFolder` (`TemplateChips`), а також обчислювані властивості `VisualFieldPrefab` і `DefaultFieldSize`, що зчитуються з `FieldPrefab`.
+- **`PendingProjectSetup`**: Допоміжний серіалізований клас для збереження параметрів незавершеного налаштування проєкту в `EditorPrefs` на час компіляції коду.
 
 ### Workflow (Flow)
-1. Користувач вказує налаштування у вікні та обирає цільову папку для нової гри.
-2. Вікно створює структуру каталогів і генерує текстові файли скриптів на диску.
+1. Користувач вказує налаштування у вікні `NewMergeProjectWindow` та обирає цільову папку всередині `Assets/` (не кореневу папку `Assets`).
+2. Вікно перевіряє збереження змінених сцен, скидає активну сесію редактора рівнів (`LevelEditorWindow.ResetSessionForProjectCreation()`), відкриває порожню сцену, створює структуру каталогів, копіює `TemplateChips`, префаби поля й візуального поля, генерує `MergeProjectSettings`, тестові асети й текстові файли скриптів на диску.
 3. Щоб обійти процесор шаблонів VContainer (`ScriptTemplateProcessor`), який може затирати файли при генерації, вікно вручну створює `.meta` файли із заздалегідь згенерованим GUID.
-4. Шлях до префабів, сцени та ім'я нового згенерованого типу `MergeLifetimeScope` записуються в `EditorPrefs` за ключем `PendingReplacement`.
+4. Шлях до папки проєкту, префабів, скрипту, розмір поля за замовчуванням та ім'я нового згенерованого типу `MergeLifetimeScope` записуються в `EditorPrefs` за ключем `NewMergeProjectWindow.PendingProjectSetup` (`PendingProjectSetupPrefKey`).
 5. Після завершення генерації файлів Unity запускає компіляцію скриптів (Domain Reload).
-6. Метод `OnScriptsReloaded`, помічений атрибутом `[DidReloadScripts]`, зчитує дані з `EditorPrefs`, динамічно знаходить новий тип через `System.AppDomain`, завантажує префаби, виконує серіалізацію старого компонента scope в JSON, видаляє його, додає новий згенерований компонент, відновлює значення з JSON та зберігає префаби й сцени.
+6. Метод `OnScriptsReloaded`, помічений атрибутом `[DidReloadScripts]`, зчитує дані з `EditorPrefs` і через `EditorApplication.delayCall` планує `FinalizeProjectAfterReload`: динамічно знаходить новий тип (`FindCompiledType`), замінює `IMergeLifetimeScope` на префабах поля й тестів (`ReplaceLifetimeScopeInPrefab`) зі збереженням даних через JSON, створює `FieldData`, оновлює `EditorContext.ActiveFieldData`, створює й відкриває початкову сцену (`CreateInitialScene`) та закриває вікно `NewMergeProjectWindow`.
