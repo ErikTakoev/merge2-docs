@@ -109,8 +109,6 @@
 - [IShadowEffect](#ishadoweffect)
 - [ISubEffect](#isubeffect)
 - [ISubEffectOwner](#isubeffectowner)
-- [IVisualField](#ivisualfield)
-- [IVisualFieldElement](#ivisualfieldelement)
 - [MergeCamera](#mergecamera)
 - [MergeEventHandler](#mergeeventhandler)
 - [MergeHintDragFeedback](#mergehintdragfeedback)
@@ -130,8 +128,6 @@
 - [SortingLayerData](#sortinglayerdata)
 - [SpriteDirectionalFadeController](#spritedirectionalfadecontroller)
 - [SubEffect](#subeffect)
-- [VisualField](#visualfield)
-- [VisualFieldRef](#visualfieldref)
 
 ---
 
@@ -2026,7 +2022,6 @@
 - `+- ChipDataCollection: ChipDataCollection`
 - `+- FieldSize: Vector2Int`
 - `+- ModuleDatas: IReadOnlyList<IFieldModuleData>`
-- `+- VisualField: IVisualField`
 #### Methods
 - `+ AddModuleData(IFieldModuleData moduleData): void`
     - **Purpose**: Adds a module data instance to moduleDatas collection
@@ -2076,10 +2071,6 @@
     - **Usage**: Called by LevelEditorWindow to set field properties during editing
     - **Notes**: Only available in editor
     - allows modification of private serialized fields
-- `+ SetVisualField(MonoBehaviour target): void`
-    - **Purpose**: Editor-only setter for the level visual field reference
-    - **Usage**: Called by level editing tools when assigning visuals that implement IVisualField
-    - **Params**: target - MonoBehaviour component implementing IVisualField on the visual field prefab
 - `+ ValidateLevel(List`1& errors): bool`
     - **Purpose**: Validates level data for errors and inconsistencies
     - **Usage**: Call before saving to check for overlapping chips and out-of-bounds placements
@@ -3109,31 +3100,6 @@
 - `+ DeactivateByOwner(Chip chip, ISubEffectOwner owner, bool force): void`
 ---
 
-## IVisualField
-
-> - **Purpose**: Contract for the root visual field component created from FieldData.VisualField
-> - **Usage**: Implement on the level visual prefab root so FieldInitializeCommand can initialize field-wide visual services
-> - **Notes**: Use for visual field concerns such as camera bounds without coupling MergeBase to a concrete view implementation
-#### Fields
-- `+- FieldOffset: Vector3`
-- `+- gameObject: GameObject`
-#### Methods
-- `+ InitVisualField(FieldData fieldData): void`
-- `+ OnFieldSizeChanged(Vector2Int newSize): void`
----
-
-## IVisualFieldElement
-
-> - **Purpose**: Contract for visual field child elements requiring initialization during level setup.
-> - **Usage**: Implemented by components inside visual field prefabs (e.g. LockedAreaEffect)
-> - invoked by VisualField.ApplyEffects.
-> - **Notes**: Decouples VisualField from concrete effect implementations.
-#### Methods
-- `+ Init(): void`
-    - **Purpose**: Initializes the visual field child element after injection.
-    - **Usage**: Called by VisualField.ApplyEffects during level visual setup.
----
-
 ## MergeCamera
 **Inherits**: `MonoBehaviour`
 
@@ -3653,34 +3619,5 @@
 - `+- ActivateDelay: float`
 - `+- DeactivateDelay: float`
 - `+- EffectId: int`
----
-
-## VisualField
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Provides visual presentation of the 2D merge grid, managing field sprite size and injecting sub-effects like locked areas.
-> - **Usage**: Attach to visual field prefabs
-> - instantiated dynamically via field initialization.
-#### Fields
-- `+- FieldOffset: Vector3`
-- `+- FieldOffsetTransform: Transform`
-- `- fieldBorderSpriteRenderer: SpriteRenderer`
-- `- fieldGrid: IFieldGrid`
-- `- fieldSpriteRenderer: SpriteRenderer`
-- `- resolver: IObjectResolver`
-#### Methods
-- `+ InitVisualField(FieldData fieldData): void`
-    - **Purpose**: Initializes the 2D visual field using field configuration data.
-    - **Usage**: Called dynamically after instantiating the prefab during field initialization.
-    - **Params**: fieldData - configuration specifying grid size and other settings.
-- `+ OnFieldSizeChanged(Vector2Int newSize): void`
-- `- ApplyEffects(): void`
-- `- ApplyFieldOffset(): void`
-- `- ApplySize(Vector2Int newSize): void`
-- `- Expecto.MergeBase.IVisualField.get_gameObject(): GameObject`
----
-
-## VisualFieldRef
-**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 

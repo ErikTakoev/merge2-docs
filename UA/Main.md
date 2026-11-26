@@ -67,6 +67,9 @@
 - **[Cell Observer System](Features/CellObserverSystem.md)**
   > **Контекст**: Докладний опис системи спостереження за змінами клітинок.
 
+- **[Visual Field](Features/VisualField.md)**
+  > **Контекст**: Модуль візуального представлення ігрового поля (`VisualFieldData`, `IVisualField`, `VisualFieldLevelEditorModule`), його вирівнювання до `IFieldGrid`, ініціалізація дочірніх `IVisualFieldElement` та інтеграція з `LevelEditorWindow`.
+
 > [!NOTE]
 > Механіки `Locked Areas`, `Scenario System` та `Tutorial System` входять до складу [Merge Toolkit Common](../../../MergeCommon/Docs/UA/Main.md#features).
 

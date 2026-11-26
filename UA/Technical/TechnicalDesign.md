@@ -100,8 +100,8 @@
   - **Відповідальність**: Ініціалізація ортографічного розміру/позиції камери, обробка перетягування (drag), зуму та керування обмеженнями (bounds) переміщення камери на ігровому полі.
 
 - **`IVisualField`** -> `VisualField` (2D) / `IsoVisualField` (Isometric)
-  - **Призначення**: Контракт для кореневого компонента візуального представлення ігрового поля.
-  - **Відповідальність**: Ініціалізація візуального представлення поля, підлаштування під розмір сітки, налаштування меж камери, ініціалізація ефектів (наприклад, заблокованих ділянок) та надання візуального зміщення поля (`FieldOffset`) для позиціонування `IFieldGrid` і прив'язки інструментів редактора рівнів.
+  - **Призначення**: Контракт для кореневого компонента візуального представлення ігрового поля (модуль [Visual Field](../Features/VisualField.md)).
+  - **Відповідальність**: Ініціалізація візуального представлення поля, вирівнювання до `IFieldGrid`, підлаштування під розмір сітки, налаштування меж камери та ініціалізація дочірніх `IVisualFieldElement` (наприклад, заблокованих ділянок).
 
 ### Event System
 - **`IMergeEventHandler`** -> `MergeEventHandler`
@@ -180,8 +180,7 @@
 `FieldData` описує початковий стан поля. Кожна клітинка представлена структурою `CellData`:
 - **ChipSpawnData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
 - **BlockedCells**: Масив координат (`Vector2Int[]`), які визначають заблоковані клітинки на рівні, що ініціалізуються як непрохідні.
-- **IFieldModuleData**: Базовий інтерфейс для конфігурацій модулів поля (`FieldData.moduleDatas`). Підтримує поліморфну серіалізацію через `[SerializeReference] List<IFieldModuleData>`, методи `GetModuleData<T>()`, `HasModuleData<T>()`, `HasModuleData(Type)`, `AddModuleData` та `RemoveModuleData`. Модулі можуть реалізовувати валідацію через default interface method `Validate(FieldData fieldData, List<string> errors)`, яка викликається у `FieldData.ValidateLevel`.
-- **`VisualField`**: Типізоване посилання на кореневий компонент візуального оформлення поля (`IVisualField` через `VisualFieldRef` / `InterfaceRef<IVisualField>`).
+- **IFieldModuleData**: Базовий інтерфейс для конфігурацій модулів поля (`FieldData.moduleDatas`). Підтримує поліморфну серіалізацію через `[SerializeReference] List<IFieldModuleData>`, методи `GetModuleData<T>()`, `HasModuleData<T>()`, `HasModuleData(Type)`, `AddModuleData` та `RemoveModuleData`. Модулі можуть реалізовувати валідацію через default interface method `Validate(FieldData fieldData, List<string> errors)`, яка викликається у `FieldData.ValidateLevel`. Зокрема, візуальне оформлення поля підключається через модуль [`VisualFieldData`](../Features/VisualField.md).
 - **Позиція**: Координати якоря (top-left) для розміщених фішок у `CellData`.
 - **Розташування в коді**: `FieldData` і `ChipSpawnData` знаходяться в `Core/Scripts/Field/Data`, `IFieldModuleData` — у `Core/Scripts/Field/Data/ModuleData`.
 
