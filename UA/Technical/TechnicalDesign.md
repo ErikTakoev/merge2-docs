@@ -181,8 +181,7 @@
 - **ChipSpawnData**: Містить дані фішки (**ChipId**) та масив активних blocker-ефектів (**BlockerEffectIds**, наприклад `EffectConsts.Blockers.MoveLockedEffect`).
 - **BlockedCells**: Масив координат (`Vector2Int[]`), які визначають заблоковані клітинки на рівні, що ініціалізуються як непрохідні.
 - **IFieldModuleData**: Базовий інтерфейс для конфігурацій модулів поля (`FieldData.moduleDatas`). Підтримує поліморфну серіалізацію через `[SerializeReference] List<IFieldModuleData>`, методи `GetModuleData<T>()`, `HasModuleData<T>()`, `HasModuleData(Type)`, `AddModuleData` та `RemoveModuleData`. Модулі можуть реалізовувати валідацію через default interface method `Validate(FieldData fieldData, List<string> errors)`, яка викликається у `FieldData.ValidateLevel`.
-- **VisualFieldPrefab**: Посилання на префаб візуального оформлення поля (`GameObject`).
-- **VScriptingFieldPrefab**: Посилання на префаб Visual Scripting сцени (`GameObject`), що автоматично інстанціюється під час ініціалізації поля.
+- **`VisualField`**: Типізоване посилання на кореневий компонент візуального оформлення поля (`IVisualField` через `VisualFieldRef` / `InterfaceRef<IVisualField>`).
 - **Позиція**: Координати якоря (top-left) для розміщених фішок у `CellData`.
 - **Розташування в коді**: `FieldData` і `ChipSpawnData` знаходяться в `Core/Scripts/Field/Data`, `IFieldModuleData` — у `Core/Scripts/Field/Data/ModuleData`.
 

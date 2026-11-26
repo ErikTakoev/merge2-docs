@@ -51,7 +51,7 @@ Merge Toolkit має три залежності:
 - Створить структуру папок на основі конфігурації у вибраному шаблоні (Data, Scripts, Scenes, Tests тощо).
 - Скопіює папку шаблонних фішок у `Prefabs/TemplateChips/` (якщо задано `ChipTemplatesFolder` у шаблоні).
 - Згенерує `MergeProjectSettings` (із прив'язкою `ChipsTemplateFolder`) та `ChipDataCollection` і автоматично перемкне відкрите вікно **Merge Toolkit** на використання нових налаштувань.
-- Скопіює базові префаби поля (`FieldPrefab`) та візуального відображення поля (`VisualFieldPrefab`, визначений із `IMergeLifetimeScope.FieldData` на `FieldPrefab`), додавши до них ваш **Prefix**.
+- Скопіює базові префаби поля (`FieldPrefab`) та візуального відображення поля (`VisualFieldPrefab`, визначений із `IMergeLifetimeScope.FieldData.VisualField` на `FieldPrefab`), додавши до них ваш **Prefix**.
 - Згенерує скрипти `{Prefix}MergeLifetimeScope` та `{Prefix}MergeInitializer` із вказаним namespace та prefix.
 - Створить інфраструктуру для інтеграційних тестів: `.Tests.asmdef`, шаблон класу тесту та тестові асети (`TestSettings`, `FieldData`, тестовий префаб поля).
 - Після успішної компіляції нових скриптів автоматично виконає `DidReloadScripts`-міграцію даних у префабах поля й тестів, створить `FieldData` із розмірами поля з `FieldPrefab`, збереже й відкриє початкову сцену `{folderName}Scene.unity` з інстансом вашого поля та закриє вікно генерації.

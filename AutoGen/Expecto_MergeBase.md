@@ -131,6 +131,7 @@
 - [SpriteDirectionalFadeController](#spritedirectionalfadecontroller)
 - [SubEffect](#subeffect)
 - [VisualField](#visualfield)
+- [VisualFieldRef](#visualfieldref)
 
 ---
 
@@ -2025,7 +2026,7 @@
 - `+- ChipDataCollection: ChipDataCollection`
 - `+- FieldSize: Vector2Int`
 - `+- ModuleDatas: IReadOnlyList<IFieldModuleData>`
-- `+- VisualFieldPrefab: GameObject`
+- `+- VisualField: IVisualField`
 #### Methods
 - `+ AddModuleData(IFieldModuleData moduleData): void`
     - **Purpose**: Adds a module data instance to moduleDatas collection
@@ -2075,10 +2076,10 @@
     - **Usage**: Called by LevelEditorWindow to set field properties during editing
     - **Notes**: Only available in editor
     - allows modification of private serialized fields
-- `+ SetLevelVisualPrefab(GameObject prefab): void`
-    - **Purpose**: Editor-only setter for the level visual prefab reference
-    - **Usage**: Called by level editing tools when assigning visuals that contain LockedAreaEffect components
-    - **Params**: prefab - prefab instantiated during runtime locked-area initialization
+- `+ SetVisualField(MonoBehaviour target): void`
+    - **Purpose**: Editor-only setter for the level visual field reference
+    - **Usage**: Called by level editing tools when assigning visuals that implement IVisualField
+    - **Params**: target - MonoBehaviour component implementing IVisualField on the visual field prefab
 - `+ ValidateLevel(List`1& errors): bool`
     - **Purpose**: Validates level data for errors and inconsistencies
     - **Usage**: Call before saving to check for overlapping chips and out-of-bounds placements
@@ -2246,7 +2247,7 @@
 - `+ CreateVScripting(): void`
     - **Purpose**: Creates the VScripting field prefab if present in FieldData.
     - **Usage**: Called during initialization after visual field setup.
-    - **Notes**: Instantiates VScriptingFieldPrefab under field parent and sets position/rotation to zero.
+    - **Notes**: Instantiates ScenarioFieldData.VScriptingField under field parent and sets position/rotation to zero.
 - `+ GetFieldData(): FieldData`
     - **Purpose**: Returns the current FieldData used by this field.
     - **Usage**: Used in tests to access ChipDataCollection and other field configurations.
@@ -3110,11 +3111,12 @@
 
 ## IVisualField
 
-> - **Purpose**: Contract for the root visual field component created from FieldData.LevelVisualPrefab
+> - **Purpose**: Contract for the root visual field component created from FieldData.VisualField
 > - **Usage**: Implement on the level visual prefab root so FieldInitializeCommand can initialize field-wide visual services
 > - **Notes**: Use for visual field concerns such as camera bounds without coupling MergeBase to a concrete view implementation
 #### Fields
 - `+- FieldOffset: Vector3`
+- `+- gameObject: GameObject`
 #### Methods
 - `+ InitVisualField(FieldData fieldData): void`
 - `+ OnFieldSizeChanged(Vector2Int newSize): void`
@@ -3675,5 +3677,10 @@
 - `- ApplyEffects(): void`
 - `- ApplyFieldOffset(): void`
 - `- ApplySize(Vector2Int newSize): void`
+- `- Expecto.MergeBase.IVisualField.get_gameObject(): GameObject`
+---
+
+## VisualFieldRef
+**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
