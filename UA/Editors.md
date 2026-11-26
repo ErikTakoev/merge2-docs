@@ -136,7 +136,7 @@ Level Editor підтримує два режими редагування:
 
 ### Supported Actions
 - **Редагування властивостей**: Усі зміни, зроблені в `SerializedObject` під час редагування в інспекторі.
-- **Редагування Module Data**: Додавання/видалення записів у `moduleDatas`, редагування полів конкретного типу (`ChipMerge2Data`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо), включно з вибором `IChipEvolutionProvider` через `ChipEvolutionProviderDrawer`.
+- **Редагування Module Data**: Додавання/видалення записів у `moduleDatas`, редагування полів конкретного типу (`ChipMerge2Data`, `ChipGeneratorData`, `ChipContainerData`, `ChipPowerBoosterData`, тощо), включно з вибором `IChipEvolutionProvider` через `ChipEvolutionProviderDrawer` та `IChipGenerationProvider` через `ChipGenerationProviderDrawer` (збірка `MergeBase.Generator.Editor`).
 - **Перейменування**: Перейменування асета фішки (також перейменовує пов'язаний префаб).
 - **Стабільний Undo/Redo після rename/type-change**: Після змін імені або `Type` список фішок і фільтри синхронізуються коректно.
 

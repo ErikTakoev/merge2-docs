@@ -2,7 +2,9 @@
 
 [← На Головну](../Main.md)
 
-Логіка контейнера тепер реалізована за допомогою модульного компонента [ContainerModule](../../../Core/Scripts/Chips/ContainerModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він дозволяє фішці накопичувати інші фішки для виконання квестів або замовлень.
+Логіка контейнера реалізована за допомогою модульного компонента [ContainerModule](../../../ChipModules/Container/Scripts/ContainerModule.cs), який прикріплюється до базового GameObject фішки `Chip`. Він поглинає інші чіпи, щоб отримати більш цінний.
+
+Модуль розміщено у папці `ChipModules/Container/` під простором імен `Expecto.MergeBase.Container` та окремою збіркою `MergeBase.Container` (`defineConstraints: ["MERGE_BASE_CONTAINER"]`). У `MergeClassicLifetimeScope` під директивою `#if MERGE_BASE_CONTAINER` реєструються `ContainerCollectionHandler` (як `IInitializable` + `IChipCollectionHandler` + `AsSelf()`) та `ContainerHintNotifier`.
 
 ## Architecture and Responsibility
 
@@ -10,7 +12,7 @@
 Клас `ContainerModule` зберігає стан наповнення та керує візуальними ефектами, реалізуючи інтерфейс `IChipModule`. Помічений атрибутом `[RequireModuleData(typeof(ChipContainerData))]`.
 - **Властивості (Data)**:
   - `ChipContainerData`: Налаштування контейнера (список необхідних предметів `containers`, стратегія еволюції `EvolutionProvider` типу `IChipEvolutionProvider`), які отримуються через `data.GetModuleData<ChipContainerData>()`. `EvolutionProvider` повертає список фішок для створення після заповнення контейнера (з підтримкою накладання `BlockerEffectIds`). Також кожна потрібна фішка визначає префаб візуального елемента через власні дані модуля `ChipContainerElementData`.
-  - `ContainerRequirements`: Публічна властивість тільки для читання (`IReadOnlyDictionary<ContainerInfo, int>`), що надає доступ до поточних вимог контейнера для підсистеми `ChipCollections`.
+  - `ContainerRequirements`: Публічна властивість тільки для читання (`IReadOnlyDictionary<ContainerInfo, int>`), що надає доступ до поточних вимог контейнера для `ContainerCollectionHandler`.
   - `evolutionSettings` (`EvolutionExecutionSettings`): Серіалізовані налаштування еволюції при заповненні контейнера, згруповані у `Triggers` (`DestroyTrigger`, `EmptyDestroyTrigger`, `SpawnTrigger`, `GrowTrigger`, `MultiSpawnTrigger`), `SpawnFlight` (`KeepPrimaryChipInPlace`, `MultiChipFlightSettings`, затримки, `EvolutionPoint`) та `Behavior` (`PlayMergeLight`, `ForceDestroyOnEmpty`, `NotifyNotEnoughSpace`). Доступні публічно через властивість `EvolutionSettings`.
 - **Події та Делегати**:
   - `FillContainerDelegate`: Делегат для події оновлення стану контейнера.
@@ -29,6 +31,13 @@
   - **Конструктори `ContainerInfo`**: Клас має два конструктори — порожній (для Unity-серіалізації в Inspector) та параметризований `ContainerInfo(ChipData requiredChip, int count = 1)` для створення вимог у runtime-коді (наприклад, при клонуванні `ChipData` у тестах або динамічному формуванні вимог контейнера).
 
 **Ініціалізація**: Створюється при ініціалізації рантайм-даних модуля через `InitRuntimeData` на основі `ChipContainerData` (через `GetModuleData<ChipContainerData>()`).
+
+### 1.2. `ContainerCollectionHandler.cs` (Collections)
+Клас `ContainerCollectionHandler` реалізує `IChipCollectionHandler`, `IInitializable` та `IDisposable`, інкапсулюючи індекс заповнюваних контейнерів у збірці `MergeBase.Container`:
+- Підтримує словник `FillableChipsByData` (`Dictionary<ChipData, List<Chip>>`), де ключ — `ChipData` необхідної фішки, а значення — список активних контейнерів із незаблокованими клітинками та `BlockingState.CanBeFilled == true`.
+- При ініціалізації реєструє себе як обробник життєвого циклу (`chipCollections.RegisterHandler(this)`) та реєструє словник під ключем `ChipCollectionType.Fillable` (`chipCollections.RegisterCollection(ChipCollectionType.Fillable, fillableChipsByData)`).
+- При `Dispose()` відписує колекцію та обробник від `IChipCollections`.
+- Через `OnContainerRequirementsChanged(ContainerModule, ChipData)` точково видаляє контейнер із ключа виконаної вимоги без перебирання всього словника.
 
 ### 2. Drag-and-Drop Interaction (`CanInteract` & `OnInteract`)
 Логіка взаємодії при перетягуванні реалізована безпосередньо у `ContainerModule` як частина контракту `IChipModule`:
@@ -51,7 +60,7 @@
    - Знищує вхідну фішку (`chip.Destroy(chipCell, true)`), звільняючи зайняті нею клітинки.
    - Викликає `OnFillContainer` з прапорцем `isFull`.
    - **Завершення (`isFull == true`)**: Викликає `evolutionService.Evolve(this.chip, evolutionPlan, evolutionSettings)`, що руйнує сам контейнер та спавнить/переміщує нові фішки згідно з планом еволюції.
-   - **Часткове виконання (`isFull == false`)**: Відправляє контейнеру анімаційний тригер `Recharge` та інформує колекції через `chipCollections.OnContainerRequirementsChanged(this, key.RequiredChip)`.
+   - **Часткове виконання (`isFull == false`)**: Відправляє контейнеру анімаційний тригер `Recharge` та інформує колекції через `containerCollections?.OnContainerRequirementsChanged(this, key.RequiredChip)`.
 3. Якщо лічильник ще не повний — інкрементує його значення, знищує вхідну фішку (`chip.Destroy(chipCell, true)`) та викликає `OnFillContainer` з прапорцем `false`.
 4. **Результат**: Повертає `true`, якщо фішка була успішно прийнята.
 
@@ -70,7 +79,7 @@ containerEffect?.UpdateElements(this, containers, false);
 
 ## Flow
 
-1. **Input**: Гравець починає перетягувати фішку; `MergeHintDragFeedback` підсвічує сумісні контейнери зі словника `IChipCollections.FillableChipsByData`.
+1. **Input**: Гравець починає перетягувати фішку; `MergeHintDragFeedback` підсвічує сумісні контейнери, отримані через `IChipCollections.GetCollection(chip.Data, ChipCollectionType.Fillable)` (індекс підтримується `ContainerCollectionHandler`).
 2. **Hover (`CanInteract`)**: `DraggableChipLogic` через `targetChip.CanInteract` -> `ContainerModule.CanInteract` перевіряє `BlockingState.CanBeFilled` і сумісність (`IsChipCompatible`).
 3. **Drop (`OnInteract`)**: При відпусканні викликається `ContainerModule.OnInteract` -> `TryAddChip`.
 4. **Update**: Контейнер оновлює вимоги, `ContainerHintEffect` оновлює "бабли", а `OnInteract` повертає `DragInteractionResult.Partial` або `DragInteractionResult.Full`.

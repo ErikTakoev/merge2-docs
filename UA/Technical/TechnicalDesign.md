@@ -46,8 +46,12 @@
   - **Відповідальність**: Ініціалізація заблокованих ділянок, блокування комірок, реєстрація візуальних ефектів, розблокування ділянок та спавн відкладених фішок. Детально описано у [Locked Areas](../../../../MergeCommon/Docs/UA/Features/LockedAreas.md).
 
 - **`IChipCollections`** -> `ChipCollections`
-  - **Призначення**: Централізований реєстр усіх активних фішок на полі, згрупованих за типом даних, а також надання високопродуктивних відфільтрованих індексів.
-  - **Відповідальність**: Збереження `AllChipsByData`, а також підтримка актуальності словників `MergeableChipsByData` (фішки, доступні як цілі для злиття), `FillableChipsByData` (контейнери, що очікують наповнення) та `MovableChipsByData` (рухомі фішки з незаблокованими клітинками). Оновлюється при створенні/знищенні фішок, а також через події зміни блокувань (`OnChipBlockingChanged`) та оновлення вимог контейнера (`OnContainerRequirementsChanged`). Надає методи `GetCollection(ChipCollectionType)` та `GetCollection(ChipData, ChipCollectionType)` для отримання відфільтрованих списків за `ChipCollectionType` enum (All, Mergeable, Fillable, Movable).
+  - **Призначення**: Централізований реєстр усіх активних фішок на полі, згрупованих за типом даних, а також надання високопродуктивних відфільтрованих індексів і точки розширення для модульних колекцій.
+  - **Відповідальність**: Збереження `AllChipsByData`, а також підтримка актуальності словників `MergeableChipsByData` (фішки, доступні як цілі для злиття) та `MovableChipsByData` (рухомі фішки з незаблокованими клітинками). Оновлюється при створенні/знищенні фішок та через події зміни блокувань (`OnChipBlockingChanged`). Дозволяє модулям реєструвати власні обробники подій (`RegisterHandler` / `UnregisterHandler` для `IChipCollectionHandler`) та кастомні колекції (`RegisterCollection` / `UnregisterCollection`). Надає методи `GetCollection(ChipCollectionType)` та `GetCollection(ChipData, ChipCollectionType)` для отримання відфільтрованих списків за `ChipCollectionType` enum (`All`, `Mergeable`, `Movable` або зареєстровані модулями типи, наприклад `Fillable`).
+
+- **`IChipCollectionHandler`** -> `ContainerCollectionHandler` (у збірці `MergeBase.Container`)
+  - **Призначення**: Точка розширення `ChipCollections` для супроводження модульних колекцій фішок без прямих залежностей ядра (`Core`) від конкретних модулів.
+  - **Відповідальність**: Реалізує синхронні колбеки життєвого циклу `OnChipAdded`, `OnChipRemoved`, `OnChipBlockingChanged`. Наприклад, `ContainerCollectionHandler` підтримує словник `FillableChipsByData` (контейнери, що очікують наповнення) та реєструє його в `IChipCollections` під ключем `ChipCollectionType.Fillable`.
 
 ### Logic & Interaction
 - **`IInputManager`** -> `InputManager`
@@ -121,7 +125,7 @@
 - **Контракт**: Методи взаємодії інтерфейсу `IChipModule`, які кешує і делегує клас `Chip` через `GetModules()`.
 - **Модулі фішок (`IChipModule`)**:
   - `Merge2Module` (збірка `MergeBase.Merge2`, дефайн `MERGE_BASE_MERGE2`) — логіка злиття сумісних фішок на основі `ChipMerge2Data` та `IChipEvolutionProvider` із делегуванням планування і спавну в `IChipEvolutionService`.
-  - `ContainerModule` — логіка додавання фішок у контейнери з поверненням `DragInteractionResult.Partial` або `Full`.
+  - `ContainerModule` (збірка `MergeBase.Container`, дефайн `MERGE_BASE_CONTAINER`) — логіка додавання фішок у контейнери з поверненням `DragInteractionResult.Partial` або `Full`.
 - **Особливості**:
   - Модулі розміщуються безпосередньо на префабі самої фішки (`Chip`), а `DraggableChipLogic` опитує їх через `Chip.CanInteract` та `currentInteractionChip.OnInteract`.
   - **Пріоритет**: Для кожної зайнятої клітинки під перетягуваною фішкою `DraggableChipLogic.UpdateInteractionState` спочатку перевіряє модулі перетягуваної фішки (`Chip.CanInteract`), а потім модулі цільової фішки (`targetChip.CanInteract`). Усередині самого `Chip.OnInteract` порядок компонентів в інспекторі Unity визначає перший модуль, який виконає взаємодію.

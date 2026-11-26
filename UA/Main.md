@@ -41,7 +41,7 @@
   > **Контекст**: Модуль злиття двох фішок (збірка `MergeBase.Merge2`, дефайн `MERGE_BASE_MERGE2`). Описує **правила злиття (`ChipMerge2Data`)** як частину `moduleDatas`: партнерів `MergeCombination`, стратегії результатів `IChipEvolutionProvider` (`ConstantEvolutionProvider`, `RandomEvolutionProvider`) та делегування виконання в `IChipEvolutionService`.
 
 - **[GeneratorModule](Chips/GeneratorModule.md)**
-  > **Контекст**: Чіп-генератор, що створює (спавнить) нові фішки. Працює як State Machine (Зарядка <-> Готовність). Підтримує ручний (Tap) та автоматичний режими, систему ваг (Weighted Random) для вибору результату та лімітовану кількість перезарядок.
+  > **Контекст**: Чіп-генератор, що створює (спавнить) нові фішки (збірка `MergeBase.Generator`, дефайн `MERGE_BASE_GENERATOR`). Працює як State Machine (Зарядка <-> Готовність). Підтримує ручний (Tap) та автоматичний режими, систему ваг (Weighted Random) для вибору результату та лімітовану кількість перезарядок.
 
 - **[ContainerModule](Chips/ContainerModule.md)**
   > **Контекст**: Чіп-контейнер, який "споживає" інші фішки для виконання квестів або завдань. Після заповнення зазвичай видає винагороду.

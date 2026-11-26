@@ -321,7 +321,7 @@
 - **Особливості**:
   - Активація керується через `MergeHintDragFeedback`, який підписується на lifecycle перетягування через `IDragFeedback`.
   - Для уникнення просідання FPS при великій кількості об'єктів на полі, активація ефектів розподіляється по кадрах (порціями через корутіну).
-  - Збір сумісних цілей поєднує виклик `Chip.CollectHintTargets(chipCollections, hintTargetChips)` (для модулів на кшталт `Merge2Module`, що читають `MergeableChipsByData`) та пошук контейнерів у `FillableChipsByData` у `ChipCollections` (з дедуплікацією через `HashSet<Chip>`).
+  - Збір сумісних цілей поєднує виклик `Chip.CollectHintTargets(chipCollections, hintTargetChips)` (для модулів на кшталт `Merge2Module`, що читають `MergeableChipsByData`) та пошук контейнерів через `chipCollections.GetCollection(chip.Data, ChipCollectionType.Fillable)` (з дедуплікацією через `HashSet<Chip>`).
   - При завершенні перетягування (Drag End) всі активовані ефекти `MergeHint` деактивовуються.
 
 ### 11. Tap Hint

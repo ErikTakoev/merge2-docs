@@ -14,9 +14,6 @@
 - [ChipChangedEvent](#chipchangedevent)
 - [ChipCollections](#chipcollections)
 - [ChipCollectionType](#chipcollectiontype)
-- [ChipContainerData](#chipcontainerdata)
-- [ChipContainerElementData](#chipcontainerelementdata)
-- [ChipContainerRuntimeData](#chipcontainerruntimedata)
 - [ChipData](#chipdata)
 - [ChipDataCollection](#chipdatacollection)
 - [ChipEffectsData](#chipeffectsdata)
@@ -26,8 +23,6 @@
 - [ChipFactory](#chipfactory)
 - [ChipFlightSettings](#chipflightsettings)
 - [ChipFlyAnimation](#chipflyanimation)
-- [ChipGeneratorData](#chipgeneratordata)
-- [ChipGeneratorRuntimeData](#chipgeneratorruntimedata)
 - [ChipLiftController](#chipliftcontroller)
 - [ChipLiftControllerRef](#chipliftcontrollerref)
 - [ChipMaterialController](#chipmaterialcontroller)
@@ -42,11 +37,6 @@
 - [ChipSpawnData](#chipspawndata)
 - [CombinedBlockingState](#combinedblockingstate)
 - [ConstantEvolutionProvider](#constantevolutionprovider)
-- [ConstantGenerationProvider](#constantgenerationprovider)
-- [ContainerHintEffect](#containerhinteffect)
-- [ContainerHintNotifier](#containerhintnotifier)
-- [ContainerInfo](#containerinfo)
-- [ContainerModule](#containermodule)
 - [DeferredChipChangeNotifier](#deferredchipchangenotifier)
 - [DraggableChipLogic](#draggablechiplogic)
 - [DragInteractionResult](#draginteractionresult)
@@ -56,7 +46,6 @@
 - [EffectBlockerSelectorDrawer](#effectblockerselectordrawer)
 - [EffectBlockingSettings](#effectblockingsettings)
 - [EffectConsts](#effectconsts)
-- [EffectContainerHintRef](#effectcontainerhintref)
 - [EffectData](#effectdata)
 - [EffectDefinitionAttribute](#effectdefinitionattribute)
 - [EffectDestroyingRuntimeData](#effectdestroyingruntimedata)
@@ -81,20 +70,18 @@
 - [FieldInitializeCommand](#fieldinitializecommand)
 - [FlightType](#flighttype)
 - [FreeCellFinder](#freecellfinder)
-- [GenerationExecutionSettings](#generationexecutionsettings)
-- [GeneratorModule](#generatormodule)
 - [HintEffect](#hinteffect)
 - [HintService](#hintservice)
 - [ICell](#icell)
 - [ICellSubscriber](#icellsubscriber)
 - [IChargingEffect](#ichargingeffect)
 - [IChipChangeNotifier](#ichipchangenotifier)
+- [IChipCollectionHandler](#ichipcollectionhandler)
 - [IChipCollections](#ichipcollections)
 - [IChipEvolutionProvider](#ichipevolutionprovider)
 - [IChipEvolutionService](#ichipevolutionservice)
 - [IChipFinder](#ichipfinder)
 - [IChipFlyAnimation](#ichipflyanimation)
-- [IChipGenerationProvider](#ichipgenerationprovider)
 - [IChipLiftController](#ichipliftcontroller)
 - [IChipMaterialController](#ichipmaterialcontroller)
 - [IChipModule](#ichipmodule)
@@ -105,7 +92,6 @@
 - [IDragFeedback](#idragfeedback)
 - [IEffect](#ieffect)
 - [IEffectBlockingSettings](#ieffectblockingsettings)
-- [IEffectContainerHint](#ieffectcontainerhint)
 - [IEffectHint](#ieffecthint)
 - [IEffectMergeLight](#ieffectmergelight)
 - [IEffectPowerBoosterJoin](#ieffectpowerboosterjoin)
@@ -137,10 +123,8 @@
 - [PowerBoosterJoinEffect](#powerboosterjoineffect)
 - [PowerBoosterModule](#powerboostermodule)
 - [RandomEvolutionProvider](#randomevolutionprovider)
-- [RandomGenerationProvider](#randomgenerationprovider)
 - [RequireModuleDataAttribute](#requiremoduledataattribute)
 - [SepiaEffect](#sepiaeffect)
-- [SequenceGenerationProvider](#sequencegenerationprovider)
 - [ShadowEffect](#shadoweffect)
 - [ShadowEffectRef](#shadoweffectref)
 - [SortingLayerData](#sortinglayerdata)
@@ -692,50 +676,59 @@
 
 ## ChipCollections
 
-> - **Purpose**: Provides a centralized collection of all active chips on the field, categorized by their data type. Also maintains filtered sub-collections for fast merge-target, container-fill, and movable chip lookups.
+> - **Purpose**: Provides a centralized collection of all active chips on the field, categorized by their data type. Also maintains filtered sub-collections for fast merge-target and movable chip lookups. Module-specific collections (e.g. FillableChipsByData for ContainerModule) are maintained by registered IChipCollectionHandlers.
 > - **Usage**: Injected as IChipCollections
-> - used to find all chips of a specific type or to iterate over all active chips. Call OnChipBlockingChanged when a chip's BlockingState or its cell's IsBlocked changes. Call OnContainerRequirementsChanged when a container's active requirements shrink.
-> - **Notes**: Updated by ChipFactory during creation and by Chip during destruction. MergeableChipsByData, FillableChipsByData, and MovableChipsByData are kept in sync via invalidation callbacks
-> - never stale-read by polling.
+> - used to find all chips of a specific type or to iterate over all active chips. Call OnChipBlockingChanged when a chip's BlockingState or its cell's IsBlocked flag changes. Module handlers register themselves via RegisterHandler().
+> - **Notes**: Updated by ChipFactory during creation and by Chip during destruction. MergeableChipsByData and MovableChipsByData are kept in sync via invalidation callbacks
+> - never stale-read by polling. Registered IChipCollectionHandlers receive the same lifecycle events and maintain their own collections.
 #### Fields
 - `+- AllChipsByData: Dictionary<ChipData, List<Chip>>`
-- `+- FillableChipsByData: Dictionary<ChipData, List<Chip>>`
 - `+- MergeableChipsByData: Dictionary<ChipData, List<Chip>>`
 - `+- MovableChipsByData: Dictionary<ChipData, List<Chip>>`
+- `- customCollections: Dictionary<ChipCollectionType, Dictionary<ChipData, List<Chip>>>`
 - `- fieldGrid: IFieldGrid`
+- `- handlers: List<IChipCollectionHandler>`
 #### Methods
 - `+ AddChip(Chip chip): void`
-    - **Purpose**: Adds a chip to the collection, grouping it by its ChipData. Also inserts it into filtered sub-collections if it passes the merge/movable/fill criteria.
+    - **Purpose**: Adds a chip to the collection, grouping it by its ChipData. Also inserts it into filtered sub-collections if it passes the merge/movable criteria. Notifies all registered handlers.
     - **Usage**: Called by ChipFactory immediately after a new chip is initialized
     - **Params**: chip - the chip instance to add
 - `+ GetCollection(ChipCollectionType collectionType): Dictionary<ChipData, List<Chip>>`
     - **Purpose**: Returns the dictionary of active chips corresponding to the specified ChipCollectionType.
     - **Usage**: Called by UVS nodes like FindAnyChipNode or query logic to retrieve a chip sub-collection by enum.
-    - **Params**: collectionType - enum value selecting All, Mergeable, Fillable, or Movable chips
+    - **Params**: collectionType - enum value selecting All, Mergeable, Movable, or a module-registered collection
 - `+ GetCollection(ChipData chipData, ChipCollectionType collectionType): List<Chip>`
     - **Purpose**: Returns the list of active chips matching the given ChipData from the specified collection, or null if none are present.
     - **Usage**: Called when querying chips by ChipData and collection type directly without manual dictionary lookups.
     - **Params**: chipData - key to search for
     - collectionType - enum value selecting the target collection
 - `+ OnChipBlockingChanged(Chip chip): void`
-    - **Purpose**: Re-evaluates a chip's presence in MergeableChipsByData, MovableChipsByData, and FillableChipsByData after its BlockingState or cell's IsBlocked flag changes.
+    - **Purpose**: Re-evaluates a chip's presence in MergeableChipsByData and MovableChipsByData after its BlockingState or cell's IsBlocked flag changes. Notifies all registered handlers.
     - **Usage**: Called by Chip.RemoveEffect after a blocker effect is destroyed, and by LockedAreaManager when a cell's IsBlocked flag changes.
     - **Params**: chip - the chip whose eligibility may have changed
-- `+ OnContainerRequirementsChanged(ContainerModule container, ChipData fulfilledRequirement): void`
-    - **Purpose**: Removes a container from the specific key in FillableChipsByData that was just fulfilled.
-    - **Usage**: Called by ChipContainer.TryAddChip when one requirement is completed but the container is not yet full. The fulfilled ChipData key is passed directly — no dictionary iteration needed.
-    - **Params**: container - the container whose requirement changed
-    - fulfilledRequirement - the ChipData that was just satisfied and must be removed from FillableChipsByData
+- `+ RegisterCollection(ChipCollectionType collectionType, Dictionary<ChipData, List<Chip>> collection): void`
+    - **Purpose**: Registers a custom chip collection dictionary under the specified ChipCollectionType.
+    - **Usage**: Called from IInitializable.Initialize() of a ChipModule's collection handler.
+    - **Params**: collectionType - enum key for the collection
+    - collection - dictionary maintained by the module
+- `+ RegisterHandler(IChipCollectionHandler handler): void`
+    - **Purpose**: Registers a module-level handler that receives chip lifecycle events.
+    - **Usage**: Called from IInitializable.Initialize() of a ChipModule's collection handler.
+    - **Params**: handler - the handler to add
+    - must not be null
 - `+ RemoveChip(Chip chip): void`
-    - **Purpose**: Removes a chip from the collection and cleans up empty data entries. Also removes it from all filtered sub-collections.
+    - **Purpose**: Removes a chip from the collection and cleans up empty data entries. Also removes it from all filtered sub-collections. Notifies all registered handlers.
     - **Usage**: Called by Chip.Destroy just before the chip GameObject is destroyed
     - **Params**: chip - the chip instance to remove
-- `- AddContainerToFillable(ContainerModule container): void`
+- `+ UnregisterCollection(ChipCollectionType collectionType): void`
+    - **Purpose**: Unregisters a previously registered custom collection.
+    - **Usage**: Called from IDisposable.Dispose() of a ChipModule's collection handler.
+- `+ UnregisterHandler(IChipCollectionHandler handler): void`
+    - **Purpose**: Unregisters a previously registered handler.
+    - **Usage**: Called from IDisposable.Dispose() of a ChipModule's collection handler.
 - `- AddToDict(Dictionary<ChipData, List<Chip>> dict, ChipData key, Chip chip): void`
 - `- IsChipMergeable(Chip chip): bool`
 - `- IsChipMovable(Chip chip): bool`
-- `- IsContainerFillable(ContainerModule container): bool`
-- `- RemoveContainerFromFillable(ContainerModule container): void`
 - `- RemoveFromDict(Dictionary<ChipData, List<Chip>> dict, ChipData key, Chip chip): void`
 ---
 
@@ -747,43 +740,6 @@
 - `+ Mergeable: ChipCollectionType`
 - `+ Movable: ChipCollectionType`
 - `+ value__: int`
----
-
-## ChipContainerData
-
-> - **Purpose**: Configuration data for chip containers, defining accepted chip requirements and evolution provider on fill completion.
-> - **Usage**: Used in ChipData moduleDatas to define container behavior and required chips. Edited via Inspector or Merge Toolkit.
-> - **Notes**: EvolutionProvider uses polymorphic serialization via [SerializeReference] to determine the result chips upon completion.
-#### Fields
-- `+ containers: ContainerInfo[]`
-- `+ EvolutionProvider: IChipEvolutionProvider`
----
-
-## ChipContainerElementData
-
-> - **Purpose**: Holds visual element prefab reference required by containers when displaying filled chips.
-> - **Usage**: Attached to ChipData via moduleDatas array. Retrieved by ContainerInfo to display visual items inside container slots.
-> - **Notes**: Implements IChipModuleData for registration in chip data assets.
-#### Fields
-- `+- ContainerElementPrefab: GameObject`
----
-
-## ChipContainerRuntimeData
-
-> - **Purpose**: Extends ChipRuntimeData to store runtime state specific to container chips, tracking fill progress for each container requirement
-> - **Usage**: Used by ChipContainer to track which items have been added and how many remain
-> - initialized in ChipContainer.Init
-> - updated in TryAddChip
-> - **Notes**: Inherits IsMoveLocked from ChipRuntimeData
-> - containers dictionary maps requirements to current count
-#### Fields
-- `+ containers: Dictionary<ContainerInfo, int>`
-    - **Purpose**: Tracks the current fill progress for each container requirement
-    - **Usage**: Key is ContainerInfo (requirement definition)
-    - Value is current count of items added
-    - updated when chips are added via TryAddChip
-    - **Notes**: When a container requirement is fully met, it is removed from this dictionary
-    - empty dictionary means container is full
 ---
 
 ## ChipData
@@ -1106,43 +1062,6 @@
 - `- ApplyHalfArc(float t): float`
 - `- ApplyHalfArcHalfBounce(float t): float`
 - `- ApplyLinear(float t): float`
----
-
-## ChipGeneratorData
-
-> - **Purpose**: Configuration data for chip generators, defining generation provider strategies, charge settings, and recharge cycles.
-> - **Usage**: Used in ChipData to define generator behavior. Can be edited via Inspector or ScriptableObject.
-> - **Notes**: TotalRecharges = 0 means infinite recharges. ChargeCount defines charges per cycle.
-#### Fields
-- `+ ChargeCount: int`
-- `+ ChargingTime: float`
-- `+ EvolutionProvider: IChipEvolutionProvider`
-- `+ GenerationInterval: float`
-    - **Purpose**: Defines the cooldown time between consecutive generations in a single charge cycle
-    - **Usage**: Used by ChipGenerator to set delay between spawns when multiple charges are available
-    - **Notes**: Only applies if ChargeCount > 1
-- `+ GenerationProvider: IChipGenerationProvider`
-- `+ IsAutoGeneration: bool`
-- `+ IsStartCharged: bool`
-- `+ TotalRecharges: int`
----
-
-## ChipGeneratorRuntimeData
-
-> - **Purpose**: Stores runtime state for a chip generator, tracking its charge status and remaining recharges.
-> - **Usage**: Created and managed by ChipGenerator. Used to persist state during gameplay.
-> - **Notes**: Updated during generation and charging cycles.
-#### Fields
-- `+ ChargeCount: int`
-- `+ ChargingTimeLeft: float`
-- `+ CurrentTargetChargingTime: float`
-    - **Purpose**: The current target duration for the charging phase
-    - **Usage**: Set based on either ChargingTime (full recharge) or GenerationInterval (between generations)
-    - **Notes**: Modified by ChipGenerator to control timing dynamically
-- `+ IsCharged: bool`
-- `+ IsWaitingForSpace: bool`
-- `+ RechargesLeft: int`
-- `+ SequenceIndex: int`
 ---
 
 ## ChipLiftController
@@ -1535,174 +1454,6 @@
 - `+ Init(): void`
 ---
 
-## ConstantGenerationProvider
-
-> - **Purpose**: Chip generation provider strategy that always returns a fixed constant list of chips.
-> - **Usage**: Configured inside ChipGeneratorData via SerializeReference selector.
-> - **Notes**: Zero allocation strategy returning the internal list directly without caching overhead.
-#### Fields
-- `+ Chips: List<ChipSpawnData>`
-- `+- LastResult: List<ChipSpawnData>`
-#### Methods
-- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
-- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
-- `+ Init(): void`
----
-
-## ContainerHintEffect
-**Inherits**: `Effect`
-
-> - **Purpose**: Visual effect controller for ChipContainer, managing spawned elements and displaying visual hints.
-> - **Usage**: Attached to ChipContainer prefab
-> - implements IEffectContainerHint
-> - **Notes**: Triggers Hint animation on spawn (Activate), cell change (OnChangedCell), and tap (OnTap). When force is false, suppresses hints if hints are suppressed (IHintService.CanShowHint() == false) or if no matching chips exist on field.
-#### Fields
-- `- cachedContainers: Dictionary<ContainerInfo, int>`
-- `- chipCollections: IChipCollections`
-- `- delay: float`
-- `- flipX: bool`
-- `- hintCoroutine: Coroutine`
-- `- hintService: IHintService`
-- `- layoutForElements: Transform`
-#### Methods
-- `+ Activate(Chip chip): bool`
-- `+ Deactivate(Chip chip, bool force): void`
-- `+ Hint(bool force): void`
-    - **Purpose**: Triggers the 'Hint' animator trigger to show a visual container hint, optionally forcing it immediately.
-    - **Usage**: Called automatically on activation, cell change, or tap. Pass force=true to trigger immediately.
-    - **Notes**: Stops any active hint coroutine. When force is false, suppresses hints if hints are suppressed (IHintService.CanShowHint() == false) or if no matching chips are on the field. If force is true, triggers immediately.
-- `+ Init(Chip chip, int effectId): void`
-    - **Purpose**: Initializes the container hint effect with chip reference and caches the container runtime data reference.
-    - **Usage**: Called when effect is added to chip
-    - caches container requirements dictionary to avoid runtime lookups.
-    - **Params**: chip - owner chip component
-    - effectId - unique effect identifier
-- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
-- `+ OnTap(): void`
-- `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
-- `- ClearElements(): void`
-- `- Expecto.MergeBase.IEffect.get_gameObject(): GameObject`
-- `~ HasMatchingChipsOnField(): bool`
-    - **Purpose**: Checks if there is at least one active, movable matching chip on the field for any of the container's remaining requirements.
-    - **Usage**: Called internally by Hint() when force is false.
-    - **Returns**: True if a matching movable chip exists on the field or if chipCollections is null (fallback)
-    - false otherwise.
-    - **Notes**: Uses cachedContainers to avoid repeated GetComponent<ContainerModule>() and runtime data lookups.
-- `- HintCoroutine(): IEnumerator`
----
-
-## ContainerHintNotifier
-
-> - **Purpose**: Listens to chip creation and tap events and triggers visual container hints on fillable containers when a compatible chip is created or tapped.
-> - **Usage**: Registered as a VContainer entry point
-> - receives mergeEventHandler.OnChipCreated and OnChipTapped, and queries IChipCollections.FillableChipsByData.
-> - **Notes**: Checks if the chip can move and is not destroying, then triggers Hint() on active ContainerHintEffects for all matching fillable containers.
-#### Fields
-- `- chipCollections: IChipCollections`
-- `- mergeEventHandler: IMergeEventHandler`
-#### Methods
-- `+ Dispose(): void`
-    - **Purpose**: Unsubscribes from mergeEventHandler events when the lifetime scope is disposed.
-    - **Usage**: Called automatically by VContainer.
-- `+ Initialize(): void`
-    - **Purpose**: Subscribes to mergeEventHandler events when the lifetime scope initializes.
-    - **Usage**: Called automatically by VContainer.
-- `- OnChipCreated(Chip createdChip): void`
-    - **Purpose**: Handles chip creation events by finding fillable containers for the new chip and triggering their hint effects if active.
-    - **Usage**: Event handler for mergeEventHandler.OnChipCreated.
-    - **Params**: createdChip - The newly spawned chip instance on the board.
-- `- OnChipTapped(Chip tappedChip): void`
-    - **Purpose**: Handles chip tap events by finding fillable containers for the tapped chip and triggering their hint effects if active.
-    - **Usage**: Event handler for mergeEventHandler.OnChipTapped.
-    - **Params**: tappedChip - The chip instance tapped by the player.
-- `- TriggerContainerHintsForChip(Chip chip, bool force): void`
-    - **Purpose**: Finds fillable containers requiring the specified chip data and triggers their visual hint effect.
-    - **Usage**: Internal helper method used by OnChipCreated and OnChipTapped handlers.
-    - **Params**: chip - The target chip whose required containers should be notified
-    - force - Whether to trigger the hint immediately without delay.
----
-
-## ContainerInfo
-#### Fields
-- `+- ContainerElementPrefab: GameObject`
-- `+- Count: int`
-- `+- RequiredChip: ChipData`
-- `- cachedElementPrefab: GameObject`
----
-
-## ContainerModule
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Modular component attached to a Chip that manages container requirements, progress tracking, and fulfillment
-> - **Usage**: Attach to chip prefabs that act as containers
-> - implements IChipModule
-> - **Notes**: Triggers next chip creation or destruction when all container requirements are satisfied
-#### Fields
-- `+- Chip: Chip`
-- `+- ContainerRequirements: IReadOnlyDictionary<ContainerInfo, int>`
-- `+- EvolutionSettings: EvolutionExecutionSettings`
-- `- cellsToFreeBuffer: HashSet<ICell>`
-- `- chipCollections: IChipCollections`
-- `~ chipContainerData: ChipContainerData`
-- `- containerEffect: EffectContainerHintRef`
-- `~ containerRuntimeData: ChipContainerRuntimeData`
-- `~ data: ChipData`
-- `- evolutionService: IChipEvolutionService`
-- `- fieldGrid: IFieldGrid`
-- `- OnFillContainer: FillContainerDelegate`
-#### Methods
-- `+ CanInteract(ICell sourceCell, ICell targetCell): bool`
-    - **Purpose**: Validates if a dragged chip can be added to this container chip.
-    - **Usage**: Called by Chip.CanInteract during drag hovering.
-    - **Params**: sourceCell - cell with chip being dragged
-    - targetCell - hovered cell belonging to this container chip
-    - **Returns**: True if source chip can be added to this container
-    - false otherwise
-- `+ DestroyModule(): void`
-- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the container module with chip data and runtime state
-    - **Usage**: Called during chip initialization
-    - sets up event handlers and links the container effect requirements
-    - **Params**: chip - parent Chip component
-    - data - static ChipData configuration
-    - runtimeData - persisted runtime state wrapper
-    - **Notes**: Retrieves container-specific module data and sets up visual requirements feedback
-- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-- `+ IsChipCompatible(Chip chip): bool`
-    - **Purpose**: Checks if a given chip is compatible with any of the container's remaining requirements
-    - **Usage**: Called by interaction logic to determine if a chip can be dropped into this container
-    - **Params**: chip - the chip to check for compatibility
-    - **Returns**: True if the chip matches a required ChipData configuration
-    - false otherwise
-    - **Notes**: Does not modify the container's state
-    - only performs a read-only check against current requirements
-- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
-- `+ OnDrag(Vector2 position, ICell anchorCell): void`
-- `+ OnDragEnd(): void`
-- `+ OnDragStart(): void`
-- `+ OnEffectRemoved(int effectId): void`
-- `+ OnInteract(ICell sourceCell, ICell targetCell, DragInteractionResult& result): bool`
-    - **Purpose**: Executes container fill interaction between dragged chip and this container.
-    - **Usage**: Called by Chip.OnInteract after CanInteract validation passes.
-    - **Params**: sourceCell - cell with chip being dragged
-    - targetCell - cell with this container chip
-    - result - Partial if container still has remaining requirements, Full otherwise
-    - **Returns**: True if chip was successfully added
-    - false otherwise
-- `+ OnTap(): void`
-- `+ TryAddChip(Chip chip): bool`
-    - **Purpose**: Attempts to add a chip to the container, updating progress and handling completion logic
-    - **Usage**: Called by interaction logic when a chip is dropped onto the container
-    - **Params**: chip - the chip being added
-    - **Returns**: True if the chip was successfully added
-    - otherwise False
-    - **Notes**: Side effects: Updates internal container progress
-    - Triggers OnFillContainer event
-    - If all requirements are met, calls CreateNextChip
-- `+ UpdateVisual(): void`
-- `- OnDestroy(): void`
----
-
 ## DeferredChipChangeNotifier
 
 > - **Purpose**: Plain-class implementation of IChipChangeNotifier.
@@ -2071,10 +1822,6 @@
 - `+ GetAllEffectsEditorOnly(): Dictionary<string, int>`
 - `+ GetBlockerEffectsEditorOnly(): Dictionary<string, int>`
 - `+ GetNameByIdEditorOnly(int id): string`
----
-
-## EffectContainerHintRef
-**Inherits**: `0, Culture=neutral, PublicKeyToken=null]]`
 ---
 
 ## EffectData
@@ -2564,92 +2311,6 @@
 - `- IsAreaCompletelyFree(Vector2Int cellPos, Vector2Int chipSize, Chip chipToPlace, HashSet<ICell> excludedCellsSet, HashSet<Chip> movingChipsSet, HashSet<ICell> cellsToFree): bool`
 ---
 
-## GenerationExecutionSettings
-
-> - **Purpose**: Parameters for controlling chip generation execution in GeneratorModule.
-> - **Usage**: Serialized on GeneratorModule to define animation triggers and flight delays between spawned chips.
-#### Fields
-- `+ DelayBetweenSpawns: float`
-    - **Purpose**: Delay interval in seconds between consecutive chip spawns when multiple chips are generated.
-    - **Usage**: Passed to flight delay calculations when generating chips.
-- `+- Default: GenerationExecutionSettings`
----
-
-## GeneratorModule
-**Inherits**: `MonoBehaviour`
-
-> - **Purpose**: Modular component attached to a Chip that handles chip generation, charging, recharges, and evolution
-> - **Usage**: Attach to chip prefabs that act as generators
-> - implements IChipModule and IPowerBoosterTarget
-> - **Notes**: Supports manual and auto modes, coordinates visual feedback via charged and charging effects, and scales generation speed based on booster multipliers
-#### Fields
-- `+- AppliedBoosters: HashSet<PowerBoosterModule>`
-- `+- BlockingState: CombinedBlockingState`
-- `+- EvolutionSettings: EvolutionExecutionSettings`
-- `+- GenerationSettings: GenerationExecutionSettings`
-- `+- IsMoving: bool`
-- `+- JoinPoints: IReadOnlyList<Transform>`
-- `+- RuntimeDataOnlyEditor: ChipGeneratorRuntimeData`
-- `- batchResultsBuffer: List<ValueTuple<ChipData, ICell>>`
-- `- chargedEffect: EffectRef`
-- `- chip: Chip`
-- `- chipDataCollection: ChipDataCollection`
-- `- chipDataListBuffer: List<ChipData>`
-- `- chipFactory: ChipFactory`
-- `- data: ChipData`
-- `- evolutionService: IChipEvolutionService`
-- `- field: IFieldEventHandler`
-- `- fieldGrid: IFieldGrid`
-- `- findFreePlaceForChip: IFreeCellFinder`
-- `- generationExcludedCellsBuffer: HashSet<ICell>`
-- `- generatorData: ChipGeneratorData`
-- `- generatorRuntimeData: ChipGeneratorRuntimeData`
-- `- isAutoGeneration: bool`
-- `- mergeEventHandler: IMergeEventHandler`
-- `- OnCharging: Action<float>`
-- `~ powerMultiplier: float`
-- `- rechargeEffect: ChargingEffectRef`
-#### Methods
-- `+ ApplyPowerBooster(PowerBoosterModule booster, bool reapply): bool`
-    - **Purpose**: Applies a booster influence to the generator and recalculates the charging speed multiplier
-    - **Usage**: Called when booster observation detects this generator in active range
-    - **Params**: booster - the PowerBoosterModule instance
-    - reapply - if true, allows reapplying even if already present
-    - **Returns**: True if the booster was newly added
-    - false otherwise
-    - **Notes**: Recalculates power multiplier using maximum power among all active boosters
-- `+ DestroyModule(): void`
-- `+ Init(Chip chip, ChipData data, ChipRuntimeData runtimeData): void`
-    - **Purpose**: Initializes the generator module with static chip data and runtime state
-    - **Usage**: Called during chip initialization
-    - registers effects on the chip, registers charging callback, and subscribes to field events if auto-mode
-    - **Params**: chip - the parent Chip component
-    - data - static configuration
-    - runtimeData - persistent runtime state wrapper
-    - **Notes**: Triggers the initial visual update
-- `+ InitRuntimeData(ChipData data, ChipRuntimeData runtimeData): void`
-- `+ NotifyEffectRemoved(int effectId): void`
-- `+ OnChangedCell(ICell sourceCell, ICell targetCell): void`
-- `+ OnDrag(Vector2 position, ICell anchorCell): void`
-- `+ OnDragEnd(): void`
-- `+ OnDragStart(): void`
-- `+ OnEffectRemoved(int effectId): void`
-- `+ OnTap(): void`
-- `+ RemovePowerBooster(PowerBoosterModule booster): void`
-    - **Purpose**: Removes a booster influence and recalculates the charging speed multiplier
-    - **Usage**: Called when booster observation detects this generator leaving its active range
-    - **Params**: booster - the PowerBoosterModule to remove
-    - **Notes**: Resets speed multiplier to 1f if no boosters remain
-- `+ UpdateVisual(): void`
-- `- OnFieldChanged(): void`
-- `- RecalculatePowerMultiplier(): void`
-- `- TryGenerateChip(): void`
-    - **Purpose**: Attempts to generate new chips based on generator configuration and availability of space
-    - **Usage**: Triggers on user tap (manual mode) or charging cycle completion (auto mode)
-    - **Notes**: Queries GenerationProvider, finds free cells for all chips, decrements charge count, and handles recharges/evolution when completed.
-- `- Update(): void`
----
-
 ## HintEffect
 **Inherits**: `Effect`
 
@@ -2758,10 +2419,21 @@
     - **Usage**: Called from FieldEventHandler.LateUpdate.
 ---
 
+## IChipCollectionHandler
+
+> - **Purpose**: Extension point for ChipCollections. Each ChipModule that needs to maintain its own chip grouping implements this interface and registers itself via IChipCollections.RegisterHandler().
+> - **Usage**: Implement in a ChipModule assembly
+> - register via IInitializable calling chipCollections.RegisterHandler(this). Core never references concrete module types directly.
+> - **Notes**: Called synchronously from ChipCollections lifecycle methods. Implementations must be allocation-free in hot paths.
+#### Methods
+- `+ OnChipAdded(Chip chip): void`
+- `+ OnChipBlockingChanged(Chip chip): void`
+- `+ OnChipRemoved(Chip chip): void`
+---
+
 ## IChipCollections
 #### Fields
 - `+- AllChipsByData: Dictionary<ChipData, List<Chip>>`
-- `+- FillableChipsByData: Dictionary<ChipData, List<Chip>>`
 - `+- MergeableChipsByData: Dictionary<ChipData, List<Chip>>`
 - `+- MovableChipsByData: Dictionary<ChipData, List<Chip>>`
 #### Methods
@@ -2769,8 +2441,11 @@
 - `+ GetCollection(ChipCollectionType collectionType): Dictionary<ChipData, List<Chip>>`
 - `+ GetCollection(ChipData chipData, ChipCollectionType collectionType): List<Chip>`
 - `+ OnChipBlockingChanged(Chip chip): void`
-- `+ OnContainerRequirementsChanged(ContainerModule container, ChipData fulfilledRequirement): void`
+- `+ RegisterCollection(ChipCollectionType collectionType, Dictionary<ChipData, List<Chip>> collection): void`
+- `+ RegisterHandler(IChipCollectionHandler handler): void`
 - `+ RemoveChip(Chip chip): void`
+- `+ UnregisterCollection(ChipCollectionType collectionType): void`
+- `+ UnregisterHandler(IChipCollectionHandler handler): void`
 ---
 
 ## IChipEvolutionProvider
@@ -2843,19 +2518,6 @@
     - **Usage**: Call in Update loop
     - **Params**: deltaTime - time since last frame
     - **Returns**: The current height offset of the flying animation at this frame
----
-
-## IChipGenerationProvider
-
-> - **Purpose**: Interface for chip generation selection strategies used in GeneratorModule.
-> - **Usage**: Polymorphic field inside ChipGeneratorData, initialized and queried by GeneratorModule.
-> - **Notes**: Implementations should be sealed classes with [Serializable] for polymorphic serialization via SerializeReference.
-#### Fields
-- `+- LastResult: List<ChipSpawnData>`
-#### Methods
-- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
-- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
-- `+ Init(): void`
 ---
 
 ## IChipLiftController
@@ -3127,15 +2789,6 @@
 - `+- CanReceiveModifiers: bool`
 - `+- HideEffectIds: HashSet<int>`
 - `+- IsLittleChip: bool`
----
-
-## IEffectContainerHint
-
-> - **Purpose**: Interface for ChipContainer specific visual effects, extending hint functionality
-> - **Usage**: Implemented by ContainerHintEffect to handle container visuals. Used by ChipContainer.
-> - **Notes**: Extends IEffectHint with UpdateElements method.
-#### Methods
-- `+ UpdateElements(Chip chip, Dictionary<ContainerInfo, int> containers, bool isFull): void`
 ---
 
 ## IEffectHint
@@ -3543,7 +3196,7 @@
     - **Purpose**: Gradually activates MergeHint effects on compatible targets gathered from chip modules and fillable containers to avoid FPS spikes.
     - **Usage**: Started as a coroutine from OnDragStartFeedback.
     - **Params**: chip - the chip being dragged
-    - **Notes**: Collects module-provided targets via Chip.CollectHintTargets and checks FillableChipsByData (containers). All hinted chips are tracked in hintedChips for cleanup.
+    - **Notes**: Collects module-provided targets via Chip.CollectHintTargets and checks ChipCollectionType.Fillable via chipCollections.GetCollection. All hinted chips are tracked in hintedChips for cleanup.
 ---
 
 ## MergeHintEffect
@@ -3821,23 +3474,6 @@
 - `- SelectWeightedRandom(): IChipEvolutionProvider`
 ---
 
-## RandomGenerationProvider
-
-> - **Purpose**: Chip generation provider strategy that selects a weighted random sub-provider.
-> - **Usage**: Configured inside ChipGeneratorData via SerializeReference selector.
-> - **Notes**: Pre-computes total weight in Init to achieve zero per-tap allocations.
-#### Fields
-- `+ Entries: WeightedProviderEntry[]`
-- `+- LastResult: List<ChipSpawnData>`
-- `- cachedTotalWeight: int`
-- `- selectedProvider: IChipGenerationProvider`
-#### Methods
-- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
-- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
-- `+ Init(): void`
-- `- SelectWeightedRandom(): IChipGenerationProvider`
----
-
 ## RequireModuleDataAttribute
 **Inherits**: `Attribute`
 
@@ -3863,21 +3499,6 @@
     - **Purpose**: Updates the _Intensity shader property on the chip material controller
     - **Usage**: Called automatically on each frame while isMaterialAnimating is true or during activation
     - **Params**: dt - delta time since last update (0f on initial activation)
----
-
-## SequenceGenerationProvider
-
-> - **Purpose**: Chip generation provider strategy that sequences through sub-providers cyclically.
-> - **Usage**: Configured inside ChipGeneratorData via SerializeReference selector.
-> - **Notes**: Uses SequenceIndex from ChipGeneratorRuntimeData to track current step. Steps loop when reaching the end.
-#### Fields
-- `+ Steps: IChipGenerationProvider[]`
-- `+- LastResult: List<ChipSpawnData>`
-- `- selectedStep: IChipGenerationProvider`
-#### Methods
-- `+ Confirm(ChipGeneratorRuntimeData runtimeData): void`
-- `+ GetGenerationChips(ChipGeneratorRuntimeData runtimeData): List<ChipSpawnData>`
-- `+ Init(): void`
 ---
 
 ## ShadowEffect

@@ -32,7 +32,7 @@ IDragFeedback[] feedbacks = GetComponents<IDragFeedback>();
 
 ### 2. Drag Lifecycle & Feedback Callbacks
 Під час життєвого циклу перетягування `DraggableChipLogic` сповіщає всі компоненти `IDragFeedback`:
-- **`OnDragStart`**: Викликається `feedback.OnDragStartFeedback(Chip)`. Наприклад, `MergeHintDragFeedback` запускає корутину `ActivateHintsGradually`, яка збирає сумісні цілі через `Chip.CollectHintTargets(chipCollections, hintTargetChips)` та додає контейнери з `chipCollections.FillableChipsByData` без дублікатів.
+- **`OnDragStart`**: Викликається `feedback.OnDragStartFeedback(Chip)`. Наприклад, `MergeHintDragFeedback` запускає корутину `ActivateHintsGradually`, яка збирає сумісні цілі через `Chip.CollectHintTargets(chipCollections, hintTargetChips)` та додає контейнери з `chipCollections.GetCollection(chip.Data, ChipCollectionType.Fillable)` без дублікатів.
 - **`OnDrag` (при зміні якоря)**: Коли фішка переміщується на нову клітинку, оновлюється стан взаємодії (`UpdateInteractionState`), надсилаються сповіщення ефектам (`OnInteractionOverCellChanged` / `OnInteractionUnderCellChanged`) та викликається `feedback.OnDragFeedback(Chip, prevCell, newCell)`.
 - **`OnDragEnd`**: Очищає hover-ефекти, виконує активну взаємодію (якщо вона є та не заблокована `IInputBlocker`), після чого викликає `feedback.OnDragEndFeedback(targetChipBeforeInteraction, interactionResult)`. Наприклад, `MergeLightDragFeedback` активує ефект `MergeLight` лише при `DragInteractionResult.Full`.
 
@@ -72,5 +72,5 @@ IDragFeedback[] feedbacks = GetComponents<IDragFeedback>();
 ## Implementations
 - **[Merge2Module](../Chips/Merge2Module.md)** — Модуль злиття двох сумісних фішок із делегуванням планування і спавну в `IChipEvolutionService`.
 - **[ContainerModule](../Chips/ContainerModule.md#drag-and-drop-interaction-caninteract--oninteract)** — Модуль наповнення контейнера через `CanInteract`/`OnInteract`.
-- **`MergeHintDragFeedback`** — Компонент фідбеку, що активує ефекти `MergeHint` на цілях, зібраних через `Chip.CollectHintTargets`, та на контейнерах із `FillableChipsByData`.
+- **`MergeHintDragFeedback`** — Компонент фідбеку, що активує ефекти `MergeHint` на цілях, зібраних через `Chip.CollectHintTargets`, та на контейнерах із `ChipCollectionType.Fillable` (`chipCollections.GetCollection(...)`).
 - **`MergeLightDragFeedback`** — Компонент фідбеку, що активує ефект `MergeLight` на цільовій фішці при `DragInteractionResult.Full`.
